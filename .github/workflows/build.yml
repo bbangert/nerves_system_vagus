@@ -29,8 +29,11 @@ permissions:
   contents: write   # needed to upload Release assets
 
 env:
-  OTP_VERSION: "28.3"
-  ELIXIR_VERSION: "1.19.5"
+  # nerves_system_br 1.34.0 targets OTP 29; the host toolchain must match
+  # that major or Nerves aborts with a host/target OTP mismatch. Track the
+  # latest OTP 29.x + Elixir here.
+  OTP_VERSION: "29.0.3"
+  ELIXIR_VERSION: "1.20.2-otp-29"
 
 jobs:
   # Fast feedback: shared fragments are in sync and deps resolve. No buildroot.
