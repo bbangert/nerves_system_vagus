@@ -27,7 +27,7 @@ running a pre-2.0 firmware and haven't upgraded yet.
 | CPU                  | 1.5 GHz quad-core Cortex-A72 (64-bit mode) |
 | Memory               | 1 GB, 2 GB, 4 GB DRAM            |
 | Storage              | MicroSD                          |
-| Linux kernel         | 6.12 w/ Raspberry Pi patches     |
+| Linux kernel         | 6.18 w/ Raspberry Pi patches     |
 | IEx terminal         | HDMI and USB keyboard (can be changed to UART) |
 | GPIO, I2C, SPI       | Yes - [Elixir Circuits](https://github.com/elixir-circuits) |
 | ADC                  | No                               |

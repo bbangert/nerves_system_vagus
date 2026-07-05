@@ -66,8 +66,8 @@ defmodule NervesSystemX8664.MixProject do
   defp deps do
     [
       {:nerves, "~> 1.11", runtime: false},
-      {:nerves_system_br, "1.33.9", runtime: false},
-      {:nerves_toolchain_x86_64_nerves_linux_musl, "~> 13.2.0", runtime: false},
+      {:nerves_system_br, "1.34.0", runtime: false},
+      {:nerves_toolchain_x86_64_nerves_linux_musl, "~> 15.3.0", runtime: false},
       {:nerves_system_linter, "~> 0.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.22", only: :docs, runtime: false}
     ]
@@ -110,7 +110,7 @@ defmodule NervesSystemX8664.MixProject do
       "fwup.conf",
       "grub.cfg",
       "LICENSES/*",
-      "linux-6.12.defconfig",
+      "linux-6.18.defconfig",
       "linux-bluetooth.config",
       "mix.exs",
       "nerves_defconfig",
