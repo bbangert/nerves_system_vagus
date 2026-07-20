@@ -19,8 +19,9 @@ built in CI so consumers never need a local buildroot toolchain.
 └── .github/workflows/build.yml # matrix build → GitHub Releases
 ```
 
-Targets covered: **rpi0** (Zero W), **rpi0_2** (Zero 2 W), **rpi3** (3B/3B+/CM3),
-**rpi4** (4B/400/CM4), **rpi5**. `rpi`/`rpi2` have no onboard Bluetooth.
+Targets covered: **rpi0** (Zero W), **rpi0_2** (Zero 2 W), **rpi3** (3A+/3B/3B+/CM3),
+**rpi3_64** (3A+/3B/3B+, 64-bit), **rpi4** (4B/400/CM4), **rpi5**. `rpi`/`rpi2` have
+no onboard Bluetooth.
 
 Each target subdir is a **self-contained Nerves system** (its own
 `nerves_defconfig`, `fwup.conf`, overlay, and a local copy of any shared

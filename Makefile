@@ -13,7 +13,7 @@
 # Every target fork. rpi/rpi2 (no onboard BT) and x86_64 are included for USB
 # Bluetooth adapters + USB audio; the onboard-BT kernel symbols in the shared
 # fragment are inert there but harmless.
-TARGETS := rpi rpi0 rpi0_2 rpi2 rpi3 rpi4 rpi5 x86_64
+TARGETS := rpi rpi0 rpi0_2 rpi2 rpi3 rpi3_64 rpi4 rpi5 x86_64
 
 CFG := $(wildcard shared/*.config)
 
