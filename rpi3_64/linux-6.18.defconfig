@@ -227,6 +227,10 @@ CONFIG_HID_GENERIC=y
 CONFIG_USB_HID=y
 CONFIG_USB=y
 CONFIG_USB_STORAGE=y
+# The downstream Pi 3 DTB's USB node is compatible "brcm,bcm2708-usb", bound
+# only by the downstream dwc_otg driver (available on ARM64) — upstream dwc2
+# never probes it, leaving the whole USB bus (and thus ethernet) dead.
+CONFIG_USB_DWCOTG=y
 CONFIG_USB_DWC2=y
 CONFIG_USB_USBNET=y
 CONFIG_USB_NET_SMSC95XX=y
