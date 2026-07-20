@@ -1,2 +1,2 @@
 # See cmdline-a.txt
-console=tty1 console=serial0,115200 fbcon=scrollback:1024k root=/dev/mmcblk0p6 rootwait consoleblank=0 quiet
+console=tty1 console=serial0,115200 fbcon=scrollback:1024k root=/dev/mmcblk0p6 rootwait consoleblank=0 quiet cgroup_no_v1=all cgroup_enable=memory

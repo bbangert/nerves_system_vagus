@@ -29,7 +29,7 @@ BR2_LINUX_KERNEL_CUSTOM_TARBALL=y
 BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="https://github.com/raspberrypi/linux/archive/refs/tags/stable_20260527.tar.gz"
 BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
 BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${NERVES_DEFCONFIG_DIR}/linux-6.18.defconfig"
-BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.config"
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.config ${NERVES_DEFCONFIG_DIR}/linux-containers.config"
 BR2_LINUX_KERNEL_XZ=y
 BR2_LINUX_KERNEL_DTS_SUPPORT=y
 BR2_LINUX_KERNEL_INTREE_DTS_NAME="broadcom/bcm2710-rpi-3-b broadcom/bcm2710-rpi-3-b-plus"
@@ -90,3 +90,11 @@ BR2_PACKAGE_RPI_DISTRO_BLUEZ_FIRMWARE=y
 # Realtek RTL8761B/BU USB BT dongle firmware (e.g. TP-Link UB500) -> /lib/firmware/rtl_bt
 BR2_PACKAGE_LINUX_FIRMWARE=y
 BR2_PACKAGE_LINUX_FIRMWARE_RTL_87XX_BT=y
+
+# ---- Custom: container runtime (vagus-runtime-spike) ----
+# Vagus-owned external package (rpi3_64/package/vagus-balena-engine/), not
+# upstream Buildroot's package/balena-engine. cgroupfs-mount is intentionally
+# NOT enabled: its select is inert under BR2_INIT_NONE/erlinit (no SysV init
+# ever runs it) -- the fork owns cgroup mounting via erlinit.config instead.
+BR2_PACKAGE_VAGUS_BALENA_ENGINE=y
+BR2_PACKAGE_LIBSECCOMP=y
