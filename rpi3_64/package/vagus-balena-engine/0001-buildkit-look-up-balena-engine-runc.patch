@@ -1,0 +1,23 @@
+From: Vagus <vagus@nerves>
+Subject: [PATCH] builder-next: look up balena-engine-runc for the buildkit executor
+
+The balena fork renames every binary of the multicall bundle
+(runc -> balena-engine-runc) and installs no plain "runc", but
+builder-next's executor still hardcodes CommandCandidates
+{"runc"}. exec.LookPath("runc") then fails AFTER "Daemon has
+completed initialization", killing the daemon at startup on any
+system that ships only the renamed symlink set (found on the
+vagus rpi3_64 Nerves system).
+
+Prefer the renamed binary, keep "runc" as a fallback.
+---
+--- a/builder/builder-next/executor_linux.go
++++ b/builder/builder-next/executor_linux.go
+@@ -60,6 +60,6 @@
+ 	return runcexecutor.New(runcexecutor.Opt{
+ 		Root:                filepath.Join(root, "executor"),
+-		CommandCandidates:   []string{"runc"},
++		CommandCandidates:   []string{"balena-engine-runc", "runc"},
+ 		DefaultCgroupParent: cgroupParent,
+ 		Rootless:            rootless,
+ 		NoPivot:             os.Getenv("DOCKER_RAMDISK") != "",
