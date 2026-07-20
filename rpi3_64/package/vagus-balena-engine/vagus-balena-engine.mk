@@ -190,15 +190,16 @@ define VAGUS_BALENA_ENGINE_LINUX_CONFIG_FIXUPS
 	$(call KCONFIG_ENABLE_OPT,CONFIG_VETH)
 endef
 
-# Kept exactly as the stock 20.10.26-era package installs its argv0
-# symlinks -- see report.md for why this fork does NOT (yet) switch to the
-# different symlink set (adds "balenad", "balena-containerd-shim-runc-v2";
-# drops "balena-engine-containerd-shim") that hack/make/.binary-symlinks
-# actually produces at this v25 SRCREV.
+# Symlink set matches hack/make/.binary-symlinks at this v25 SRCREV:
+# "balena-containerd-shim-runc-v2" is mandatory (containerd execs the runc-v2
+# shim by binary name; without it containers cannot start), "balenad" is the
+# upstream daemon alias, and the v1 shim "balena-engine-containerd-shim" no
+# longer exists in v25.
 define VAGUS_BALENA_ENGINE_INSTALL_SYMLINK
+	ln -f -s balena-engine $(TARGET_DIR)/usr/bin/balenad
 	ln -f -s balena-engine $(TARGET_DIR)/usr/bin/balena-engine-daemon
 	ln -f -s balena-engine $(TARGET_DIR)/usr/bin/balena-engine-containerd
-	ln -f -s balena-engine $(TARGET_DIR)/usr/bin/balena-engine-containerd-shim
+	ln -f -s balena-engine $(TARGET_DIR)/usr/bin/balena-containerd-shim-runc-v2
 	ln -f -s balena-engine $(TARGET_DIR)/usr/bin/balena-engine-containerd-ctr
 	ln -f -s balena-engine $(TARGET_DIR)/usr/bin/balena-engine-runc
 	ln -f -s balena-engine $(TARGET_DIR)/usr/bin/balena-engine-proxy
