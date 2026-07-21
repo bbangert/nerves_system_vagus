@@ -1,4 +1,4 @@
-# nerves_systems_universal_proxy
+# nerves_system_vagus
 
 Custom Nerves systems for the Universal Proxy project — forks of the upstream
 `nerves_system_*` systems with our additions (Bluetooth via **BlueZ + D-Bus**,
@@ -78,7 +78,7 @@ Same recipe as the existing five:
   upstream hex system):
 
   ```elixir
-  {:nerves_system_rpi3, github: "bbangert/nerves_systems_universal_proxy",
+  {:nerves_system_rpi3, github: "bbangert/nerves_system_vagus",
      sparse: "rpi3", tag: "v0.1.0", runtime: false, targets: :rpi3, override: true},
   ```
 

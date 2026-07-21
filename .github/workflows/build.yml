@@ -1,13 +1,13 @@
 name: build
 
 # Builds each custom Nerves system's artifact in CI and publishes it to this
-# repo's GitHub Releases, so the consuming project (universal_proxy) downloads
+# repo's GitHub Releases, so the consuming project (vagus) downloads
 # the prebuilt artifact and never needs a local buildroot toolchain.
 #
 #   - PRs / pushes: cheap checks only (fragment drift, deps resolve).
 #   - Tag push `v*`: full buildroot build of every target, uploaded to the
 #     Release for that tag. The system mix.exs `artifact_sites:
-#     {:github_releases, "<org>/nerves_systems_universal_proxy"}` resolves
+#     {:github_releases, "<org>/nerves_system_vagus"}` resolves
 #     against exactly these assets (matched by app-name + checksum).
 #
 # This is a self-contained, per-subdir recipe — it suits the monorepo layout

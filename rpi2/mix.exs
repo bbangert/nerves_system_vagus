@@ -3,7 +3,7 @@ defmodule NervesSystemRpi2.MixProject do
 
   @github_organization "bbangert"
   @app :nerves_system_rpi2
-  @releases_repo "bbangert/nerves_systems_universal_proxy"
+  @releases_repo "bbangert/nerves_system_vagus"
   @source_url "https://github.com/#{@releases_repo}"
   @version Path.join(__DIR__, "VERSION")
            |> File.read!()
