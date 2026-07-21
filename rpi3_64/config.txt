@@ -19,10 +19,13 @@ fixup_file=fixup.dat
 # Disable the boot rainbow
 disable_splash=1
 
-# This, along with the Raspberry Pi "x" firmware is needed for the camera
-# to work. The Raspberry Pi "x" firmware is selected via the Buildroot
-# configuration. See Target packages->Hardware handling->Firmware.
-gpu_mem=192
+# vagus: headless HA appliance — no display, camera, video transcoding, or
+# 3D. Drop the GPU/VideoCore reservation to the 16MB minimum, freeing ~176MB
+# back to Linux on this 1GB board. Paired with the cut-down "cd" firmware
+# (start_cd.elf/fixup_cd.dat), selected via BR2_PACKAGE_RPI_FIRMWARE_VARIANT_PI_CD
+# in nerves_defconfig and wired in fwup.conf — the extended "x" firmware
+# expects a much larger GPU split and is pointless without a camera.
+gpu_mem=16
 
 # Enable I2C and SPI
 dtparam=i2c_arm=on

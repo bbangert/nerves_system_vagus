@@ -17,8 +17,8 @@ file-resource cmdline-b.txt { host-path = "${NERVES_SYSTEM}/images/cmdline-b.txt
 <%
 # Define file resources - order matters for firmware update
 file_resources = [
-  %{name: "start.elf", path: "${NERVES_SYSTEM}/images/rpi-firmware/start_x.elf"},
-  %{name: "fixup.dat", path: "${NERVES_SYSTEM}/images/rpi-firmware/fixup_x.dat"},
+  %{name: "start.elf", path: "${NERVES_SYSTEM}/images/rpi-firmware/start_cd.elf"},
+  %{name: "fixup.dat", path: "${NERVES_SYSTEM}/images/rpi-firmware/fixup_cd.dat"},
   %{name: "config.txt", path: "${NERVES_SYSTEM}/images/config.txt"},
   %{name: "kernel8.img", path: "${NERVES_SYSTEM}/images/Image"},
   %{name: "bcm2710-rpi-3-b.dtb", path: "${NERVES_SYSTEM}/images/bcm2710-rpi-3-b.dtb"},
