@@ -18,18 +18,22 @@
 # MATCHED-PAIR RULE (do not break; failure mode is fastrpc error
 # 0x80000600 with no kernel log): the cdsp.mbn the kernel loads and the
 # fastrpc_shell_* binaries must carry the same QC_IMAGE_VERSION_STRING.
-# Verified for this pinning (2026-07-24, `strings | grep QC_IMAGE`):
 #
-#   linux-firmware qcom/qcs6490/radxa/dragon-q6a/cdsp.mbn
-#       = CDSP.HT.2.5.c4-00004-KODIAK-1
-#   hexagon-dsp-binaries qcs6490/radxa/dragon-q6a/CDSP.HT.2.5.c4-00004-KODIAK-1/
-#       = same string (dir name is the version)
-#   linux-firmware qcom/qcs6490/radxa/dragon-q6a/adsp.mbn
-#       = ADSP.HT.5.5.c9-00028-KODIAK-2 (matches ADSP dir likewise)
+# CDSP pair choice (device-tested 2026-07-24): the GENERIC c3 line, not the
+# Q6A board c4 line --
 #
-# The GENERIC qcom/qcm6490/cdsp.mbn in linux-firmware is c3-00134 and does
-# NOT match these shells -- which is why the board cdsp.mbn is installed at
-# the generic path qcom/qcs6490/cdsp.mbn that the mainline DTS requests.
+#   qcom/qcm6490/cdsp.mbn            = CDSP.HT.2.5.c3-00134-KODIAK-1
+#   qcm6490/Thundercomm/RB3gen2/CDSP.HT.2.5.c3-00134-KODIAK-1/  (shells)
+#
+# Rationale: the c3 pair is the one proven with MAINLINE kernels (Armbian
+# edge/Olof Astrand's Q6A fastrpc bring-up; also q6a_ai.md's "known-good
+# swap" note). The board c4-00004 pair (radxa/dragon-q6a dirs) is proven
+# only on Radxa's 6.18 vendor kernel -- on mainline 7.1.4 it created the
+# user PD but every remote invoke failed/hung (fastrpc_test 0/3, D-state
+# hang), observed on this hardware. ADSP stays the board set:
+#
+#   qcom/qcs6490/radxa/dragon-q6a/adsp.mbn = ADSP.HT.5.5.c9-00028-KODIAK-2
+#   (matching ADSP shell dir of the same name)
 #
 ################################################################################
 
@@ -48,8 +52,8 @@ DRAGON_Q6A_FIRMWARE_BIN_ARCH_EXCLUDE = /usr/lib/dsp
 DRAGON_Q6A_FIRMWARE_LF_DIR = $(BUILD_DIR)/linux-firmware-$(LINUX_FIRMWARE_VERSION)
 DRAGON_Q6A_FIRMWARE_FW_DIR = $(TARGET_DIR)/lib/firmware
 DRAGON_Q6A_FIRMWARE_Q6A_DIR = $(@D)/qcs6490/radxa/dragon-q6a
-DRAGON_Q6A_FIRMWARE_CDSP_LIBS = CDSP.HT.2.5.c4-00004-KODIAK-1
-DRAGON_Q6A_FIRMWARE_ADSP_LIBS = ADSP.HT.5.5.c9-00028-KODIAK-2
+DRAGON_Q6A_FIRMWARE_CDSP_LIBS = $(@D)/qcm6490/Thundercomm/RB3gen2/CDSP.HT.2.5.c3-00134-KODIAK-1
+DRAGON_Q6A_FIRMWARE_ADSP_LIBS = $(DRAGON_Q6A_FIRMWARE_Q6A_DIR)/ADSP.HT.5.5.c9-00028-KODIAK-2
 
 define DRAGON_Q6A_FIRMWARE_INSTALL_TARGET_CMDS
 	# Adreno 643 GPU (requested from qcom/ and qcom/qcs6490/)
@@ -72,20 +76,29 @@ define DRAGON_Q6A_FIRMWARE_INSTALL_TARGET_CMDS
 		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/qcom/qcs6490/radxa/dragon-q6a/adspr.jsn
 	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/qcs6490/radxa/dragon-q6a/adspua.jsn \
 		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/qcom/qcs6490/radxa/dragon-q6a/adspua.jsn
-	# CDSP: board cdsp.mbn (c4-00004) installed AT the generic path the
-	# mainline DTS requests -- matched-pair rule, see header.
-	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/qcs6490/radxa/dragon-q6a/cdsp.mbn \
+	# CDSP: generic c3-00134 cdsp.mbn installed at BOTH request paths --
+	# the mainline in-tree DTS asks for the generic qcom/qcs6490/cdsp.mbn,
+	# but the firmware-provided DT (Radxa EDK2, which we actually boot on)
+	# asks for the radxa/dragon-q6a/ board path (device-proven 2026-07-24:
+	# CDSP request_firmware failed -2 until the board path existed).
+	# Matched-pair rule for the contents, see header.
+	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/qcm6490/cdsp.mbn \
 		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/qcom/qcs6490/cdsp.mbn
-	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/qcs6490/radxa/dragon-q6a/cdspr.jsn \
+	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/qcm6490/cdspr.jsn \
 		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/qcom/qcs6490/cdspr.jsn
+	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/qcm6490/cdsp.mbn \
+		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/qcom/qcs6490/radxa/dragon-q6a/cdsp.mbn
+	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/qcm6490/cdspr.jsn \
+		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/qcom/qcs6490/radxa/dragon-q6a/cdspr.jsn
 	# DSP-side shells + skels. Separate per-domain dirs (the sysmon skel
-	# names collide between ADSP and CDSP sets); daemons/tests point at
-	# them via DSP_LIBRARY_PATH / ADSP_LIBRARY_PATH (fastrpc default
-	# search path already includes /usr/lib/dsp).
+	# names collide between ADSP and CDSP sets); the fastrpc package
+	# patches its built-in search path to look in /usr/lib/dsp/cdsp
+	# first, and per-process DSP_LIBRARY_PATH/ADSP_LIBRARY_PATH env can
+	# override per domain.
 	mkdir -p $(TARGET_DIR)/usr/lib/dsp/cdsp $(TARGET_DIR)/usr/lib/dsp/adsp
-	$(INSTALL) -m 0644 $(DRAGON_Q6A_FIRMWARE_Q6A_DIR)/$(DRAGON_Q6A_FIRMWARE_CDSP_LIBS)/* \
+	$(INSTALL) -m 0644 $(DRAGON_Q6A_FIRMWARE_CDSP_LIBS)/* \
 		$(TARGET_DIR)/usr/lib/dsp/cdsp/
-	$(INSTALL) -m 0644 $(DRAGON_Q6A_FIRMWARE_Q6A_DIR)/$(DRAGON_Q6A_FIRMWARE_ADSP_LIBS)/* \
+	$(INSTALL) -m 0644 $(DRAGON_Q6A_FIRMWARE_ADSP_LIBS)/* \
 		$(TARGET_DIR)/usr/lib/dsp/adsp/
 endef
 

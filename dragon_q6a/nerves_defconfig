@@ -62,7 +62,7 @@ BR2_PACKAGE_LIBBSD=y
 # with prefix /EFI/BOOT (so grub.cfg + grubenv are loaded from the ESP).
 BR2_TARGET_GRUB2=y
 BR2_TARGET_GRUB2_ARM64_EFI=y
-BR2_TARGET_GRUB2_BUILTIN_MODULES_EFI="boot linux ext2 squash4 fat part_gpt normal loadenv search search_fs_uuid echo true test sleep serial"
+BR2_TARGET_GRUB2_BUILTIN_MODULES_EFI="boot linux ext2 squash4 fat part_gpt normal loadenv search search_fs_uuid echo true test sleep serial fdt"
 BR2_PACKAGE_HOST_DOSFSTOOLS=y
 BR2_NERVES_SYSTEM_NAME="nerves_system_dragon_q6a"
 BR2_NERVES_ADDITIONAL_IMAGE_FILES="${NERVES_DEFCONFIG_DIR}/fwup.conf"
