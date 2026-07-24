@@ -3,9 +3,9 @@
 # fastrpc
 #
 # Qualcomm FastRPC userspace (BSD-3-Clause), pinned to v1.0.4 -- the same
-# version RadxaOS ships and the one the q6a_ai bring-up validated 3/3 on
-# `fastrpc_test -a v68` against the CDSP.HT.2.5.c4 firmware set installed
-# by package/dragon-q6a-firmware.
+# version RadxaOS ships, and the one this system's bring-up validated 3/3
+# on `fastrpc_test -a v68` against the CDSP.HT.2.5.c3-00134 firmware set
+# installed by package/dragon-q6a-firmware.
 #
 # The tarball has no pre-generated ./configure (autogen.sh), so autoreconf.
 #

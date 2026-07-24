@@ -100,9 +100,12 @@ pulling power is clean.
 ## First boot
 
 Serial console is on the GENI debug UART (`ttyMSM0`, 115200n8) — GRUB's
-slot banner and the IEx console both land there. First boot expands and
-formats `/data` (p5). Find the device's IP from the router's DHCP table;
-NervesSSH is on port 22 (`ssh <ip>`).
+slot banner and the IEx console both land there. First boot formats
+`/data` (p5). Note: under EDL flashing `/data` stays at the image's
+512 MiB — fwup's `expand=true` only applies when fwup writes the block
+device directly, and EDL writes the pre-generated image verbatim (growing
+p5 post-flash is an open follow-up). Find the device's IP from the
+router's DHCP table; NervesSSH is on port 22 (`ssh <ip>`).
 
 ## Diagnosis cheat sheet
 

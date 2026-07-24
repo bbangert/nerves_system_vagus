@@ -56,6 +56,17 @@ DRAGON_Q6A_FIRMWARE_CDSP_LIBS = $(@D)/qcm6490/Thundercomm/RB3gen2/CDSP.HT.2.5.c3
 DRAGON_Q6A_FIRMWARE_ADSP_LIBS = $(DRAGON_Q6A_FIRMWARE_Q6A_DIR)/ADSP.HT.5.5.c9-00028-KODIAK-2
 
 define DRAGON_Q6A_FIRMWARE_INSTALL_TARGET_CMDS
+	# Matched-pair guard: the CDSP image and the shells MUST carry the same
+	# QC_IMAGE_VERSION_STRING (the shell dir is named after it). A mismatch
+	# only surfaces at runtime as fastrpc error 0x80000600 with no kernel
+	# log -- fail the build loudly instead. (Hit twice during bring-up.)
+	cdsp_ver=$$(strings $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/qcm6490/cdsp.mbn \
+			| sed -n 's/^QC_IMAGE_VERSION_STRING=//p' | head -1); \
+		shell_ver=$$(basename $(DRAGON_Q6A_FIRMWARE_CDSP_LIBS)); \
+		test -n "$$cdsp_ver" && test "$$cdsp_ver" = "$$shell_ver" || { \
+			echo "dragon-q6a-firmware: CDSP matched-pair violation: cdsp.mbn='$$cdsp_ver' shells='$$shell_ver'"; \
+			exit 1; \
+		}
 	# Adreno 643 GPU (requested from qcom/ and qcom/qcs6490/)
 	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/a660_gmu.bin \
 		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/qcom/a660_gmu.bin
