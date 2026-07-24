@@ -1,0 +1,72 @@
+version = 1
+
+[[annotations]]
+path = [
+ ".formatter.exs",
+ ".github/CODEOWNERS",
+ ".gitignore",
+ "CHANGELOG.md",
+ "nerves_defconfig",
+ "NOTICE",
+ "REUSE.toml",
+ "mix.exs",
+ "mix.lock",
+ "VERSION"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "None"
+SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = [
+ "README.md"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2016 Frank Hunleth"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# Buildroot derived or related files
+# NOTE: packages here proactively have copyright assigned to the Buildroot
+# developers to avoid worrying about copyright assignment when upstreaming.
+[[annotations]]
+path = [
+ "Config.in",
+ "package/**",
+ "external.mk",
+ "post-build.sh",
+ "post-createfs.sh"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "The Buildroot developers <buildroot@buildroot.org>"
+SPDX-License-Identifier = "GPL-2.0-or-later"
+
+# Linux kernel derived or related files
+[[annotations]]
+path = [
+ "linux-7.1.defconfig"
+]
+precedence = "override"
+SPDX-FileCopyrightText = "Various"
+SPDX-License-Identifier = "GPL-2.0-only"
+
+# Fwup config files
+[[annotations]]
+path = [
+ "fwup-ops.conf",
+ "fwup.conf",
+ "fwup_include/*"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "None"
+SPDX-License-Identifier = "CC0-1.0"
+
+# Various config files
+[[annotations]]
+path = [
+ "grub.cfg",
+ "test_src/**",
+ "rootfs_overlay/**"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "None"
+SPDX-License-Identifier = "CC0-1.0"

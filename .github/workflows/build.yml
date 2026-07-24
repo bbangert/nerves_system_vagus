@@ -50,7 +50,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        target: [rpi, rpi0, rpi0_2, rpi2, rpi3, rpi3_64, rpi4, rpi5, x86_64]
+        target: [dragon_q6a, rpi, rpi0, rpi0_2, rpi2, rpi3, rpi3_64, rpi4, rpi5, x86_64]
     steps:
       # GitHub-hosted runners have only ~14 GB free, which a full Nerves
       # buildroot build can exhaust ("No space left on device" — seen on
@@ -101,7 +101,7 @@ jobs:
           path: |
             ~/.nerves
             ~/.cache/nerves
-          key: nerves-${{ matrix.target }}-${{ hashFiles(format('{0}/nerves_defconfig', matrix.target), format('{0}/linux-*.config', matrix.target)) }}
+          key: nerves-${{ matrix.target }}-${{ hashFiles(format('{0}/nerves_defconfig', matrix.target), format('{0}/linux-*.config', matrix.target), format('{0}/linux-*.defconfig', matrix.target), format('{0}/package/**', matrix.target)) }}
           restore-keys: nerves-${{ matrix.target }}-
 
       - name: Build the system artifact
