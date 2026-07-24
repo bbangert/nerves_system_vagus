@@ -1,0 +1,92 @@
+BR2_aarch64=y
+BR2_TOOLCHAIN_EXTERNAL=y
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM=y
+BR2_TOOLCHAIN_EXTERNAL_DOWNLOAD=y
+BR2_TOOLCHAIN_EXTERNAL_URL="https://github.com/nerves-project/toolchains/releases/download/v15.3.0/nerves_toolchain_aarch64_nerves_linux_gnu-linux_${shell uname -m}-15.3.0-8DAF9F3.tar.xz"
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM_PREFIX="aarch64-nerves-linux-gnu"
+BR2_TOOLCHAIN_EXTERNAL_HEADERS_6_0=y
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM_GLIBC=y
+# BR2_TOOLCHAIN_EXTERNAL_INET_RPC is not set
+# BR2_TOOLCHAIN_EXTERNAL_CXX=y also installs libstdc++ into the target
+# rootfs (toolchain-external copies libstdc++.so.* when CXX is on) --
+# required by the user-provisioned QAIRT bundle in /data.
+BR2_TOOLCHAIN_EXTERNAL_CXX=y
+BR2_TOOLCHAIN_EXTERNAL_FORTRAN=y
+BR2_TOOLCHAIN_EXTERNAL_OPENMP=y
+BR2_TAR_OPTIONS="--no-same-owner"
+BR2_BACKUP_SITE="https://dl.nerves-project.org"
+BR2_ENABLE_DEBUG=y
+BR2_GLOBAL_PATCH_DIR="${BR2_EXTERNAL_NERVES_PATH}/patches"
+BR2_REPRODUCIBLE=y
+BR2_ROOTFS_SKELETON_CUSTOM=y
+BR2_ROOTFS_SKELETON_CUSTOM_PATH="${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/skeleton"
+BR2_INIT_NONE=y
+BR2_ROOTFS_DEVICE_TABLE="${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/device_table.txt"
+BR2_ENABLE_LOCALE_WHITELIST="locale-archive"
+BR2_GENERATE_LOCALE="en_US.UTF-8"
+BR2_ROOTFS_OVERLAY="${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/rootfs_overlay ${NERVES_DEFCONFIG_DIR}/rootfs_overlay"
+BR2_ROOTFS_POST_BUILD_SCRIPT="${NERVES_DEFCONFIG_DIR}/post-build.sh ${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/post-build.sh"
+BR2_ROOTFS_POST_IMAGE_SCRIPT="${NERVES_DEFCONFIG_DIR}/post-createfs.sh"
+BR2_LINUX_KERNEL=y
+BR2_LINUX_KERNEL_CUSTOM_VERSION=y
+BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="7.1.4"
+BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
+BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${NERVES_DEFCONFIG_DIR}/linux-7.1.defconfig"
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.config"
+# No BR2_LINUX_KERNEL_XZ: GRUB's arm64 `linux` loader boots the kernel via
+# its EFI stub, which requires the plain uncompressed Image. The kernel (and
+# DTB, for the embed-fallback path) install into /boot INSIDE the squashfs
+# rootfs slots -- the A/B update is atomic because GRUB reads squash4.
+BR2_LINUX_KERNEL_DTS_SUPPORT=y
+BR2_LINUX_KERNEL_INTREE_DTS_NAME="qcom/qcs6490-radxa-dragon-q6a"
+BR2_LINUX_KERNEL_INSTALL_TARGET=y
+BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
+BR2_PACKAGE_BUSYBOX_CONFIG="${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/busybox.config"
+BR2_PACKAGE_E2FSPROGS=y
+# BR2_PACKAGE_E2FSPROGS_FSCK is not set
+BR2_PACKAGE_CA_CERTIFICATES=y
+BR2_PACKAGE_LIBP11=y
+BR2_PACKAGE_UNIXODBC=y
+BR2_PACKAGE_LIBMNL=y
+# libnl: vintage_net_wifi's NIF compiles against libnl-genl-3.0 (x86_64
+# parity); WiFi drivers stay out of the kernel, but downstream apps using
+# nerves_pack must still be able to compile.
+BR2_PACKAGE_LIBNL=y
+# fastrpc userspace dependencies (target-local package/fastrpc)
+BR2_PACKAGE_LIBYAML=y
+BR2_PACKAGE_LIBMD=y
+BR2_PACKAGE_LIBBSD=y
+# BR2_TARGET_ROOTFS_TAR is not set
+# GRUB2 arm64-efi: EDK2 UEFI (SPI NOR) loads \EFI\BOOT\BOOTAA64.EFI from the
+# ESP; grub-mkimage output lands in images/efi-part/EFI/BOOT/bootaa64.efi
+# with prefix /EFI/BOOT (so grub.cfg + grubenv are loaded from the ESP).
+BR2_TARGET_GRUB2=y
+BR2_TARGET_GRUB2_ARM64_EFI=y
+BR2_TARGET_GRUB2_BUILTIN_MODULES_EFI="boot linux ext2 squash4 fat part_gpt normal loadenv search search_fs_uuid echo true test sleep serial"
+BR2_PACKAGE_HOST_DOSFSTOOLS=y
+BR2_NERVES_SYSTEM_NAME="nerves_system_dragon_q6a"
+BR2_NERVES_ADDITIONAL_IMAGE_FILES="${NERVES_DEFCONFIG_DIR}/fwup.conf"
+BR2_PACKAGE_NBTTY=y
+BR2_PACKAGE_NERVES_CONFIG=y
+BR2_PACKAGE_NERVES_CONFIG_ACCEPT_RNG_NOTICE=y
+
+# Universal Proxy: BlueZ host stack + D-Bus (userspace). USB BT + USB-audio
+# kernel drivers come from linux-bluetooth.config; bluetoothd/dbus-daemon are
+# launched by the app. USB BT dongles needing firmware rely on the Realtek
+# blob set below (e.g. TP-Link UB500 -> /lib/firmware/rtl_bt).
+BR2_PACKAGE_DBUS=y
+BR2_PACKAGE_BLUEZ5_UTILS=y
+# bluez-alsa: `bluealsad -p a2dp-source` exposes a connected A2DP headset as
+# the ALSA PCM `bluealsa:DEV=MAC,PROFILE=a2dp`, which sendspin opens directly
+# (no C changes). SBC only — AAC (fdk-aac) is gated on legal review. Selects
+# alsa-lib, libglib2, and sbc; peers with BR2_PACKAGE_BLUEZ5_UTILS above.
+BR2_PACKAGE_BLUEZ_ALSA=y
+BR2_PACKAGE_LINUX_FIRMWARE=y
+BR2_PACKAGE_LINUX_FIRMWARE_RTL_87XX_BT=y
+
+# ---- Custom: Dragon Q6A AI foundation ----
+# Matched CDSP/ADSP firmware set + GPU/Venus/QUP blobs (single upstream
+# linux-firmware source; see package/dragon-q6a-firmware) and the fastrpc
+# userspace (library + daemons + fastrpc_test; see package/fastrpc).
+BR2_PACKAGE_DRAGON_Q6A_FIRMWARE=y
+BR2_PACKAGE_FASTRPC=y

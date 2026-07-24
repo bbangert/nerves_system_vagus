@@ -1,0 +1,6 @@
+# Locally computed (downloaded and sha256'd directly from GitHub on
+# 2026-07-24 in the dragon_q6a bring-up session).
+sha256  63740295ed7c6c872e225fc5209b2c974a8f1e26bc30153282a77d0b6ec23ed9  dragon-q6a-firmware-2113cae26e994948ffc871d29f6206631ee2fc81.tar.gz
+sha256  eeaa182d413a4bc36efd503f8f3285cc96d63a51624ea1b24ebcf305c2c3403e  LICENSE.qcom
+sha256  8401a2253b19272c59537567194d0b264e7ef466379334ff6cea0beec7b8165d  LICENSE.qcom-2
+sha256  587f418475edca46ab0f9a864bb2c06a94aaf5e401023aeb7bffaa1b95a485f8  LICENSE.MIT
