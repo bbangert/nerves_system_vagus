@@ -39,7 +39,7 @@
 
 DRAGON_Q6A_FIRMWARE_VERSION = 2113cae26e994948ffc871d29f6206631ee2fc81
 DRAGON_Q6A_FIRMWARE_SITE = $(call github,linux-msm,hexagon-dsp-binaries,$(DRAGON_Q6A_FIRMWARE_VERSION))
-DRAGON_Q6A_FIRMWARE_LICENSE = Qualcomm firmware license, MIT
+DRAGON_Q6A_FIRMWARE_LICENSE = Qualcomm firmware license, MIT, r8169 firmware license, Linaro firmware license
 DRAGON_Q6A_FIRMWARE_LICENSE_FILES = LICENSE.qcom LICENSE.qcom-2 LICENSE.MIT
 DRAGON_Q6A_FIRMWARE_REDISTRIBUTE = NO
 DRAGON_Q6A_FIRMWARE_DEPENDENCIES = linux-firmware
@@ -80,6 +80,14 @@ define DRAGON_Q6A_FIRMWARE_INSTALL_TARGET_CMDS
 	# Venus video codec (sc7280 driver requests qcom/vpu-2.0/venus.mbn)
 	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/vpu/vpu20_p1.mbn \
 		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/qcom/vpu-2.0/venus.mbn
+	# Ethernet microcode: the board's GbE port enumerates as RTL8168H/8111H
+	# (r8169 requests this blob; the NIC works without it, but loudly)
+	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/rtl_nic/rtl8168h-2.fw \
+		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/rtl_nic/rtl8168h-2.fw
+	# Board audio topology (qcom-apm requests the qcs6490/ path; the real
+	# file lives in the board dir) -- un-breaks the snd-sc8280xp card probe
+	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/qcs6490/radxa/dragon-q6a/QCS6490-Radxa-Dragon-Q6A-tplg.bin \
+		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/qcom/qcs6490/QCS6490-Radxa-Dragon-Q6A-tplg.bin
 	# ADSP: board-matched image + fastrpc domain descriptors (DTS path)
 	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/qcs6490/radxa/dragon-q6a/adsp.mbn \
 		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/qcom/qcs6490/radxa/dragon-q6a/adsp.mbn
@@ -112,5 +120,18 @@ define DRAGON_Q6A_FIRMWARE_INSTALL_TARGET_CMDS
 	$(INSTALL) -m 0644 $(DRAGON_Q6A_FIRMWARE_ADSP_LIBS)/* \
 		$(TARGET_DIR)/usr/lib/dsp/adsp/
 endef
+
+# The RTL and Linaro-tplg blobs are covered by license files that live in
+# the LINUX-FIRMWARE tree, which <PKG>_LICENSE_FILES cannot reference
+# (it only copies from this package's own source dir). Copy them into our
+# legal-info output directly; the supported build flow ("source all
+# legal-info") guarantees linux-firmware is extracted by legal-info time.
+define DRAGON_Q6A_FIRMWARE_ADD_LINUX_FIRMWARE_LICENSES
+	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/LICENSE.r8169 \
+		$(LEGAL_INFO_DIR)/licenses/$(DRAGON_Q6A_FIRMWARE_BASENAME_RAW)/LICENSE.r8169
+	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/LICENCE.linaro \
+		$(LEGAL_INFO_DIR)/licenses/$(DRAGON_Q6A_FIRMWARE_BASENAME_RAW)/LICENCE.linaro
+endef
+DRAGON_Q6A_FIRMWARE_POST_LEGAL_INFO_HOOKS += DRAGON_Q6A_FIRMWARE_ADD_LINUX_FIRMWARE_LICENSES
 
 $(eval $(generic-package))

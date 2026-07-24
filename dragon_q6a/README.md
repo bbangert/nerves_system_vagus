@@ -48,8 +48,16 @@ p5  data     ext4     512 MiB+ /data (expand=true)
 
 > **Note (EDL flashing):** fwup's `expand=true` only applies when fwup
 > writes the block device directly. EDL writes a pre-generated image
-> verbatim, so `/data` stays at 512 MiB and the backup GPT sits at the
-> image-tail position. Growing p5 post-flash is an open follow-up.
+> verbatim, so `/data` starts at 512 MiB with the backup GPT at the
+> image-tail position. Grow it to the full disk with the one-shot
+> `expand-data` op (rewrites the GPT sized to the real device, then the
+> ext4 is grown online):
+>
+> ```sh
+> fwup -t expand-data -d /dev/rootdisk0 /usr/share/fwup/ops.fw
+> reboot   # kernel rereads the partition table
+> resize2fs /dev/rootdisk0p5
+> ```
 
 ## Flashing
 

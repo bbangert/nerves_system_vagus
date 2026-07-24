@@ -44,6 +44,9 @@ BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
 BR2_PACKAGE_BUSYBOX_CONFIG="${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/busybox.config"
 BR2_PACKAGE_E2FSPROGS=y
 # BR2_PACKAGE_E2FSPROGS_FSCK is not set
+# resize2fs: pairs with fwup-ops.conf's expand-data task -- EDL-flashed
+# disks grow /data to the full device (online ext4 resize).
+BR2_PACKAGE_E2FSPROGS_RESIZE2FS=y
 BR2_PACKAGE_CA_CERTIFICATES=y
 BR2_PACKAGE_LIBP11=y
 BR2_PACKAGE_UNIXODBC=y

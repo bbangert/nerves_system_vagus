@@ -101,11 +101,18 @@ pulling power is clean.
 
 Serial console is on the GENI debug UART (`ttyMSM0`, 115200n8) — GRUB's
 slot banner and the IEx console both land there. First boot formats
-`/data` (p5). Note: under EDL flashing `/data` stays at the image's
-512 MiB — fwup's `expand=true` only applies when fwup writes the block
-device directly, and EDL writes the pre-generated image verbatim (growing
-p5 post-flash is an open follow-up). Find the device's IP from the
-router's DHCP table; NervesSSH is on port 22 (`ssh <ip>`).
+`/data` (p5) at the image's 512 MiB — EDL writes the pre-generated image
+verbatim, so fwup's `expand=true` didn't get to run. Grow `/data` to the
+full disk once the board is up:
+
+```sh
+fwup -t expand-data -d /dev/rootdisk0 /usr/share/fwup/ops.fw
+reboot
+resize2fs /dev/rootdisk0p5
+```
+
+Find the device's IP from the router's DHCP table; NervesSSH is on
+port 22 (`ssh <ip>`).
 
 ## Diagnosis cheat sheet
 
