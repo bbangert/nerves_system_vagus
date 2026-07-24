@@ -140,13 +140,20 @@ board-specific c4-00004 CDSP pair is a known dead-end on mainline kernels
 
 ## Known-out-of-scope / open items
 
-- **USB non-functional**: the stock 7.1 DTS lacks the USB3 enables Armbian
-  patches in (`dwc3-qcom failed to register DWC3 Core`).
+- **USB 2.0 works; SuperSpeed does not**: with the mainline DTB, xhci and
+  the onboard USB 2.0 hub come up and devices enumerate at high speed
+  (the onboard AIC8800 WiFi module is a USB device and enumerates).
+  No SuperSpeed root hub registers — the stock 7.1 DTS lacks the USB3
+  lane enables that Armbian patches in. The early boot line
+  `dwc3-qcom: failed to register DWC3 Core` is a transient from before
+  the HS PHY probes; the driver retries and binds.
 - **GPU/display**: drm/msm ships as a module but the Adreno SMMU defers
   (-110) and no GPU userspace (mesa) is shipped.
 - **Audio (partial)**: the board topology blob ships and the sound card
   registers (`QCS6490-Radxa-Dragon-Q6A` in `/proc/asound/cards`); actual
   playback/capture paths are unvalidated.
-- **WiFi/BT (onboard AIC8800)**: out-of-tree driver, not shipped. USB BT
-  dongles work (BlueZ + Realtek blobs included).
+- **WiFi/BT (onboard AIC8800)**: out-of-tree driver, deliberately not
+  shipped (module enumerates on USB but stays driverless). USB BT dongles
+  are expected to work — USB 2.0 is sufficient and BlueZ + Realtek blobs
+  ship — but no dongle has been validated on this board yet.
 - **UFS variant** (`_4096` image, 4096-byte sectors): planned, not started.
