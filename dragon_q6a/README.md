@@ -129,7 +129,7 @@ Every row below was validated together on hardware on 2026-07-24
 | ADSP firmware | `radxa/dragon-q6a/adsp.mbn` = **ADSP.HT.5.5.c9-00028-KODIAK-2** | + `adspr.jsn`/`adspua.jsn` |
 | ADSP shells | hexagon-dsp-binaries `qcs6490/radxa/dragon-q6a/ADSP.HT.5.5.c9-00028-KODIAK-2` | → `/usr/lib/dsp/adsp` |
 | fastrpc userspace | v1.0.4 (qualcomm/fastrpc) | search path patched to `/usr/lib/dsp/{cdsp,adsp}` |
-| Venus firmware | `qcom/vpu-2.0/venus.mbn` (= `vpu/vpu20_p1.mbn`) | `/dev/video0`+`1` probe verified |
+| Venus firmware | `qcom/vpu-2.0/venus.mbn` (= `vpu/vpu20_p1.mbn`) | `test_src/venus_dec_smoke` decodes 30/30 frames on hardware |
 | QAIRT | — not shipped; 2.45.40.260406 validated on this board under RadxaOS (q6a_ai reference) | HTP smoke on this system pending (plan gate 3.3) |
 
 **Matched-pair rule:** the CDSP firmware and the fastrpc shells must carry
@@ -144,9 +144,9 @@ board-specific c4-00004 CDSP pair is a known dead-end on mainline kernels
   patches in (`dwc3-qcom failed to register DWC3 Core`).
 - **GPU/display**: drm/msm ships as a module but the Adreno SMMU defers
   (-110) and no GPU userspace (mesa) is shipped.
-- **Audio**: mainline-DTB audio nodes probe but the board topology blob
-  (`QCS6490-Radxa-Dragon-Q6A-tplg.bin`) is not shipped.
+- **Audio (partial)**: the board topology blob ships and the sound card
+  registers (`QCS6490-Radxa-Dragon-Q6A` in `/proc/asound/cards`); actual
+  playback/capture paths are unvalidated.
 - **WiFi/BT (onboard AIC8800)**: out-of-tree driver, not shipped. USB BT
   dongles work (BlueZ + Realtek blobs included).
-- `/data` expansion under EDL flashing (see layout note above).
 - **UFS variant** (`_4096` image, 4096-byte sectors): planned, not started.
