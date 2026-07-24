@@ -5,12 +5,15 @@
 
 CROSS_COMPILE ?= aarch64-nerves-linux-gnu-
 CC = $(CROSS_COMPILE)gcc
-CFLAGS ?= -O2 -Wall -Wextra -static
+CFLAGS ?= -O2 -Wall -Wextra
+# -static lives in LDFLAGS (unconditional) so an exported CFLAGS cannot
+# silently produce a dynamically-linked binary.
+LDFLAGS += -static
 
 all: venus_dec_smoke
 
 venus_dec_smoke: venus_dec_smoke.c
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $@ $<
 
 clean:
 	rm -f venus_dec_smoke

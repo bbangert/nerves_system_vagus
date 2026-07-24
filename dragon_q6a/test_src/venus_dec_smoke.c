@@ -43,9 +43,12 @@ struct au {
   size_t len;
 };
 
-// Split an Annex-B stream into access units: a new AU starts at the first
-// non-slice NAL (SPS/PPS/SEI/...) preceding a slice, and every slice NAL
-// (type 1/5) terminates the AU it belongs to.
+// Split an Annex-B stream into access units (one frame per buffer, as the
+// stateful decoder API requires). An open AU (one that contains a slice)
+// is closed when a NEW access unit begins: either a non-slice NAL
+// (SPS/PPS/SEI/AUD) or a slice with first_mb_in_slice == 0 -- for ue(v),
+// value 0 encodes as a single '1' bit, so the first RBSP payload bit is
+// set. Multi-slice frames therefore stay in one buffer.
 static int split_aus(const unsigned char *buf, size_t len, struct au *aus,
                      int max_aus) {
   int n = 0;
@@ -64,8 +67,11 @@ static int split_aus(const unsigned char *buf, size_t len, struct au *aus,
       continue;
     }
     int nal_type = buf[i + sc] & 0x1f;
-    if (have_slice && (i > au_start)) {
-      // a slice AU is open; any new NAL closes it
+    int is_slice = (nal_type == 1 || nal_type == 5);
+    int first_mb_zero =
+        is_slice && (i + sc + 1 < len) && (buf[i + sc + 1] & 0x80);
+    int starts_new_au = !is_slice || first_mb_zero;
+    if (have_slice && starts_new_au && i > au_start) {
       if (n < max_aus) {
         aus[n].data = buf + au_start;
         aus[n].len = i - au_start;
@@ -74,7 +80,7 @@ static int split_aus(const unsigned char *buf, size_t len, struct au *aus,
       au_start = i;
       have_slice = 0;
     }
-    if (nal_type == 1 || nal_type == 5)
+    if (is_slice)
       have_slice = 1;
     i += sc + 1;
   }
@@ -82,6 +88,9 @@ static int split_aus(const unsigned char *buf, size_t len, struct au *aus,
     aus[n].data = buf + au_start;
     aus[n].len = len - au_start;
     n++;
+  } else if (au_start < len) {
+    fprintf(stderr, "warn: stream truncated to %d access units (MAX_AUS)\n",
+            max_aus);
   }
   return n;
 }
@@ -135,8 +144,15 @@ int main(int argc, char **argv) {
     return 1;
   }
   struct stat st;
-  fstat(fileno(f), &st);
+  if (fstat(fileno(f), &st) < 0 || st.st_size <= 0) {
+    fprintf(stderr, "FAIL: stat %s: %s\n", stream, strerror(errno));
+    return 1;
+  }
   unsigned char *es = malloc(st.st_size);
+  if (!es) {
+    fprintf(stderr, "FAIL: out of memory\n");
+    return 1;
+  }
   if (fread(es, 1, st.st_size, f) != (size_t)st.st_size) {
     fprintf(stderr, "FAIL: short read of %s\n", stream);
     return 1;
@@ -235,6 +251,7 @@ int main(int argc, char **argv) {
   int next_au = 0, queued_out = 0, cap_ready = 0, frames = 0, eos_sent = 0,
       done = 0;
   unsigned cap_count = 0;
+  int pollerr_streak = 0;
   void *cmap[NUM_CAP_BUFS][2];
   unsigned cplanes = 1;
   int free_out[NUM_OUT_BUFS];
@@ -281,12 +298,30 @@ int main(int argc, char **argv) {
       fprintf(stderr, "FAIL: poll timeout (frames so far: %d)\n", frames);
       return 1;
     }
+    if ((pfd.revents & POLLERR) &&
+        !(pfd.revents & (POLLIN | POLLOUT | POLLPRI))) {
+      // Both queues idle (POLLERR from the m2m core). Transient while the
+      // capture side is not yet streaming; sustained means the decoder died.
+      if (++pollerr_streak > 200) {
+        fprintf(stderr, "FAIL: sustained POLLERR from decoder (frames: %d)\n",
+                frames);
+        return 1;
+      }
+      usleep(10 * 1000);
+      continue;
+    }
+    pollerr_streak = 0;
 
     // events: source change → set up CAPTURE side
     if (pfd.revents & POLLPRI) {
       struct v4l2_event ev = {0};
       while (xioctl(fd, VIDIOC_DQEVENT, &ev) == 0) {
-        if (ev.type == V4L2_EVENT_SOURCE_CHANGE && !cap_ready) {
+        if (ev.type == V4L2_EVENT_SOURCE_CHANGE && cap_ready) {
+          fprintf(stderr,
+                  "FAIL: mid-stream resolution change not supported by this "
+                  "smoke test\n");
+          return 1;
+        } else if (ev.type == V4L2_EVENT_SOURCE_CHANGE && !cap_ready) {
           struct v4l2_format cfmt = {0};
           cfmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
           if (xioctl(fd, VIDIOC_G_FMT, &cfmt) < 0) {
@@ -298,6 +333,10 @@ int main(int argc, char **argv) {
                  (char *)&cfmt.fmt.pix_mp.pixelformat,
                  cfmt.fmt.pix_mp.num_planes);
           cplanes = cfmt.fmt.pix_mp.num_planes;
+          if (cplanes < 1 || cplanes > 2) {
+            fprintf(stderr, "FAIL: unsupported plane count %u\n", cplanes);
+            return 1;
+          }
           struct v4l2_requestbuffers creq = {0};
           creq.count = NUM_CAP_BUFS;
           creq.type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE;
@@ -354,8 +393,13 @@ int main(int argc, char **argv) {
       b.memory = V4L2_MEMORY_MMAP;
       b.length = 1;
       b.m.planes = p;
-      if (xioctl(fd, VIDIOC_DQBUF, &b) < 0)
+      if (xioctl(fd, VIDIOC_DQBUF, &b) < 0) {
+        if (errno != EAGAIN && errno != EPIPE) {
+          fprintf(stderr, "FAIL: DQBUF(OUTPUT): %s\n", strerror(errno));
+          return 1;
+        }
         break;
+      }
       free_out[b.index] = 1;
     }
 
@@ -368,10 +412,21 @@ int main(int argc, char **argv) {
         b.memory = V4L2_MEMORY_MMAP;
         b.length = cplanes;
         b.m.planes = p;
-        if (xioctl(fd, VIDIOC_DQBUF, &b) < 0)
+        if (xioctl(fd, VIDIOC_DQBUF, &b) < 0) {
+          // EPIPE on CAPTURE = drained past the LAST buffer
+          if (errno == EPIPE) {
+            done = 1;
+            break;
+          }
+          if (errno != EAGAIN) {
+            fprintf(stderr, "FAIL: DQBUF(CAPTURE): %s\n", strerror(errno));
+            return 1;
+          }
           break;
+        }
         int last = (b.flags & V4L2_BUF_FLAG_LAST) != 0;
-        if (p[0].bytesused > 0)
+        // B1: error-flagged buffers must not count as decoded frames
+        if (p[0].bytesused > 0 && !(b.flags & V4L2_BUF_FLAG_ERROR))
           frames++;
         if (last) {
           done = 1;
@@ -388,6 +443,10 @@ int main(int argc, char **argv) {
   }
 
   printf("decoded %d frames (%u capture buffers)\n", frames, cap_count);
+  if (!done) {
+    fprintf(stderr, "FAIL: drain did not complete (frames: %d)\n", frames);
+    return 1;
+  }
   if (frames >= MIN_FRAMES) {
     printf("PASS: venus decoded %d/%d frames\n", frames, n_aus);
     return 0;
