@@ -80,6 +80,14 @@ define DRAGON_Q6A_FIRMWARE_INSTALL_TARGET_CMDS
 	# Venus video codec (sc7280 driver requests qcom/vpu-2.0/venus.mbn)
 	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/vpu/vpu20_p1.mbn \
 		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/qcom/vpu-2.0/venus.mbn
+	# RTL8125 ethernet microcode (r8169 requests it; NIC works without,
+	# but loudly)
+	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/rtl_nic/rtl8168h-2.fw \
+		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/rtl_nic/rtl8168h-2.fw
+	# Board audio topology (qcom-apm requests the qcs6490/ path; the real
+	# file lives in the board dir) -- un-breaks the snd-sc8280xp card probe
+	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/qcs6490/radxa/dragon-q6a/QCS6490-Radxa-Dragon-Q6A-tplg.bin \
+		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/qcom/qcs6490/QCS6490-Radxa-Dragon-Q6A-tplg.bin
 	# ADSP: board-matched image + fastrpc domain descriptors (DTS path)
 	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/qcom/qcs6490/radxa/dragon-q6a/adsp.mbn \
 		$(DRAGON_Q6A_FIRMWARE_FW_DIR)/qcom/qcs6490/radxa/dragon-q6a/adsp.mbn
