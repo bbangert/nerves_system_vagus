@@ -153,7 +153,11 @@ board-specific c4-00004 CDSP pair is a known dead-end on mainline kernels
   registers (`QCS6490-Radxa-Dragon-Q6A` in `/proc/asound/cards`); actual
   playback/capture paths are unvalidated.
 - **WiFi/BT (onboard AIC8800)**: out-of-tree driver, deliberately not
-  shipped (module enumerates on USB but stays driverless). USB BT dongles
-  are expected to work — USB 2.0 is sufficient and BlueZ + Realtek blobs
-  ship — but no dongle has been validated on this board yet.
+  shipped (module enumerates on USB but stays driverless). **USB BT
+  dongles are device-proven**: a TP-Link UB500 (RTL8761BU) enumerated,
+  btusb loaded the shipped `rtl_bt` firmware, and the adapter powered on
+  and was discoverable over the air via bluetoothd/D-Bus. Note for app
+  authors: BlueZ cancels discovery when the requesting D-Bus client
+  disconnects, so inbound scanning needs a persistent client (e.g. the
+  `bluez` hex library), not one-shot `dbus-send` calls.
 - **UFS variant** (`_4096` image, 4096-byte sectors): planned, not started.
