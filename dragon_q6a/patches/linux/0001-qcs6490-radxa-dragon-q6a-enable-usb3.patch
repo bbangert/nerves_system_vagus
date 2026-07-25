@@ -93,11 +93,3 @@ sound-card probe. The qmpphy DP lane endpoint is omitted accordingly.
  &usb_2 {
  	dr_mode = "host";
  
-@@ -1024,7 +1093,6 @@
- 	status = "okay";
- };
- 
--/* PINCTRL - additions to nodes defined in sc7280.dtsi */
- &pcie0_clkreq_n {
- 	bias-pull-up;
- 	drive-strength = <2>;
