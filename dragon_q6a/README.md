@@ -114,6 +114,47 @@ DSP_LIBRARY_PATH="/usr/lib/dsp/cdsp;" cdsprpcd &
 ADSP_LIBRARY_PATH="/usr/lib/dsp/adsp;" adsprpcd &
 ```
 
+## Audio playback (validated recipe)
+
+The mixer powers up with the entire headphone path disconnected/muted.
+The validated `amixer -c 0 cset` sequence (runtime state — apply from the
+application at boot; `alsactl` is not shipped):
+
+```sh
+# frontend -> codec-DMA backend
+amixer -c 0 cset name='RX_CODEC_DMA_RX_0 Audio Mixer MultiMedia1' 1
+# rx-macro: RX0/RX1 from AIF1, interpolators CONNECTED (default is ZERO!)
+amixer -c 0 cset name='RX_MACRO RX0 MUX' AIF1_PB
+amixer -c 0 cset name='RX_MACRO RX1 MUX' AIF1_PB
+amixer -c 0 cset name='RX INT0_1 MIX1 INP0' RX0
+amixer -c 0 cset name='RX INT1_1 MIX1 INP0' RX1
+amixer -c 0 cset name='RX INT0_1 INTERP' 'RX INT0_1 MIX1'
+amixer -c 0 cset name='RX INT1_1 INTERP' 'RX INT1_1 MIX1'
+amixer -c 0 cset name='RX INT0 DEM MUX' CLSH_DSM_OUT
+amixer -c 0 cset name='RX INT1 DEM MUX' CLSH_DSM_OUT
+amixer -c 0 cset name='RX_COMP1 Switch' 1
+amixer -c 0 cset name='RX_COMP2 Switch' 1
+# wcd938x: DAC/PA path + Class-H mode (default CLS_H_INVALID = silence!)
+amixer -c 0 cset name='HPHL_RDAC Switch' 1
+amixer -c 0 cset name='HPHR_RDAC Switch' 1
+amixer -c 0 cset name='HPHL Switch' 1
+amixer -c 0 cset name='HPHR Switch' 1
+amixer -c 0 cset name='HPHL_COMP Switch' 1
+amixer -c 0 cset name='HPHR_COMP Switch' 1
+amixer -c 0 cset name='RX HPH Mode' CLS_H_LOHIFI
+# volumes (DSP stream volume defaults low; digital 84 = 0 dB)
+amixer -c 0 cset name='stream0.vol_ctrl0 MultiMedia1 Playback Volu' 100%
+amixer -c 0 cset name='RX_RX0 Digital Volume' 84
+amixer -c 0 cset name='RX_RX1 Digital Volume' 84
+amixer -c 0 cset name='HPHL Volume' 20
+amixer -c 0 cset name='HPHR Volume' 20
+```
+
+Then `aplay -D hw:0,0 file.wav` (48 kHz S16_LE stereo; use `plughw` for
+other formats). The two silent traps: `RX INT*_1 INTERP` defaults to
+`ZERO` and `RX HPH Mode` defaults to `CLS_H_INVALID` — each alone mutes
+program audio while still passing transient clicks.
+
 ## VERSIONS (validated stack)
 
 Every row below was validated together on hardware on 2026-07-24
@@ -122,7 +163,7 @@ Every row below was validated together on hardware on 2026-07-24
 | Component | Version | Notes |
 |---|---|---|
 | SPI-NOR firmware | EDK2, EFI v2.7 by Qualcomm | Radxa flat_build; provides the (unused-by-default) firmware DT |
-| Kernel | mainline **7.1.4** (kernel.org) | Q6A DTS in-tree; config derived from arm64 defconfig |
+| Kernel | mainline **7.1.4** + 1 DTS patch (`patches/linux/`) | Q6A DTS in-tree; patch enables the SuperSpeed controller (USB-only trim of Armbian's USB3/HDMI patch) |
 | Devicetree | in-tree `qcom/qcs6490-radxa-dragon-q6a.dtb` (7.1.4) | loaded by GRUB from the active slot |
 | GRUB | 2.12 (Buildroot), arm64-efi | builtin modules incl. `squash4`, `loadenv`, `fdt` |
 | Buildroot | 2026.05 via nerves_system_br 1.34.0 | |
@@ -144,18 +185,21 @@ board-specific c4-00004 CDSP pair is a known dead-end on mainline kernels
 
 ## Known-out-of-scope / open items
 
-- **USB 2.0 works; SuperSpeed does not**: with the mainline DTB, xhci and
-  the onboard USB 2.0 hub come up and devices enumerate at high speed
-  (the onboard AIC8800 WiFi module is a USB device and enumerates).
-  No SuperSpeed root hub registers — the stock 7.1 DTS lacks the USB3
-  lane enables that Armbian patches in. The early boot line
+- **USB: both controllers up, SuperSpeed registered** (device-proven):
+  the carried DTS patch enables the SS-capable controller (`a600000`,
+  QMP phy RX1/TX1 → USB-A port) — a 5000 Mbps root hub registers
+  alongside the two 480 Mbps buses; the onboard hub + AIC8800 module +
+  BT dongle live on the USB2 tree. Enumerating an actual 5 Gbps device
+  is the one leg not yet exercised. The early boot line
   `dwc3-qcom: failed to register DWC3 Core` is a transient from before
   the HS PHY probes; the driver retries and binds.
 - **GPU/display**: drm/msm ships as a module but the Adreno SMMU defers
   (-110) and no GPU userspace (mesa) is shipped.
-- **Audio (partial)**: the board topology blob ships and the sound card
-  registers (`QCS6490-Radxa-Dragon-Q6A` in `/proc/asound/cards`); actual
-  playback/capture paths are unvalidated.
+- **Audio playback: device-proven** through the headphone jack (WCD938x)
+  with `aplay` — see the mixer recipe below. Capture is unvalidated.
+  Cosmetic dmesg: soundwire `cgcr reset` + `din/dout-ports mismatch`
+  lines, and an occasional MBHC `Impedance detect ramp error` on
+  unusual jack loads.
 - **WiFi/BT (onboard AIC8800)**: out-of-tree driver, deliberately not
   shipped (module enumerates on USB but stays driverless). **USB BT
   dongles are device-proven**: a TP-Link UB500 (RTL8761BU) enumerated,

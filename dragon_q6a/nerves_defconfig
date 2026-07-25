@@ -33,6 +33,9 @@ BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="7.1.4"
 BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
 BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${NERVES_DEFCONFIG_DIR}/linux-7.1.defconfig"
 BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.config"
+# USB3: USB-only trim of Armbian's DTS enables for the SuperSpeed
+# controller + USB-A SS lanes (see patches/linux/0001-*).
+BR2_LINUX_KERNEL_PATCH="${NERVES_DEFCONFIG_DIR}/patches/linux"
 # No BR2_LINUX_KERNEL_XZ: GRUB's arm64 `linux` loader boots the kernel via
 # its EFI stub, which requires the plain uncompressed Image. The kernel (and
 # DTB, for the embed-fallback path) install into /boot INSIDE the squashfs
@@ -42,6 +45,10 @@ BR2_LINUX_KERNEL_INTREE_DTS_NAME="qcom/qcs6490-radxa-dragon-q6a"
 BR2_LINUX_KERNEL_INSTALL_TARGET=y
 BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
 BR2_PACKAGE_BUSYBOX_CONFIG="${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/busybox.config"
+BR2_PACKAGE_ALSA_UTILS=y
+# BR2_PACKAGE_ALSA_UTILS_ALSAMIXER is not set
+BR2_PACKAGE_ALSA_UTILS_AMIXER=y
+BR2_PACKAGE_ALSA_UTILS_APLAY=y
 BR2_PACKAGE_E2FSPROGS=y
 # BR2_PACKAGE_E2FSPROGS_FSCK is not set
 # resize2fs: pairs with fwup-ops.conf's expand-data task -- EDL-flashed
