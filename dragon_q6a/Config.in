@@ -3,5 +3,7 @@
 # If these are non-proprietary, please consider contributing them back to
 # Nerves or Buildroot.
 
+source "$NERVES_DEFCONFIG_DIR/package/aic8800/Config.in"
+source "$NERVES_DEFCONFIG_DIR/package/aic8800-firmware/Config.in"
 source "$NERVES_DEFCONFIG_DIR/package/dragon-q6a-firmware/Config.in"
 source "$NERVES_DEFCONFIG_DIR/package/fastrpc/Config.in"
