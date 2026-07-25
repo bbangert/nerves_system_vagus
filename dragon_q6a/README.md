@@ -90,7 +90,11 @@ What this system guarantees to applications (all device-validated):
 - **`libstdc++` in the target rootfs** — required by QAIRT.
 - **QAIRT is NOT shipped.** Applications provision the QAIRT runtime
   bundle (and models) to `/data` themselves; the HTP delegate's
-  `cache_dir` should also live on `/data` to avoid recompiling graphs.
+  `cache_dir` should also live on `/data` to avoid recompiling graphs
+  (device-proven: 2.2 s compile run vs 221 ms warm start; note the cache
+  directory must EXIST or `--cache_dir` silently no-ops). The SDK's
+  prebuilt `qtld-net-run` (TFLite statically linked) runs .tflite models
+  through the QNN HTP delegate with no TFLite build of your own.
 - **udev rules** at `/etc/udev/rules.d/99-qcom-ai.rules` are the
   documented device-permission contract; they are inert on Nerves itself
   (no udev; the app runs as root) but apply in containers/dev images.
@@ -130,7 +134,7 @@ Every row below was validated together on hardware on 2026-07-24
 | ADSP shells | hexagon-dsp-binaries `qcs6490/radxa/dragon-q6a/ADSP.HT.5.5.c9-00028-KODIAK-2` | → `/usr/lib/dsp/adsp` |
 | fastrpc userspace | v1.0.4 (qualcomm/fastrpc) | search path patched to `/usr/lib/dsp/{cdsp,adsp}` |
 | Venus firmware | `qcom/vpu-2.0/venus.mbn` (= `vpu/vpu20_p1.mbn`) | `test_src/venus_dec_smoke` decodes 30/30 frames on hardware |
-| QAIRT | — not shipped; 2.45.40.260406 validated on this board under RadxaOS (q6a_ai reference) | HTP smoke on this system pending (plan gate 3.3) |
+| QAIRT | — not shipped (user-provisioned to `/data/qairt`); **2.48.40.260702 validated on this system** | HTP validator unit test PASS; yolov11 w8a8 via `qtld-net-run`: ≤7.4 ms/inference (I/O-inclusive), CPU 11%/8 cores, 221 ms warm start via delegate cache |
 
 **Matched-pair rule:** the CDSP firmware and the fastrpc shells must carry
 the same `QC_IMAGE_VERSION_STRING` (`strings cdsp.mbn | grep QC_IMAGE`).
