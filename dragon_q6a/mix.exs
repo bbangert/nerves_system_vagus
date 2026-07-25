@@ -123,6 +123,7 @@ defmodule NervesSystemDragonQ6a.MixProject do
       "linux-bluetooth.config",
       "mix.exs",
       "nerves_defconfig",
+      "patches",
       "post-build.sh",
       "post-createfs.sh",
       "README.md",

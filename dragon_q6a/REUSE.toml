@@ -43,7 +43,8 @@ SPDX-License-Identifier = "GPL-2.0-or-later"
 # Linux kernel derived or related files
 [[annotations]]
 path = [
- "linux-7.1.defconfig"
+ "linux-7.1.defconfig",
+ "patches/**"
 ]
 precedence = "override"
 SPDX-FileCopyrightText = "Various"

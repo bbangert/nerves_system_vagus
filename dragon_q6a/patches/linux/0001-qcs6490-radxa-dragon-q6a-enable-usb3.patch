@@ -1,0 +1,103 @@
+arm64: dts: qcom: qcs6490-radxa-dragon-q6a: enable USB3 (USB-A SS lanes)
+
+USB-only trim of Armbian's qcs6490-7.1 patch 0002 (author Xilin Wu
+<sophon@radxa.com>): enables usb_1 (a600000, the SuperSpeed-capable
+controller) with the qmpphy RX1/TX1 pair routed to the USB-A port.
+The HDMI/DP half of the original patch (RA620 bridge, mdss_dp, DP
+audio DAI) is dropped: the radxa,ra620 bridge driver is not in
+mainline 7.1, and the DP audio DAI link would break the working
+sound-card probe. The qmpphy DP lane endpoint is omitted accordingly.
+
+--- a/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts
++++ b/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts
+@@ -111,6 +111,31 @@
+ 		};
+ 	};
+ 
++	usb3_con: connector {
++		compatible = "usb-a-connector";
++
++		ports {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			port@0 {
++				reg = <0>;
++
++				usb3_con_hs_in: endpoint {
++					remote-endpoint = <&usb_1_dwc3_hs>;
++				};
++			};
++
++			port@1 {
++				reg = <1>;
++
++				usb3_con_ss_in: endpoint {
++					remote-endpoint = <&usb_1_qmpphy_out_usb>;
++				};
++			};
++		};
++	};
++
+ 	leds {
+ 		compatible = "gpio-leds";
+ 
+@@ -959,6 +984,50 @@
+ 	status = "okay";
+ };
+ 
++&usb_1 {
++	dr_mode = "host";
++
++	status = "okay";
++};
++
++&usb_1_dwc3_hs {
++	remote-endpoint = <&usb3_con_hs_in>;
++};
++
++&usb_1_hsphy {
++	vdda-pll-supply = <&vreg_l10c_0p88>;
++	vdda33-supply = <&vreg_l2b_3p072>;
++	vdda18-supply = <&vreg_l1c_1p8>;
++
++	status = "okay";
++};
++
++&usb_1_qmpphy {
++	vdda-phy-supply = <&vreg_l6b_1p2>;
++	vdda-pll-supply = <&vreg_l1b_0p912>;
++
++	/delete-property/ orientation-switch;
++
++	status = "okay";
++
++	ports {
++		port@0 {
++			#address-cells = <1>;
++			#size-cells = <0>;
++
++			/delete-node/ endpoint;
++
++			/* RX1/TX1 is statically connected to USB-A port */
++			usb_1_qmpphy_out_usb: endpoint@1 {
++				reg = <1>;
++
++				data-lanes = <2 3>;
++				remote-endpoint = <&usb3_con_ss_in>;
++			};
++		};
++	};
++};
++
+ &usb_2 {
+ 	dr_mode = "host";
+ 
+@@ -1024,7 +1093,6 @@
+ 	status = "okay";
+ };
+ 
+-/* PINCTRL - additions to nodes defined in sc7280.dtsi */
+ &pcie0_clkreq_n {
+ 	bias-pull-up;
+ 	drive-strength = <2>;
