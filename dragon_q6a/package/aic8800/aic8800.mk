@@ -82,6 +82,12 @@ AIC8800_VERSION = 6e076049b719ac2ff7ce5c92786a680407b11cdb
 AIC8800_SITE = $(call github,radxa-pkg,aic8800,$(AIC8800_VERSION))
 AIC8800_LICENSE = GPL-2.0 (driver source), GPL-3.0+ (packaging)
 AIC8800_LICENSE_FILES = LICENSE debian/copyright
+# The driver SOURCE is GPL and plainly redistributable, but this package
+# downloads the same tarball as package/aic8800-firmware -- which also
+# carries the proprietary Aicsemi blobs, whose redistribution terms are
+# not established. Both packages therefore set NO, so `make legal-info`
+# source dumps don't ship those bytes through the back door.
+AIC8800_REDISTRIBUTE = NO
 
 AIC8800_MODULE_SUBDIRS = \
 	src/USB/driver_fw/drivers/aic8800 \

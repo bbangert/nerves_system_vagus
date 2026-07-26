@@ -36,7 +36,16 @@ AIC8800_FIRMWARE_VERSION = 6e076049b719ac2ff7ce5c92786a680407b11cdb
 AIC8800_FIRMWARE_SITE = $(call github,radxa-pkg,aic8800,$(AIC8800_FIRMWARE_VERSION))
 AIC8800_FIRMWARE_LICENSE = PROPRIETARY (Aicsemi firmware, redistributed by radxa-pkg)
 AIC8800_FIRMWARE_LICENSE_FILES = LICENSE debian/copyright
-AIC8800_FIRMWARE_REDISTRIBUTE = YES
+# NO, matching package/dragon-q6a-firmware: this keeps the tarball out of
+# `make legal-info` source dumps. The blobs carry no standalone license
+# text -- all that is actually established is that Radxa publish them in a
+# public GPL-3.0 repo and ship them in their own images, which is not an
+# explicit redistribution grant (see the licensing note in the vagus repo's
+# plan research). package/aic8800 sets the same, because it downloads the
+# SAME tarball: leaving that one at the default YES would put the identical
+# bytes into a legal-info dump through the other package and make this
+# setting pointless.
+AIC8800_FIRMWARE_REDISTRIBUTE = NO
 
 AIC8800_FIRMWARE_D80_DIR = src/USB/driver_fw/fw/aic8800D80
 
