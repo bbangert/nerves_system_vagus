@@ -272,7 +272,7 @@ that mix kills LE scanning outright on this firmware (0 devices vs 84).
 | BLE scanning (observer) | **Works** — 84–87 devices, passive AdvertisementMonitor and active discovery; steady across a multi-hour soak |
 | WiFi + BLE coexistence | **Works** — scanning + advertising + an associated `wlan0`, concurrently, no interference |
 | Inbound GATT (as peripheral) | **Works** — phone connected, resolved services, and completed a full Improv credential exchange |
-| WPA3 / SAE association | Untested — see below |
+| WPA3 / SAE association | **Works** — SAE handshake completes (`PMKSA-CACHE-ADDED` + `CTRL-EVENT-CONNECTED`), provisioned over Improv |
 
 **Choose your test central carefully.** The inbound GATT result above came
 from a phone. A Raspberry Pi 3's onboard BT 4.1 BCM43438 could *not*
@@ -282,15 +282,28 @@ event ever reaching the Q6A's HCI, which looks exactly like a firmware
 that refuses `CONNECT_IND`. It isn't: a phone connects on the first try.
 Do not conclude anything about this radio from a Pi-as-central test.
 
-**Improv cannot provision WPA3 (SAE-only) networks** — an app-side
-limitation, not a driver one. The Improv protocol carries only SSID and
-password with no security type, and the `improv` library hardcodes
-`key_mgmt: :wpa_psk`, so an SAE-only SSID fails the 4-way handshake and
-surfaces as a misleading "wrong password"
-([bbangert/improv#2](https://github.com/bbangert/improv/issues/2)).
-WPA2-PSK and WPA2/WPA3 transition-mode networks provision fine. To put
-the board on an SAE-only network by hand, `vintage_net_wifi` supports it
-directly:
+**WPA3 (SAE) works, including over Improv — but needs `improv >= 0.1.2`.**
+Earlier versions hardcoded `key_mgmt: :wpa_psk`, so an SAE-only SSID
+associated and then failed the 4-way handshake, surfacing as a misleading
+"wrong password" ([bbangert/improv#2](https://github.com/bbangert/improv/issues/2)).
+0.1.2 infers SAE vs PSK from the target SSID's live scan flags.
+
+Device-proven on this board: provisioned onto an SAE-only network from a
+phone, producing `key_mgmt: :sae` with `ieee80211w: 2` and a completed
+handshake (`PMKSA-CACHE-ADDED` → `Associated` → `CTRL-EVENT-CONNECTED`).
+
+**Provisioning trap that survives that fix:** the SAE inference reads the
+*live* `access_points` property and never triggers a scan of its own. A
+device waiting to be provisioned has no configured networks, so
+wpa_supplicant is not background-scanning and that property can be empty
+exactly when Improv needs it — in which case the inference silently falls
+back to PSK and an SAE-only network fails as before. Observed here: the
+first attempt fell back to PSK, and only a `VintageNet.scan("wlan0")`
+seconds before submitting made it pick SAE. If you are debugging a failed
+WPA3 provision, check the applied `key_mgmt` before suspecting the radio.
+
+To put the board on an SAE-only network by hand, `vintage_net_wifi`
+supports it directly:
 
 ```elixir
 VintageNet.configure("wlan0", %{
@@ -303,9 +316,7 @@ VintageNet.configure("wlan0", %{
 ```
 
 `ieee80211w: 2` (management-frame protection required) is mandatory for
-WPA3. Whether this radio actually completes an SAE handshake has not been
-verified — the bench had no WPA3 access point to test against (the Pi's
-chip cannot host one).
+WPA3 — omit it and the association fails.
 
 Kernel-config note: `CONFIG_IP_ADVANCED_ROUTER` + `CONFIG_IP_MULTIPLE_TABLES`
 were added to `linux-7.1.defconfig` for this work. `vintage_net`'s
