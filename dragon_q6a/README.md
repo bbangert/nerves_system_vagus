@@ -262,29 +262,50 @@ Advertising *feature* bit does force legacy advertising, but
 instead, so the kernel keeps issuing extended scan/connect commands and
 that mix kills LE scanning outright on this firmware (0 devices vs 84).
 
-### Status (device-proven 2026-07-25, kernel 7.1.4)
+### Status (device-proven 2026-07-25/26, kernel 7.1.4)
 
 | Capability | State |
 |---|---|
-| WiFi STA (`wlan0`) | **Works** — WPA2-PSK association, DHCP, data path; regdb loads, channels 1–165 |
+| WiFi STA (`wlan0`) | **Works** — WPA2-PSK association, DHCP, data path; regdb loads, channels 1–165; 2.4 GHz and 5 GHz both proven |
 | BT adapter (`hci0`) | **Works** — from the onboard chip on every boot, powered by bluetoothd 5.79 |
 | BLE advertising (peripheral) | **Works** — Improv service advert received off-board at RSSI −13…−16 (needs the interval fix above) |
-| BLE scanning (observer) | **Works** — 84–87 devices, passive AdvertisementMonitor and active discovery |
+| BLE scanning (observer) | **Works** — 84–87 devices, passive AdvertisementMonitor and active discovery; steady across a multi-hour soak |
 | WiFi + BLE coexistence | **Works** — scanning + advertising + an associated `wlan0`, concurrently, no interference |
-| Inbound GATT connection | **Unproven** — see below |
+| Inbound GATT (as peripheral) | **Works** — phone connected, resolved services, and completed a full Improv credential exchange |
+| WPA3 / SAE association | Untested — see below |
 
-The one open item: a full inbound GATT session against the board acting
-as peripheral has not been demonstrated. The only central available on
-the bench (a Raspberry Pi 3's BT 4.1 BCM43438) fails every attempt with
-`le-connection-abort-by-local`, and the Q6A's own `hcidump` shows no
-LE Meta / Connection Complete event arriving at all — so it is not yet
-possible to say whether the AIC firmware refuses `CONNECT_IND` or the
-test central is simply a poor LE initiator. The Q6A **as central** did
-reach `Device1.Connected = true` against a test peripheral, so its LE
-link establishment works in that direction. Retest with a phone (the HA
-companion app's Improv flow, or nRF Connect against service UUID
-`00004677-0000-1000-8000-00805f9b34fb`) before relying on
-Improv-over-BLE provisioning on this board.
+**Choose your test central carefully.** The inbound GATT result above came
+from a phone. A Raspberry Pi 3's onboard BT 4.1 BCM43438 could *not*
+connect to this board at all — every attempt ended in
+`le-connection-abort-by-local` with no LE Meta / Connection Complete
+event ever reaching the Q6A's HCI, which looks exactly like a firmware
+that refuses `CONNECT_IND`. It isn't: a phone connects on the first try.
+Do not conclude anything about this radio from a Pi-as-central test.
+
+**Improv cannot provision WPA3 (SAE-only) networks** — an app-side
+limitation, not a driver one. The Improv protocol carries only SSID and
+password with no security type, and the `improv` library hardcodes
+`key_mgmt: :wpa_psk`, so an SAE-only SSID fails the 4-way handshake and
+surfaces as a misleading "wrong password"
+([bbangert/improv#2](https://github.com/bbangert/improv/issues/2)).
+WPA2-PSK and WPA2/WPA3 transition-mode networks provision fine. To put
+the board on an SAE-only network by hand, `vintage_net_wifi` supports it
+directly:
+
+```elixir
+VintageNet.configure("wlan0", %{
+  type: VintageNetWiFi,
+  vintage_net_wifi: %{
+    networks: [%{key_mgmt: :sae, ssid: "...", sae_password: "...", ieee80211w: 2}]
+  },
+  ipv4: %{method: :dhcp}
+})
+```
+
+`ieee80211w: 2` (management-frame protection required) is mandatory for
+WPA3. Whether this radio actually completes an SAE handshake has not been
+verified — the bench had no WPA3 access point to test against (the Pi's
+chip cannot host one).
 
 Kernel-config note: `CONFIG_IP_ADVANCED_ROUTER` + `CONFIG_IP_MULTIPLE_TABLES`
 were added to `linux-7.1.defconfig` for this work. `vintage_net`'s
