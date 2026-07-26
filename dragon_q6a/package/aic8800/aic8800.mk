@@ -92,14 +92,17 @@ AIC8800_BTUSB_H = src/USB/driver_fw/drivers/aic_btusb/aic_btusb.h
 # Replay Radxa's quilt series in series-file order (order matters: the
 # kernel-compat patches build on one another; alphabetical APPLY_PATCHES
 # would misorder them). Skips per the header comment; -f so a partial
-# apply can never be mistaken for success.
+# apply can never be mistaken for success; --fuzz=0 so context drift
+# fails the build instead of being silently absorbed (the point of this
+# hook is to reproduce the vendor-tested source state exactly -- all 23
+# replayed patches apply with zero fuzz against the pinned commit).
 define AIC8800_APPLY_DEBIAN_PATCH_SERIES
 	cd $(@D) && while read -r p; do \
 		case "$$p" in ""|\#*) continue ;; \
 			fix-usb-firmware-path.patch|fix-Lower-the-debugging-log-level.patch) \
 				echo "aic8800: skipping $$p (CRLF-incompatible, see aic8800.mk)"; continue ;; \
 		esac; \
-		patch -p1 --no-backup-if-mismatch -s -f < debian/patches/$$p \
+		patch -p1 --no-backup-if-mismatch -s -f --fuzz=0 < debian/patches/$$p \
 			|| { echo "aic8800: debian patch $$p failed to apply"; exit 1; }; \
 	done < debian/patches/series
 endef
