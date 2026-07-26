@@ -1,0 +1,5 @@
+# Locally computed (downloaded and sha256'd directly from GitHub on
+# 2026-07-25 in the aic8800 bring-up session).
+sha256  be522ccb05a2992474f27cb2c61dc7bc39b2bf12cf71cbe6594d78d6f134af46  aic8800-6e076049b719ac2ff7ce5c92786a680407b11cdb.tar.gz
+sha256  3972dc9744f6499f0f9b2dbf76696f2ae7ad8af9b23dde66d6af86c9dfb36986  LICENSE
+sha256  0dcfccac870fea3b920ec3b67f63f86869bda2f68d2263bdcb9e6b45b1a2f229  debian/copyright

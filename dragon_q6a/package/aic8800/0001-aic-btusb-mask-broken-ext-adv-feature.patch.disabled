@@ -1,0 +1,51 @@
+DISABLED (.patch.disabled -- Buildroot only auto-applies *.patch).
+
+Kept for the record: masking ONLY the ext-adv feature bit puts the kernel
+on legacy advertising while it still uses EXTENDED scan/connect commands
+(use_ext_scan/use_ext_conn key off the supported-commands bitmap, not this
+feature bit). Controllers reject that mix, and on the AIC8800D80 it killed
+LE scanning outright (0 devices vs 65 before) and left connections failing
+with le-connection-abort-by-local. If a fully-legacy stack is ever needed,
+this patch must ALSO clear supported-commands octet 37 bits 0x20/0x40/0x80
+(LE Set Extended Scan Parameters/Enable, LE Extended Create Connection) in
+the Read Local Supported Commands (0x1002) complete event.
+
+Original rationale follows.
+
+Mask the AIC8800D80's LE Extended Advertising feature bit: the firmware
+claims the feature and ACKs every ext-adv HCI command, but never
+transmits ext-adv PDUs on air; legacy advertising works (device-proven
+on the Radxa Dragon Q6A, 2026-07-25 -- see the WiFi/Bluetooth section
+of the target README). Masking le_features[1] bit 4 in the LE Read
+Local Supported Features command-complete keeps the kernel and BlueZ
+on the legacy advertising path. Applied by Buildroot's automatic package-patch step (BEFORE the debian
+series replay in aic8800.mk; conflict-free -- the only series patch touching this file, fix-usb-firmware-path.patch, is skipped).
+
+--- a/src/USB/driver_fw/drivers/aic_btusb/aic_btusb.c	2026-07-25 20:59:51.796626875 +0000
++++ b/src/USB/driver_fw/drivers/aic_btusb/aic_btusb.c	2026-07-25 20:59:51.797626890 +0000
+@@ -3850,6 +3850,25 @@
+ 
+         if (bt_cb(skb)->expect == 0) {
+             /* Complete frame */
++            if (skb->len >= 14 &&
++                skb->data[0] == HCI_EV_CMD_COMPLETE &&
++                skb->data[3] == 0x03 && skb->data[4] == 0x20 &&
++                skb->data[5] == 0x00) {
++                /* LE Read Local Supported Features complete: the
++                 * AIC8800D80 firmware claims LE Extended Advertising
++                 * support, and the controller ACKs every ext-adv HCI
++                 * command (LE Set Extended Advertising Params/Data/
++                 * Enable all return status 0x00) -- but no ext-adv PDU
++                 * is ever transmitted on air, while the legacy
++                 * advertising commands (0x2006/0x2008/0x200A) transmit
++                 * fine (device-proven on Dragon Q6A, 2026-07-25).
++                 * Kernel 7.1 has no HCI_QUIRK_BROKEN_EXT_ADV, so mask
++                 * the feature bit (le_features[1] bit 4) here in the
++                 * event path; the kernel and BlueZ then stay on the
++                 * working legacy advertising path (max_adv_len 31).
++                 */
++                skb->data[7] &= ~0x10;
++            }
+             hci_recv_frame(data->hdev, skb);
+             skb = NULL;
+         }

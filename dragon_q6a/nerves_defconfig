@@ -86,6 +86,14 @@ BR2_PACKAGE_NERVES_CONFIG_ACCEPT_RNG_NOTICE=y
 # blob set below (e.g. TP-Link UB500 -> /lib/firmware/rtl_bt).
 BR2_PACKAGE_DBUS=y
 BR2_PACKAGE_BLUEZ5_UTILS=y
+# BT diagnostics for the onboard AIC8800 (added at GATE B1): btmon is the
+# only way to see HCI-level truth on this chip (no CONFIG_BT_DEBUGFS),
+# bluetoothctl/btmgmt drive the adapter without the app stack, and the
+# deprecated hciconfig/hcitool give raw-HCI legacy-advertising probes.
+BR2_PACKAGE_BLUEZ5_UTILS_CLIENT=y
+BR2_PACKAGE_BLUEZ5_UTILS_MONITOR=y
+BR2_PACKAGE_BLUEZ5_UTILS_TOOLS=y
+BR2_PACKAGE_BLUEZ5_UTILS_DEPRECATED=y
 # bluez-alsa: `bluealsad -p a2dp-source` exposes a connected A2DP headset as
 # the ALSA PCM `bluealsa:DEV=MAC,PROFILE=a2dp`, which sendspin opens directly
 # (no C changes). SBC only — AAC (fdk-aac) is gated on legal review. Selects
@@ -100,3 +108,25 @@ BR2_PACKAGE_LINUX_FIRMWARE_RTL_87XX_BT=y
 # userspace (library + daemons + fastrpc_test; see package/fastrpc).
 BR2_PACKAGE_DRAGON_Q6A_FIRMWARE=y
 BR2_PACKAGE_FASTRPC=y
+
+# ---- Onboard WiFi/BT: AIC8800D80 (Quectel FCU760K module, USB a69c:8d80) ----
+# Driver modules aic_load_fw/aic8800_fdrv (wlan0) + aic_btusb (hci0 -- the
+# vendor Bluedroid default is flipped to BlueZ in package/aic8800), firmware
+# blobs at /lib/firmware/aic8800D80/ (package/aic8800-firmware, lockstep pin).
+# wireless-regdb is MANDATORY here, not cosmetic: this kernel sets
+# CFG80211_REQUIRE_SIGNED_REGDB=y, so without regulatory.db + .p7s cfg80211
+# fails the regdb load and the STA is stuck in the restrictive world domain.
+# The wpa_supplicant option block mirrors rpi3_64 verbatim for parity;
+# CTRL_IFACE is the hard requirement (vintage_net_wifi's control socket).
+BR2_PACKAGE_WIRELESS_REGDB=y
+BR2_PACKAGE_WPA_SUPPLICANT=y
+BR2_PACKAGE_WPA_SUPPLICANT_AP_SUPPORT=y
+BR2_PACKAGE_WPA_SUPPLICANT_MESH_NETWORKING=y
+BR2_PACKAGE_WPA_SUPPLICANT_AUTOSCAN=y
+BR2_PACKAGE_WPA_SUPPLICANT_HOTSPOT=y
+BR2_PACKAGE_WPA_SUPPLICANT_DEBUG_SYSLOG=y
+BR2_PACKAGE_WPA_SUPPLICANT_WPS=y
+BR2_PACKAGE_WPA_SUPPLICANT_WPA3=y
+BR2_PACKAGE_WPA_SUPPLICANT_CTRL_IFACE=y
+BR2_PACKAGE_AIC8800=y
+BR2_PACKAGE_AIC8800_FIRMWARE=y

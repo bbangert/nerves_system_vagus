@@ -94,6 +94,13 @@ CONFIG_PACKET=y
 CONFIG_UNIX=y
 CONFIG_INET=y
 CONFIG_IP_MULTICAST=y
+# Policy routing (ip rule + per-interface route tables): vintage_net's
+# RouteManager hard-requires it -- without IP_MULTIPLE_TABLES every
+# set_route is RTNETLINK "Operation not supported", RouteManager
+# crash-loops, and the whole vintage_net app goes down (found at the
+# aic8800 GATE W, 2026-07-25; rpi3_64 kernels carry both =y).
+CONFIG_IP_ADVANCED_ROUTER=y
+CONFIG_IP_MULTIPLE_TABLES=y
 CONFIG_IP_PNP=y
 CONFIG_IP_PNP_DHCP=y
 CONFIG_IP_PNP_BOOTP=y
@@ -145,7 +152,6 @@ CONFIG_QRTR_TUN=m
 CONFIG_CAN=m
 CONFIG_BT=m
 CONFIG_BT_HIDP=m
-# CONFIG_BT_LE is not set
 CONFIG_BT_LEDS=y
 # CONFIG_BT_DEBUGFS is not set
 CONFIG_BT_HCIBTUSB=m
