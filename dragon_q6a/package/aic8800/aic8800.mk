@@ -105,8 +105,14 @@ define AIC8800_APPLY_DEBIAN_PATCH_SERIES
 endef
 AIC8800_POST_PATCH_HOOKS += AIC8800_APPLY_DEBIAN_PATCH_SERIES
 
+# The value is rewritten with a literal prefix rather than a captured
+# one: a "\1" backreference immediately followed by the new value would
+# read as "\10", and POSIX only defines backreferences \1-\9, so that is
+# ambiguous across sed implementations. Normalizing the whitespace costs
+# nothing here (this is a build-time patch, not source we keep) and the
+# trailing /* bleuz 0, bluedroid 1, lbh 2 */ comment is left intact.
 define AIC8800_FLIP_BLUEDROID_TO_BLUEZ
-	$(SED) 's/^#define CONFIG_BLUEDROID\([[:space:]]*\)1/#define CONFIG_BLUEDROID\10/' \
+	$(SED) 's/^#define[[:space:]]\+CONFIG_BLUEDROID[[:space:]]\+1/#define CONFIG_BLUEDROID 0/' \
 		$(@D)/$(AIC8800_BTUSB_H)
 	grep -q '^#define CONFIG_BLUEDROID[[:space:]]*0' $(@D)/$(AIC8800_BTUSB_H)
 	! grep -q '^#define CONFIG_BLUEDROID[[:space:]]*1' $(@D)/$(AIC8800_BTUSB_H)
