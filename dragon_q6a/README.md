@@ -158,8 +158,9 @@ program audio while still passing transient clicks.
 
 ## VERSIONS (validated stack)
 
-Every row below was validated together on hardware on 2026-07-24
+The original rows below were validated together on hardware on 2026-07-24
 (boot → ethernet → A/B OTA + revert → watchdog → `fastrpc_test` 3/3).
+Components added since carry their own proof date in the Notes column.
 
 | Component | Version | Notes |
 |---|---|---|
@@ -243,9 +244,10 @@ still serving).
 Two notes from that bring-up:
 
 * Ingress needed a Vagus-side fix — add-on connections originated from the
-  bridge gateway `172.30.32.1` instead of the supervisor anchor `172.30.32.2`,
-  which add-ons that filter on client IP reject. That was a *pre-existing*
-  gap affecting rpi3_64 identically, not something specific to this board.
+  bridge gateway `172.30.32.1` instead of the supervisor anchor `172.30.32.2`.
+  Add-ons that filter on client IP reject traffic from the gateway, so ingress
+  failed until Vagus bound its source address to the anchor. That was a
+  *pre-existing* gap affecting rpi3_64 identically, not specific to this board.
 * balena-engine's own container metadata (`StartedAt`, `RestartCount`) is
   **not durable across a power cut** — it rolled back several minutes of
   updates after journal recovery. The containers themselves restart and run
