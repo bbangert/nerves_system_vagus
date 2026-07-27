@@ -16,7 +16,7 @@ foundation** (Hexagon NPU via fastrpc, Venus video codec).
 | Serial console | `ttyMSM0` (GENI debug UART, 115200n8)           |
 | Boot           | EDK2 UEFI (SPI NOR) → GRUB2 arm64-efi → A/B     |
 | Watchdog       | qcom_wdt + nerves_heart                         |
-| Containers     | balenaEngine v25 + cgroup v2 (engine device-proven; HA Core pending) |
+| Containers     | balenaEngine v25 + cgroup v2 — full Vagus stack device-proven |
 
 ## Boot chain and A/B updates
 
@@ -158,8 +158,9 @@ program audio while still passing transient clicks.
 
 ## VERSIONS (validated stack)
 
-Every row below was validated together on hardware on 2026-07-24
+The original rows below were validated together on hardware on 2026-07-24
 (boot → ethernet → A/B OTA + revert → watchdog → `fastrpc_test` 3/3).
+Components added since carry their own proof date in the Notes column.
 
 | Component | Version | Notes |
 |---|---|---|
@@ -181,7 +182,7 @@ Every row below was validated together on hardware on 2026-07-24
 | AIC8800 firmware | same commit, `fw/aic8800D80/` | installed to `/lib/firmware/aic8800D80/`; proprietary Aicsemi blobs |
 | wpa_supplicant | Buildroot pin, rpi3_64 option set (incl. `CTRL_IFACE`) | vintage_net_wifi's required control socket at `/usr/sbin/wpa_supplicant` |
 | wireless-regdb | Buildroot pin | mandatory — this kernel sets `CFG80211_REQUIRE_SIGNED_REGDB=y` |
-| balenaEngine | v25.0.14 (`d7af640`, balena-os `release/v25.0`) | `package/vagus-balena-engine`, byte-identical to rpi3_64's; `seccomp` build tag; daemon + networks + NAT device-proven 2026-07-27 |
+| balenaEngine | v25.0.14 (`d7af640`, balena-os `release/v25.0`) | `package/vagus-balena-engine`, byte-identical to rpi3_64's; `seccomp` build tag; full stack device-proven 2026-07-27 (Core, add-ons, MQTT, ingress, OTA) |
 
 **Matched-pair rule:** the CDSP firmware and the fastrpc shells must carry
 the same `QC_IMAGE_VERSION_STRING` (`strings cdsp.mbn | grep QC_IMAGE`).
@@ -227,9 +228,30 @@ mounted on `/sys/fs/cgroup`, the app partition is on `/root` (rw), and
 regressed from the kernel-config change: `fastrpc_test -a v68` 3/3,
 `/dev/video0`+`1`, USB3 root hub at 5000 Mbps, `wlan0` + `hci0`.
 
-**Still unproven on this board**: HA Core itself (image pull + start),
-add-on install, DNS/ingress end-to-end, and an A/B OTA round-trip **with
-containers running**.
+**The full Vagus stack is now device-proven too (2026-07-27).** Everything
+the rpi3_64 does, this board does: HA Core 2026.7.3 cold-starts from a 2.33 GB
+pull to `:healthy` on `:8123`; all 20 hassio coordinator endpoints answer 200
+and Core mints a `hassio_user` with a `loaded` `hassio: Supervisor` config
+entry; `Vagus.DNS` resolves on `172.30.32.3:53`; the native `core_mqtt` broker
+is adopted by Core and held one MQTT session across a 6+ minute soak with zero
+reconnects; a container add-on (`core_configurator`) installs, runs healthy on
+the `hassio` bridge and serves real content over ingress; an A/B OTA **with
+containers running** brings both back automatically; both Core-watchdog legs
+behave per the ladder; and an **unclean power cycle** recovers cleanly (ext4
+journal replay, anchors re-bound, containers restarted, Core healthy, ingress
+still serving).
+
+Two notes from that bring-up:
+
+* Ingress needed a Vagus-side fix — add-on connections originated from the
+  bridge gateway `172.30.32.1` instead of the supervisor anchor `172.30.32.2`.
+  Add-ons that filter on client IP reject traffic from the gateway, so ingress
+  failed until Vagus bound its source address to the anchor. That was a
+  *pre-existing* gap affecting rpi3_64 identically, not specific to this board.
+* balena-engine's own container metadata (`StartedAt`, `RestartCount`) is
+  **not durable across a power cut** — it rolled back several minutes of
+  updates after journal recovery. The containers themselves restart and run
+  correctly; only the engine's recorded history is stale.
 
 > **An OTA cannot update `grub.cfg` on this board.** `fwup.conf` writes it to
 > the ESP only in `task complete` (a full flash); `upgrade.a`/`upgrade.b`
