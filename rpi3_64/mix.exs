@@ -62,7 +62,7 @@ defmodule NervesSystemRpi364.MixProject do
         {"TARGET_OS", "linux"},
         {"TARGET_ABI", "gnu"},
         {"TARGET_GCC_FLAGS",
-          "-mabi=lp64 -fstack-protector-strong -mcpu=cortex-a53 -fPIE -pie -Wl,-z,now -Wl,-z,relro"}
+         "-mabi=lp64 -fstack-protector-strong -mcpu=cortex-a53 -fPIE -pie -Wl,-z,now -Wl,-z,relro"}
       ],
       checksum: package_files()
     ]
@@ -107,9 +107,25 @@ defmodule NervesSystemRpi364.MixProject do
     ]
   end
 
+  # NOTE: this list is the Nerves artifact checksum input (nerves_package's
+  # :checksum above), not just the hex package manifest -- anything omitted
+  # here does NOT invalidate a cached artifact when it changes. Config.in,
+  # external.mk, package/ and linux-containers.config were all missing until
+  # vagus-q6a-wiring P1-T5, so edits to the vagus-balena-engine recipe or the
+  # container kernel fragment could silently leave a stale engine binary in a
+  # supposedly-rebuilt system. fwup.conf is deliberately absent: this board
+  # generates it from fwup.conf.eex at build time.
+  #
+  # Still NOT covered (matches upstream nerves_system convention, but worth
+  # knowing): mix.lock is unlisted, and deps float (e.g. the toolchain at
+  # `~> 15.3.0`), so a dependency patch release can change the built output
+  # without moving the artifact checksum.
   defp package_files do
     [
+      "Config.in",
+      "external.mk",
       "fwup_include",
+      "package",
       "rootfs_overlay",
       "CHANGELOG.md",
       "cmdline-a.txt",
@@ -120,6 +136,7 @@ defmodule NervesSystemRpi364.MixProject do
       "LICENSES/*",
       "linux-6.18.defconfig",
       "linux-bluetooth.config",
+      "linux-containers.config",
       "mix.exs",
       "nerves_defconfig",
       "post-build.sh",

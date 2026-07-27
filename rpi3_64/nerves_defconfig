@@ -93,8 +93,11 @@ BR2_PACKAGE_LINUX_FIRMWARE_RTL_87XX_BT=y
 
 # ---- Custom: container runtime (vagus-runtime-spike) ----
 # Vagus-owned external package (rpi3_64/package/vagus-balena-engine/), not
-# upstream Buildroot's package/balena-engine. cgroupfs-mount is intentionally
-# NOT enabled: its select is inert under BR2_INIT_NONE/erlinit (no SysV init
-# ever runs it) -- the fork owns cgroup mounting via erlinit.config instead.
+# upstream Buildroot's package/balena-engine. Note cgroupfs-mount IS pulled
+# in (the package's Config.in has `select BR2_PACKAGE_CGROUPFS_MOUNT if
+# !BR2_PACKAGE_SYSTEMD` and this is a BR2_INIT_NONE system), so
+# /usr/bin/cgroupfs-mount ships -- but it is inert: it is a SysV init script
+# helper and nothing ever invokes it under erlinit. The fork owns cgroup
+# mounting via erlinit.config instead.
 BR2_PACKAGE_VAGUS_BALENA_ENGINE=y
 BR2_PACKAGE_LIBSECCOMP=y

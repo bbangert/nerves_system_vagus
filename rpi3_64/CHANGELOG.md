@@ -16,6 +16,25 @@ follows:
    releases, and Linux kernel updates. They're also made to fix bugs and add
    features to the build infrastructure.
 
+## v0.1.1
+
+Build-infrastructure fixes made while porting the container runtime to
+`dragon_q6a`. No functional change to the running system.
+
+* **Artifact-checksum gap closed (bug).** `package_files()` — which is the
+  Nerves artifact `:checksum` input, not just the hex manifest — omitted
+  `Config.in`, `external.mk`, `package/` and `linux-containers.config`.
+  Editing the `vagus-balena-engine` recipe or the container kernel fragment
+  therefore did **not** invalidate the cached artifact, so a rebuild could
+  silently keep shipping a stale engine binary. All four are now listed.
+* `linux-containers.config` moved to `shared/` and is materialized back here
+  by `make sync` (drift-checked by `make check`), so the fragment is
+  maintained in one place now that `dragon_q6a` consumes it too. The synced
+  content is identical apart from the dead `CONFIG_NF_NAT_IPV4` line, which
+  was dropped — it is not a Kconfig symbol in this kernel (mainline folded
+  IPv4 NAT into `CONFIG_NF_NAT` in 5.1), so it never had any effect.
+* `mix.exs` reformatted (`mix format`).
+
 ## v0.1.0
 
 Initial release of `nerves_system_rpi3_64`, a new 64-bit Nerves system for the

@@ -107,6 +107,14 @@ defmodule NervesSystemDragonQ6a.MixProject do
     ]
   end
 
+  # NOTE: this list is the Nerves artifact checksum input (nerves_package's
+  # :checksum above), not just the hex package manifest -- anything omitted
+  # here does NOT invalidate a cached artifact when it changes.
+  #
+  # Still NOT covered (matches upstream nerves_system convention, but worth
+  # knowing): mix.lock is unlisted, and deps float (e.g. the toolchain at
+  # `~> 15.3.0`), so a dependency patch release can change the built output
+  # without moving the artifact checksum.
   defp package_files do
     [
       "Config.in",
@@ -121,6 +129,7 @@ defmodule NervesSystemDragonQ6a.MixProject do
       "LICENSES/*",
       "linux-7.1.defconfig",
       "linux-bluetooth.config",
+      "linux-containers.config",
       "mix.exs",
       "nerves_defconfig",
       "patches",
