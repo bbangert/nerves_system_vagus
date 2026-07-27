@@ -32,7 +32,7 @@ BR2_LINUX_KERNEL_CUSTOM_VERSION=y
 BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="7.1.4"
 BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
 BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${NERVES_DEFCONFIG_DIR}/linux-7.1.defconfig"
-BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.config"
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.config ${NERVES_DEFCONFIG_DIR}/linux-containers.config"
 # USB3: USB-only trim of Armbian's DTS enables for the SuperSpeed
 # controller + USB-A SS lanes (see patches/linux/0001-*).
 BR2_LINUX_KERNEL_PATCH="${NERVES_DEFCONFIG_DIR}/patches/linux"
@@ -130,3 +130,18 @@ BR2_PACKAGE_WPA_SUPPLICANT_WPA3=y
 BR2_PACKAGE_WPA_SUPPLICANT_CTRL_IFACE=y
 BR2_PACKAGE_AIC8800=y
 BR2_PACKAGE_AIC8800_FIRMWARE=y
+
+# ---- Custom: container runtime (vagus-q6a-wiring) ----
+# Vagus-owned external package (dragon_q6a/package/vagus-balena-engine/), a
+# byte-for-byte copy of rpi3_64's -- the recipe is arch- and
+# kernel-agnostic and both boards share the aarch64 toolchain and
+# nerves_system_br 1.34.0. Note cgroupfs-mount IS pulled in (the package's
+# Config.in has `select BR2_PACKAGE_CGROUPFS_MOUNT if !BR2_PACKAGE_SYSTEMD`
+# and this is a BR2_INIT_NONE system), so /usr/bin/cgroupfs-mount ships --
+# but it is inert: it is a SysV init script helper and nothing ever invokes
+# it under erlinit. cgroup v2 is mounted from
+# rootfs_overlay/etc/erlinit.config instead.
+# Kernel side is shared/linux-containers.config, wired into
+# BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES above.
+BR2_PACKAGE_VAGUS_BALENA_ENGINE=y
+BR2_PACKAGE_LIBSECCOMP=y

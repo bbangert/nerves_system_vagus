@@ -16,6 +16,7 @@ foundation** (Hexagon NPU via fastrpc, Venus video codec).
 | Serial console | `ttyMSM0` (GENI debug UART, 115200n8)           |
 | Boot           | EDK2 UEFI (SPI NOR) → GRUB2 arm64-efi → A/B     |
 | Watchdog       | qcom_wdt + nerves_heart                         |
+| Containers     | balenaEngine v25 + cgroup v2 (engine device-proven; HA Core pending) |
 
 ## Boot chain and A/B updates
 
@@ -180,12 +181,62 @@ Every row below was validated together on hardware on 2026-07-24
 | AIC8800 firmware | same commit, `fw/aic8800D80/` | installed to `/lib/firmware/aic8800D80/`; proprietary Aicsemi blobs |
 | wpa_supplicant | Buildroot pin, rpi3_64 option set (incl. `CTRL_IFACE`) | vintage_net_wifi's required control socket at `/usr/sbin/wpa_supplicant` |
 | wireless-regdb | Buildroot pin | mandatory — this kernel sets `CFG80211_REQUIRE_SIGNED_REGDB=y` |
+| balenaEngine | v25.0.14 (`d7af640`, balena-os `release/v25.0`) | `package/vagus-balena-engine`, byte-identical to rpi3_64's; `seccomp` build tag; daemon + networks + NAT device-proven 2026-07-27 |
 
 **Matched-pair rule:** the CDSP firmware and the fastrpc shells must carry
 the same `QC_IMAGE_VERSION_STRING` (`strings cdsp.mbn | grep QC_IMAGE`).
 A mismatch fails with fastrpc error `0x80000600` and no kernel log. The
 board-specific c4-00004 CDSP pair is a known dead-end on mainline kernels
 (PD creates, all invokes fail) — do not swap it back without new evidence.
+
+## Container runtime (balenaEngine)
+
+Added in v0.2.0 to bring this board to rpi3_64 parity as a Vagus target
+(HA Core and add-ons run as containers). Three pieces, all of which have to
+be present for the daemon to start:
+
+| Piece | Where |
+| --- | --- |
+| Engine binary | `package/vagus-balena-engine` (balenaEngine v25.0.14, `seccomp` build tag) + `BR2_PACKAGE_VAGUS_BALENA_ENGINE=y`, `BR2_PACKAGE_LIBSECCOMP=y` |
+| Kernel support | `linux-containers.config` — a **shared** fragment (`shared/`, `make sync`, `make check`); overlayfs, cgroup controllers, netfilter + legacy iptables + NAT, bridge/veth, seccomp, `CGROUP_BPF` |
+| Runtime mounts | `rootfs_overlay/etc/erlinit.config` mounts `cgroup2` on `/sys/fs/cgroup` and `configfs`; **both** GRUB slots pass `cgroup_no_v1=all cgroup_enable=memory` |
+
+Notes for anyone touching this:
+
+- The package is a byte-for-byte copy of rpi3_64's. Buildroot packages are
+  per-board by design in this repo (the `shared/` mechanism is kernel-config
+  fragments only), so the two copies must be kept in step by hand.
+- `/etc/resolv.conf` is a symlink to `/run/resolv.conf`, not the skeleton's
+  `../tmp/resolv.conf`. The engine daemon reads resolver config once at
+  start, and Vagus writes `/run/resolv.conf` before spawning it.
+- The app-data partition mounts at `/data`, which the Nerves skeleton ships
+  as a symlink to `/root` — so `mount`/`/proc/mounts` show the partition on
+  **`/root`**, and container data really does live on writable storage.
+  That is expected, not a misconfiguration.
+- The legacy-iptables symbols in the fragment hang off
+  `NETFILTER_XTABLES_LEGACY`, which is `depends on !PREEMPT_RT`. This board
+  uses plain `CONFIG_PREEMPT`; do not switch it to `PREEMPT_RT` without
+  moving the container stack to nftables first.
+
+**Status: the engine is device-proven (2026-07-27, fw `c26439b5`).** After an
+A/B OTA the balena-engine daemon starts on its own, creates its `bridge` and
+`hassio` networks, and programs NAT — `iptables -t nat -L -n` shows real
+MASQUERADE rules for `172.30.32.0/23` and `172.17.0.0/16`. `cgroup2` is
+mounted on `/sys/fs/cgroup`, the app partition is on `/root` (rw), and
+`/etc/resolv.conf` resolves to `/run/resolv.conf`. No pre-existing capability
+regressed from the kernel-config change: `fastrpc_test -a v68` 3/3,
+`/dev/video0`+`1`, USB3 root hub at 5000 Mbps, `wlan0` + `hci0`.
+
+**Still unproven on this board**: HA Core itself (image pull + start),
+add-on install, DNS/ingress end-to-end, and an A/B OTA round-trip **with
+containers running**.
+
+> **An OTA cannot update `grub.cfg` on this board.** `fwup.conf` writes it to
+> the ESP only in `task complete` (a full flash); `upgrade.a`/`upgrade.b`
+> carry the rootfs slot and `grubenv` alone. A device that OTAs into this
+> version therefore keeps its previous kernel cmdline. That is fine today —
+> see the `cgroup_no_v1`/`cgroup_enable` note in `grub.cfg` — but any
+> *future* cmdline change on this board needs a full reflash to take effect.
 
 ## Known-out-of-scope / open items
 
