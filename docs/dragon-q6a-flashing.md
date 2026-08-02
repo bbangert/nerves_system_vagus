@@ -125,10 +125,93 @@ port 22 (`ssh <ip>`).
 | pyusb `Permission denied` (even sudo, container) | udev perms | udev rule above + replug, run unprivileged |
 | Board doesn't boot after a successful write | Wrong sector-size variant or compressed image flashed | 512-byte image for NVMe; decompress first |
 
-## UFS variant (placeholder)
+## UFS variant ("Fork A" — same `.fw`, regenerated GPT)
 
-The `_4096` (4096-byte logical sector) UFS image and its EDL flow
-(`--memory ufs`, blank-module single-LUN provisioning XML from Armbian's
-qcombin repo) are Phase 4 of the bring-up plan and not yet validated.
-Blank UFS modules fail with `"Failed to open the UFS Device"` until LUN
-provisioning is done. This section gets filled in when that lands.
+> Status: image-generation flow validated on the host; the on-hardware
+> gate (EDL access, boot, A/B cycle on a real UFS module) is Phase 4.3
+> and still pending.
+
+The Q6A's UFS module reports **4096-byte logical sectors**, and fwup is
+hardwired to 512-byte blocks in both its GPT writer and its FatFs code.
+That turns out to matter only for the GPT structures themselves: EDK2's
+FAT driver and GRUB are BPB/byte-driven (a 512-BPB FAT mounts fine on a
+4Kn device), the on-device A/B upgrade tasks address everything by
+MiB-aligned byte offsets, and the kernel only needs a valid GPT for
+`root=PARTUUID=`. So there is **no separate `_4096` fwup config**: the
+`.fw` file and every on-device code path are identical between NVMe and
+UFS. The only delta is the EDL disk image, whose GPT
+`dragon_q6a/tools/mk_ufs_image.py` regenerates for 4096-byte LBAs (full
+rationale in its docstring).
+
+Kernel prerequisite: UFS only links up with `patches/linux/0002-*`
+(board DTS enable, Gear-4 Rate-A, ICE off) and `0003-*` (sc7280 HS-G4
+PHY init fix) in the system build. The DTB is shared by both variants —
+on the NVMe board the ufshcd probe just fails cleanly when no module is
+fitted.
+
+### Generate the UFS kit
+
+```bash
+# Same .fw and 512-LBA image as the NVMe flow:
+mix firmware
+fwup -a -t complete -i _build/dragon_q6a_dev/nerves/images/<app>.fw -d dragon_q6a.img
+
+# Transform: 512-LBA GPT -> 4Kn GPT, data partition sized to the module.
+# --disk-bytes MUST be the module's exact capacity (sectors x 4096 from
+# printgpt below) — the backup-GPT write position depends on it.
+dragon_q6a/tools/mk_ufs_image.py --input dragon_q6a.img \
+    --disk-bytes <module bytes> --out dragon_q6a_ufs
+```
+
+This emits two pieces plus the exact `edl-ng` commands to run:
+`dragon_q6a_ufs.img` (MBR + primary GPT + partition data) and
+`dragon_q6a_ufs-backup-gpt.bin` (written at the disk-tail LBA it
+prints). A `--full` mode emits a single sparse full-disk image instead,
+but EDL-writing 100+ GiB is slow; prefer the two-piece flow.
+
+### Flash
+
+First confirm EDL sees the module and capture its geometry (this is the
+Phase 4.1 spike — record the output):
+
+```bash
+./edl-ng --loader prog_firehose_ddr.elf --memory ufs printgpt
+# Confirms --memory ufs access, LUN topology, sector size (expect 4096)
+# and total sectors (x 4096 = the --disk-bytes value above).
+```
+
+**Blank-module caveat:** a factory-blank UFS module has no LUN
+configured, so reads fail until one-time provisioning — symptoms are
+bkerler-edl's `"Failed to open the UFS Device"` or edl-ng ACKing the
+Firehose configure but then warning `Storage info JSON not found` and
+timing out on the read. Provision with the board's official descriptor
+([`Kodiak/radxa-dragon-q6a/provision_ufs31_lun0_only.xml`](https://github.com/armbian/qcombin/blob/main/Kodiak/radxa-dragon-q6a/provision_ufs31_lun0_only.xml)
+from Armbian's qcombin repo) — single LUN 0 grown to fill the module,
+4096-byte logical blocks, `bConfigDescrLock=0` (descriptor stays
+rewritable):
+
+```bash
+# Re-enter EDL fresh first (full button sequence) — a timed-out
+# Firehose session is not reusable.
+./edl-ng --loader prog_firehose_ddr.elf --memory ufs provision provision_ufs31_lun0_only.xml
+# Then power-cycle EDL again and re-run printgpt to capture geometry.
+```
+
+```bash
+./edl-ng --loader prog_firehose_ddr.elf --memory ufs \
+    write-sector 0 dragon_q6a_ufs.img --lun 0
+./edl-ng --loader prog_firehose_ddr.elf --memory ufs \
+    write-sector <backup LBA printed by the tool> dragon_q6a_ufs-backup-gpt.bin --lun 0
+```
+
+EDL entry/exit and Path B recovery are identical to the NVMe flow above.
+
+### First boot differences vs NVMe
+
+- **Do NOT run the `expand-data` recipe.** fwup's `gpt_write()` hardcodes
+  512-LBA math and would corrupt the 4Kn GPT. `mk_ufs_image.py` already
+  sized `/data` (p5) to fill the module at generation time — there is
+  nothing to expand.
+- Firmware boot order with **both** NVMe and UFS populated is unverified
+  (Phase 4.3 documentation item) — on the UFS gate board, keep NVMe
+  absent or blank.
