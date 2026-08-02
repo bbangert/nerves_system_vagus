@@ -4,7 +4,10 @@
 
 UFS storage support, device-proven end to end (128 GB module: provisioning,
 EDL flash, boot, ethernet, /data at full module size on first boot, A/B OTA
-cycle). The board now boots from NVMe or UFS with the same firmware.
+cycle). The same firmware is built to boot from NVMe or UFS; the UFS path is
+device-proven in this release, while NVMe re-validation of this exact build
+(shared DTB — expect a clean ufshcd probe-failure without a module; GRUB's
+`$root`-derived boot disk) is pending that board's next update.
 
 * Kernel: board DTS enables `ufs_mem_hc`/`ufs_mem_phy` (HS-Gear-4 Rate-A,
   ICE off; from Armbian's qcs6490 series) + cherry-pick of upstream
