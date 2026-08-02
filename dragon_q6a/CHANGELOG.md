@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.3.0
+
+UFS storage support, device-proven end to end (128 GB module: provisioning,
+EDL flash, boot, ethernet, /data at full module size on first boot, A/B OTA
+cycle). The board now boots from NVMe or UFS with the same firmware.
+
+* Kernel: board DTS enables `ufs_mem_hc`/`ufs_mem_phy` (HS-Gear-4 Rate-A,
+  ICE off; from Armbian's qcs6490 series) + cherry-pick of upstream
+  `3929d18a1aaa` — 7.1's sc7280 HS-G4 PHY init table lacks the PCS writes
+  needed for link-up. The DTB is shared with the NVMe variant: with no UFS
+  module fitted, ufshcd probes and fails cleanly.
+* `tools/mk_ufs_image.py` ("Fork A"): no separate `_4096` fwup config — the
+  `.fw` and every on-device path are identical across storage variants; only
+  the EDL disk image's GPT is regenerated for 4096-byte LBAs, with `/data`
+  sized to the module at generation time. On-device `expand-data` is
+  PROHIBITED on UFS boards (fwup's GPT math is 512-LBA-only).
+* GRUB: `regexp` added to the builtin modules; grub.cfg derives the boot
+  disk from `$root` instead of hardcoding `hd0` (the UFS board enumerates
+  as hd2 behind the SPI NOR's GPT — the hardcode left it at the `grub>`
+  prompt).
+* docs/dragon-q6a-flashing.md: full UFS runbook — one-time LUN provisioning
+  for blank modules (armbian/qcombin XML), capacity probing, two-piece
+  flash flow, first-boot differences.
+
 ## v0.2.0
 
 Container runtime support, bringing this board to rpi3_64 parity as a Vagus
