@@ -160,7 +160,7 @@ fwup -a -t complete -i _build/dragon_q6a_dev/nerves/images/<app>.fw -d dragon_q6
 # Transform: 512-LBA GPT -> 4Kn GPT, data partition sized to the module.
 # --disk-bytes MUST be the module's exact capacity (sectors x 4096 from
 # printgpt below) — the backup-GPT write position depends on it.
-dragon_q6a/tools/mk_ufs_image.py --input dragon_q6a.img \
+python3 dragon_q6a/tools/mk_ufs_image.py --input dragon_q6a.img \
     --disk-bytes <module bytes> --out dragon_q6a_ufs
 ```
 

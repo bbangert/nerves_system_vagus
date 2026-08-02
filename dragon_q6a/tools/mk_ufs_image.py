@@ -72,10 +72,6 @@ DST_FRONT_BYTES = DST_FRONT_SECTORS * DST_SECTOR  # 24576
 
 EXPECTED_PARTITION_NAMES = {"config", "efi", "rootfs-a", "rootfs-b", "data"}
 
-# Headroom required past the resized data partition's start, so a module
-# that is (accidentally) reported too small fails loudly instead of
-# producing a GPT with no room for /data.
-MIN_DATA_MARGIN_SECTORS = 256  # 1 MiB at 4096-byte sectors
 
 
 class GptError(ValueError):
@@ -248,6 +244,13 @@ def validate_source(src: dict) -> None:
                 f"partition {p['name']!r} byte range [{start_byte}, {end_byte}) "
                 f"is not a multiple of {DST_SECTOR} -- cannot translate to 4Kn LBAs"
             )
+        if start_byte < DST_FRONT_BYTES:
+            raise GptError(
+                f"partition {p['name']!r} starts at byte {start_byte}, inside the "
+                f"{DST_FRONT_BYTES}-byte 4Kn GPT front this tool writes -- the "
+                "output would clobber its head. The fwup layout has changed; "
+                "update this tool."
+            )
 
 
 def translate_partitions(src_partitions: list, disk_bytes: int) -> tuple:
@@ -277,11 +280,17 @@ def translate_partitions(src_partitions: list, disk_bytes: int) -> tuple:
             "guess which partition to expand to fill the module"
         )
 
-    if translated[data_idx]["new_first"] + MIN_DATA_MARGIN_SECTORS >= last_usable_new:
+    # The data partition may only GROW. The two-piece .img carries the source
+    # body through the data partition's minimum extent, so a module whose
+    # LastUsableLBA falls short of the translated source end would both
+    # shrink /data below the fwup layout's minimum and let the flash write
+    # past the end of the device. Fail loudly instead.
+    if last_usable_new < translated[data_idx]["new_last"]:
         raise GptError(
-            f"--disk-bytes {disk_bytes} is too small: the data partition would "
-            f"start at LBA {translated[data_idx]['new_first']} with LastUsableLBA "
-            f"only {last_usable_new} -- module is not big enough for this image"
+            f"--disk-bytes {disk_bytes} is too small: LastUsableLBA {last_usable_new} "
+            f"is below the data partition's minimum end LBA "
+            f"{translated[data_idx]['new_last']} from the source layout -- "
+            "module is not big enough for this image"
         )
 
     translated[data_idx]["new_last"] = last_usable_new
