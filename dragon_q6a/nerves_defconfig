@@ -35,6 +35,8 @@ BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${NERVES_DEFCONFIG_DIR}/linux-7.1.defconfig
 BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.config ${NERVES_DEFCONFIG_DIR}/linux-containers.config"
 # USB3: USB-only trim of Armbian's DTS enables for the SuperSpeed
 # controller + USB-A SS lanes (see patches/linux/0001-*).
+# UFS: board DTS enable (Gear-4 Rate-A, ICE off) + the sc7280 HS-G4 PHY
+# init-table fix 7.1 lacks (see patches/linux/0002-* and 0003-*).
 BR2_LINUX_KERNEL_PATCH="${NERVES_DEFCONFIG_DIR}/patches/linux"
 # No BR2_LINUX_KERNEL_XZ: GRUB's arm64 `linux` loader boots the kernel via
 # its EFI stub, which requires the plain uncompressed Image. The kernel (and
