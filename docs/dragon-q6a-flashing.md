@@ -127,9 +127,10 @@ port 22 (`ssh <ip>`).
 
 ## UFS variant ("Fork A" — same `.fw`, regenerated GPT)
 
-> Status: image-generation flow validated on the host; the on-hardware
-> gate (EDL access, boot, A/B cycle on a real UFS module) is Phase 4.3
-> and still pending.
+> Status: DEVICE-PROVEN 2026-08-02 on a 128 GB module (119.2 GiB usable
+> after the 4 GiB WriteBooster carve-out): provisioning, flash, boot,
+> ethernet, /data at full size on first boot, A/B OTA cycle. Boot order
+> with NVMe and UFS both fitted remains unverified.
 
 The Q6A's UFS module reports **4096-byte logical sectors**, and fwup is
 hardwired to 512-byte blocks in both its GPT writer and its FatFs code.
