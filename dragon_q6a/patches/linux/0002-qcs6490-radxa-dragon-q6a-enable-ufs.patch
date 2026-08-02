@@ -1,0 +1,60 @@
+arm64: dts: qcom: qcs6490-radxa-dragon-q6a: enable UFS controller + PHY
+
+Armbian's qcs6490-7.1 patch 0001 (author Xilin Wu <sophon@radxa.com>),
+regenerated against 7.1.4 with our USB3 patch (0001-*) already applied:
+enables ufs_mem_hc (module reset on TLMM 175, VCC from l7b @2.96V,
+VCCQ/VCCQ2 from l9b @1.2V) and ufs_mem_phy (l10c/l6b supplies) for the
+board's UFS module socket. Two constraints Xilin Wu documents are kept
+verbatim: limit-gear-rate = "rate-a" (HS-G4 Rate-B is unstable due to
+board and UFS module design limitations — the property is parsed by
+mainline 7.1's ufshcd-pltfrm.c) and ICE stays off (qcom,ice deleted from
+the host controller, the ice node disabled — "takes a long time in
+ufshcd_init_crypto", and Nerves has no inline-crypto consumer). Boards
+without a module (the NVMe Q6A) get a clean ufshcd probe failure, not a
+boot hang. Needs 0003-* for HS-G4 to actually link up.
+
+--- a/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts
++++ b/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts
+@@ -529,6 +529,11 @@
+ 	status = "okay";
+ };
+ 
++/* It takes a long time in ufshcd_init_crypto when enabled */
++&ice {
++	status = "disabled";
++};
++
+ &lpass_audiocc {
+ 	compatible = "qcom,qcm6490-lpassaudiocc";
+ 	/delete-property/ power-domains;
+@@ -1028,6 +1033,30 @@
+ 	};
+ };
+ 
++&ufs_mem_hc {
++	reset-gpios = <&tlmm 175 GPIO_ACTIVE_LOW>;
++	vcc-supply = <&vreg_l7b_2p96>;
++	vcc-max-microamp = <800000>;
++	vccq-supply = <&vreg_l9b_1p2>;
++	vccq-max-microamp = <900000>;
++	vccq2-supply = <&vreg_l9b_1p2>;
++	vccq2-max-microamp = <1300000>;
++
++	/* Gear-4 Rate-B is unstable due to board */
++	/* and UFS module design limitations */
++	limit-gear-rate = "rate-a";
++	/delete-property/ qcom,ice;
++
++	status = "okay";
++};
++
++&ufs_mem_phy {
++	vdda-phy-supply = <&vreg_l10c_0p88>;
++	vdda-pll-supply = <&vreg_l6b_1p2>;
++
++	status = "okay";
++};
++
+ &usb_2 {
+ 	dr_mode = "host";
+ 

@@ -8,7 +8,7 @@ foundation** (Hexagon NPU via fastrpc, Venus video codec).
 | -------------- | ----------------------------------------------- |
 | CPU            | QCS6490 (4x Cortex-A78 + 4x Cortex-A55)         |
 | Memory         | 4/8/16 GB LPDDR4x                               |
-| Storage        | NVMe (M.2) — UFS variant planned (see below)    |
+| Storage        | NVMe (M.2) or UFS module — both device-proven   |
 | Ethernet       | RTL8125 2.5 GbE (r8169 driver, `eth0`)          |
 | NPU/DSP        | Hexagon v68 CDSP (~12 TOPS) via fastrpc         |
 | Video          | Venus V4L2 M2M (`/dev/video0` dec, `1` enc)     |
@@ -167,7 +167,7 @@ Components added since carry their own proof date in the Notes column.
 | SPI-NOR firmware | EDK2, EFI v2.7 by Qualcomm | Radxa flat_build; provides the (unused-by-default) firmware DT |
 | Kernel | mainline **7.1.4** + 1 DTS patch (`patches/linux/`) | Q6A DTS in-tree; patch enables the SuperSpeed controller (USB-only trim of Armbian's USB3/HDMI patch) |
 | Devicetree | in-tree `qcom/qcs6490-radxa-dragon-q6a.dtb` (7.1.4) | loaded by GRUB from the active slot |
-| GRUB | 2.12 (Buildroot), arm64-efi | builtin modules incl. `squash4`, `loadenv`, `fdt` |
+| GRUB | 2.12 (Buildroot), arm64-efi | builtin modules incl. `squash4`, `loadenv`, `fdt`, `regexp` (grub.cfg derives the boot disk from `$root`) |
 | Buildroot | 2026.05 via nerves_system_br 1.34.0 | |
 | Toolchain | `aarch64-nerves-linux-gnu` 15.3.0 (glibc) | `-march=armv8.2-a` (no a78.a55 `-mcpu` pair in GCC) |
 | linux-firmware | 20260410 (Buildroot pin) | single source for all qcom blobs |
@@ -413,4 +413,9 @@ board never notices, because ssh keeps working).
 3. Rebuild and re-run the three gates: WiFi STA association, `hci0` +
    BLE advertising (verify off-board, not just `ActiveInstances`), and a
    BLE scan/advertise/WiFi coexistence soak.
-- **UFS variant** (`_4096` image, 4096-byte sectors): planned, not started.
+- **UFS variant**: DONE, device-proven 2026-08-02 (boot, ethernet, /data at
+  full module size, A/B OTA cycle). Same `.fw`; the EDL image's GPT is
+  regenerated for 4096-byte sectors by `tools/mk_ufs_image.py` ("Fork A" —
+  see docs/dragon-q6a-flashing.md). One-time LUN provisioning XML lives in
+  armbian/qcombin. NEVER run `expand-data` on a UFS board. Boot order with
+  NVMe and UFS both fitted remains unverified.

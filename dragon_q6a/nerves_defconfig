@@ -35,6 +35,8 @@ BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${NERVES_DEFCONFIG_DIR}/linux-7.1.defconfig
 BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.config ${NERVES_DEFCONFIG_DIR}/linux-containers.config"
 # USB3: USB-only trim of Armbian's DTS enables for the SuperSpeed
 # controller + USB-A SS lanes (see patches/linux/0001-*).
+# UFS: board DTS enable (Gear-4 Rate-A, ICE off) + the sc7280 HS-G4 PHY
+# init-table fix 7.1 lacks (see patches/linux/0002-* and 0003-*).
 BR2_LINUX_KERNEL_PATCH="${NERVES_DEFCONFIG_DIR}/patches/linux"
 # No BR2_LINUX_KERNEL_XZ: GRUB's arm64 `linux` loader boots the kernel via
 # its EFI stub, which requires the plain uncompressed Image. The kernel (and
@@ -72,7 +74,7 @@ BR2_PACKAGE_LIBBSD=y
 # with prefix /EFI/BOOT (so grub.cfg + grubenv are loaded from the ESP).
 BR2_TARGET_GRUB2=y
 BR2_TARGET_GRUB2_ARM64_EFI=y
-BR2_TARGET_GRUB2_BUILTIN_MODULES_EFI="boot linux squash4 fat part_gpt normal loadenv echo true test fdt"
+BR2_TARGET_GRUB2_BUILTIN_MODULES_EFI="boot linux squash4 fat part_gpt normal loadenv echo true test fdt regexp"
 BR2_PACKAGE_HOST_DOSFSTOOLS=y
 BR2_NERVES_SYSTEM_NAME="nerves_system_dragon_q6a"
 BR2_NERVES_ADDITIONAL_IMAGE_FILES="${NERVES_DEFCONFIG_DIR}/fwup.conf"
