@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.3.1
+
+Radxa 25W PoE+ HAT fan support (kernel-automatic, both storage variants),
+and a critical fix for fresh flashes.
+
+* **fwup.conf now writes `nerves_fw_validated`** (complete: slot A = 1;
+  upgrades: new slot 1 / other slot 0, mirroring rpi3_64). Without it,
+  nerves_runtime 0.13.13's StartupGuard reads validation status `:unknown`
+  on any freshly complete-flashed board, its heart-callback time bomb never
+  clears, and **the board reboot-cycles every ~15 minutes** ("Rebooting in
+  11 minutes if unfixed"). Boards OTA'd from older firmware carried a
+  legacy global `nerves_fw_validated=1` and never hit this. Field fix for
+  an affected board: `Nerves.Runtime.validate_firmware()` once.
+
+* `patches/linux/0004`: two-state `gpio-fan` on GPIO_56 (header pin 33 --
+  the HAT's fan-control line; ACTIVE_LOW, the HAT's Q8 inverter makes
+  pin-low = fan on) bound to the `cpuss0` thermal zone: on at 60C, off at
+  50C. `spi14` is disabled -- its `qup16` pin group owns GPIO_56 and
+  Qualcomm's strict pinmux cannot share it (this is why runtime GPIO
+  requests for the pin returned EINVAL).
+* `CONFIG_SENSORS_GPIO_FAN` m -> y (no module-load dependency for a
+  thermal safety device).
+
 ## v0.3.0
 
 UFS storage support, device-proven end to end (128 GB module: provisioning,
