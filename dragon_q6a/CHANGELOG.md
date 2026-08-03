@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.3.1
+
+Radxa 25W PoE+ HAT fan support (kernel-automatic, both storage variants).
+
+* `patches/linux/0004`: two-state `gpio-fan` on GPIO_56 (header pin 33 --
+  the HAT's fan-control line; ACTIVE_LOW, the HAT's Q8 inverter makes
+  pin-low = fan on) bound to the `cpuss0` thermal zone: on at 60C, off at
+  50C. `spi14` is disabled -- its `qup16` pin group owns GPIO_56 and
+  Qualcomm's strict pinmux cannot share it (this is why runtime GPIO
+  requests for the pin returned EINVAL).
+* `CONFIG_SENSORS_GPIO_FAN` m -> y (no module-load dependency for a
+  thermal safety device).
+
 ## v0.3.0
 
 UFS storage support, device-proven end to end (128 GB module: provisioning,

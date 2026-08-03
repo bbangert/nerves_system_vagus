@@ -1,0 +1,81 @@
+From: Vagus build <vagus@nabucasa.com>
+Subject: [PATCH] arm64: dts: qcom: qcs6490-radxa-dragon-q6a: PoE+ HAT fan on GPIO_56
+
+Disable spi14 (its qup16 pin group claims GPIO_56 = header pin 33, the
+25W PoE+ HAT's active-low fan-control line) and add a two-state
+gpio-fan bound to the cpuss0 thermal zone: fan on at 60C, off at 50C.
+Drive is inverted by the HAT's Q8 transistor (schematic V1.2): pin low
+= fan full speed, pin high or floating = fan off.
+---
+--- a/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts
++++ b/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts
+@@ -813,10 +813,15 @@
+ 	status = "okay";
+ };
+ 
+-/* Pin 22, 33, 36, 37 in GPIO header */
++/*
++ * Pin 22, 33, 36, 37 in GPIO header. Disabled: pin 33 (GPIO_56) is the
++ * Radxa 25W PoE+ HAT's fan-control line (net PWM_33, active-low into the
++ * HAT's Q8 inverter), consumed by the gpio-fan node below. Qualcomm's
++ * strict pinmux cannot share the pin between qup16 and GPIO.
++ */
+ &spi14 {
+ 	qcom,enable-gsi-dma;
+-	status = "okay";
++	status = "disabled";
+ };
+ 
+ &swr0 {
+@@ -1191,3 +1196,51 @@
+ 	bias-pull-up;
+ 	drive-strength = <10>;
+ };
++
++/*
++ * Radxa 25W PoE+ HAT fan (V1.2 schematic, "5V OUT/40pin/FAN" page): the
++ * fan's PWM wire has a 10k pull-up to the HAT's 5V (fan runs when high)
++ * and NPN Q8 pulls it low; Q8's base is biased on via 100k (fan OFF by
++ * default) and driven from header pin 33 through a 0R. Driving pin 33
++ * LOW therefore turns the fan ON -- GPIO_ACTIVE_LOW below. Two-state
++ * control keyed off the big-cluster tsens: on at 60C, off at 50C
++ * (10C hysteresis -- the 20mm/15k-RPM fan is loud; no flapping).
++ */
++/ {
++	fan: gpio-fan {
++		compatible = "gpio-fan";
++		gpios = <&tlmm 56 GPIO_ACTIVE_LOW>;
++		gpio-fan,speed-map = <0 0>, <15000 1>;
++		#cooling-cells = <2>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&fan_ctl_default>;
++	};
++
++	thermal-zones {
++		cpuss0-thermal {
++			trips {
++				fan_active: fan-active {
++					temperature = <60000>;
++					hysteresis = <10000>;
++					type = "active";
++				};
++			};
++
++			cooling-maps {
++				map-fan {
++					trip = <&fan_active>;
++					cooling-device = <&fan THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
++				};
++			};
++		};
++	};
++};
++
++&tlmm {
++	fan_ctl_default: fan-ctl-default-state {
++		pins = "gpio56";
++		function = "gpio";
++		drive-strength = <2>;
++		bias-disable;
++	};
++};
