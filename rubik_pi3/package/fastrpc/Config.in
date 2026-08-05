@@ -1,0 +1,14 @@
+config BR2_PACKAGE_FASTRPC
+	bool "fastrpc"
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	select BR2_PACKAGE_LIBYAML
+	select BR2_PACKAGE_LIBMD
+	select BR2_PACKAGE_LIBBSD
+	help
+	  Qualcomm FastRPC userspace: libcdsprpc/libadsprpc client
+	  libraries, the adsprpcd/cdsprpcd remote-processor daemons, and
+	  the fastrpc_test diagnostic (with its v68 test skels) for
+	  offloading compute to the Hexagon DSPs via the QCOM_FASTRPC
+	  kernel driver.
+
+	  https://github.com/qualcomm/fastrpc

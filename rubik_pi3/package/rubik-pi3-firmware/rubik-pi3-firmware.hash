@@ -1,0 +1,17 @@
+# Locally computed: every file below was downloaded from its pinned URL and
+# sha256'd directly (2026-08-05, Rubik Pi 3 WiFi/BT bring-up session).
+#
+# linux-msm/hexagon-dsp-binaries @ 2113cae2 (main download; same commit and
+# therefore the same bytes as the dragon_q6a package used).
+sha256  63740295ed7c6c872e225fc5209b2c974a8f1e26bc30153282a77d0b6ec23ed9  rubik-pi3-firmware-2113cae26e994948ffc871d29f6206631ee2fc81.tar.gz
+sha256  eeaa182d413a4bc36efd503f8f3285cc96d63a51624ea1b24ebcf305c2c3403e  LICENSE.qcom
+sha256  8401a2253b19272c59537567194d0b264e7ef466379334ff6cea0beec7b8165d  LICENSE.qcom-2
+sha256  587f418475edca46ab0f9a864bb2c06a94aaf5e401023aeb7bffaa1b95a485f8  LICENSE.MIT
+
+# armbian/firmware @ d9846710, brcm/ (AP6256 WiFi half)
+sha256  3167956a7b2cffc4cfcaf6a282b95728c529eebef18a5d9e6d9ff32de32cc67c  brcmfmac43456-sdio.bin
+sha256  2dbd7d22fc9af0eb560ceab45b19646d211bc7b34a1dd00c6bfac5dd6ba25e8a  brcmfmac43456-sdio.clm_blob
+sha256  588430b4c2c167ca035f17da7478bec3d4922487152610d385d5ccb8f7c0a75f  nvram_ap6256.txt
+
+# rubikpi-ai/rubikpi3-firmware @ 040261c2, lib/firmware/brcm/ (AP6256 BT half)
+sha256  3e1cf5313bbeb4a7da184a470c9253e6c5f9f00d0d84e0c7ec47d4e3bbefefd6  BCM4345C5.hcd
