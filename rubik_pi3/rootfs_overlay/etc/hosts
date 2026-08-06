@@ -1,0 +1,18 @@
+# /etc/hosts — vagus-runtime-spike, plan task 1.7
+#
+# Overrides nerves_system_br's board/nerves-common/skeleton/etc/hosts
+# (which ships only the "127.0.0.1 localhost" line, no ::1, no hostname —
+# see notes.md for why this file already existed, contra the research doc's
+# assumption). Adds an IPv6 loopback line, which balena-engine/containerd
+# expect to be able to read even on an IPv4-only board.
+#
+# NOTE: erlinit assigns the real hostname dynamically at boot
+# ("nerves-<last 4 chars of serial>", via `-d /usr/bin/boardid` + `-n
+# nerves-%-.4s` in erlinit.config) — it is not knowable at image-build time,
+# so it cannot be baked into this static file as a literal line. See
+# notes.md for the follow-up options if a hostname-matching entry turns out
+# to matter for the spike (it wasn't required by any Phase 1-4 verify step
+# in plan.md).
+
+127.0.0.1	localhost
+::1		localhost ip6-localhost ip6-loopback
