@@ -146,15 +146,19 @@ int main(int argc, char **argv) {
   struct stat st;
   if (fstat(fileno(f), &st) < 0 || st.st_size <= 0) {
     fprintf(stderr, "FAIL: stat %s: %s\n", stream, strerror(errno));
+    fclose(f);
     return 1;
   }
   unsigned char *es = malloc(st.st_size);
   if (!es) {
     fprintf(stderr, "FAIL: out of memory\n");
+    fclose(f);
     return 1;
   }
   if (fread(es, 1, st.st_size, f) != (size_t)st.st_size) {
     fprintf(stderr, "FAIL: short read of %s\n", stream);
+    free(es);
+    fclose(f);
     return 1;
   }
   fclose(f);

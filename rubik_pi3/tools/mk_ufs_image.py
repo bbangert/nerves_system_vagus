@@ -263,6 +263,28 @@ def translate_partitions(src_partitions: list, disk_bytes: int) -> tuple:
     """Translate every source partition's byte range into 4096-byte LBAs,
     and resize the "data" partition to fill the target disk. Returns
     (translated_partitions, S, last_usable_new)."""
+    # Floor disk_bytes before doing any LBA arithmetic with it: too-small a
+    # value makes S (and thus last_usable_new = S - 6) tiny or negative,
+    # which would otherwise only surface later as a confusing negative-LBA
+    # error. The real floor is the source image's own partition-content
+    # extent (the highest partition end byte, i.e. what the source actually
+    # needs); fall back to the tool's structural minimum -- its 4Kn front
+    # region plus the 5-sector backup GPT it writes at the tail -- if for
+    # some reason no partitions were parsed.
+    structural_floor = DST_FRONT_BYTES + 5 * DST_SECTOR
+    if src_partitions:
+        src_extent = max((p["last_lba"] + 1) * SRC_SECTOR for p in src_partitions)
+    else:
+        src_extent = 0
+    min_disk_bytes = max(structural_floor, src_extent)
+    if disk_bytes < min_disk_bytes:
+        raise GptError(
+            f"--disk-bytes {disk_bytes} is too small: this tool needs at least "
+            f"{min_disk_bytes} bytes ({DST_FRONT_BYTES}-byte front region + "
+            f"{5 * DST_SECTOR}-byte backup GPT, and at least enough to cover the "
+            f"source image's partition content, which extends to byte {src_extent})"
+        )
+
     S = disk_bytes // DST_SECTOR
     last_usable_new = S - 6
 
@@ -506,6 +528,16 @@ def main() -> int:
     # zero-padding after the real backup GPT (verified empirically against
     # a `fwup -a -t complete` output during this tool's development).
     stale_backup_start = src["backup_lba"] * SRC_SECTOR
+    if stale_backup_start < DST_FRONT_BYTES:
+        print(
+            f"error: source image's backup GPT (BackupLBA {src['backup_lba']}, byte "
+            f"{stale_backup_start}) sits before this tool's {DST_FRONT_BYTES}-byte "
+            "4Kn front region -- this tool assumes the source's backup GPT is at/near "
+            "the end of the image, not near the beginning; refusing to guess which "
+            "bytes to zero",
+            file=sys.stderr,
+        )
+        return 1
     stale_backup_len = (src["num_entries"] * src["entry_size"]) + SRC_SECTOR
     if stale_backup_start + stale_backup_len > len(source_data):
         print("error: source image is truncated before its own backup GPT", file=sys.stderr)
