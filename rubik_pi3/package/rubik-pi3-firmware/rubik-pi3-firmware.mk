@@ -16,10 +16,14 @@
 #    DSP-side shell/skel binaries that fastrpc loads into the CDSP/ADSP.
 #
 # 3. The Broadcom blobs for the onboard AMPAK AP6256 (BCM43456-class) WiFi/BT
-#    module, fetched as _EXTRA_DOWNLOADS from two pinned vendor commits --
-#    linux-firmware carries no brcmfmac43456 firmware and no BCM4345C5
-#    patchram at all (checked against linux-firmware 20260410: only the
-#    43455/cyfmac43455 set is there). See the AP6256 section below.
+#    module, plus the Renesas uPD720201 xHC firmware the USB3/ethernet path
+#    needs (see the ethernet comment below), fetched as _EXTRA_DOWNLOADS from
+#    two pinned vendor commits -- linux-firmware carries no brcmfmac43456
+#    firmware, no BCM4345C5 patchram, and no renesas_usb_fw.mem at all
+#    (checked against linux-firmware 20260410: only the 43455/cyfmac43455
+#    Broadcom set is there; the Renesas blob has never been accepted
+#    upstream, over licensing). All three non-Qualcomm blobs come from the
+#    same armbian/firmware commit. See the AP6256 section below.
 #
 # FIRMWARE PATHS COME FROM THE DTB WE ACTUALLY BOOT: grub.cfg loads the
 # mainline in-tree qcs6490-thundercomm-rubikpi3.dtb explicitly, so the
@@ -98,15 +102,19 @@
 
 RUBIK_PI3_FIRMWARE_VERSION = 2113cae26e994948ffc871d29f6206631ee2fc81
 RUBIK_PI3_FIRMWARE_SITE = $(call github,linux-msm,hexagon-dsp-binaries,$(RUBIK_PI3_FIRMWARE_VERSION))
-RUBIK_PI3_FIRMWARE_LICENSE = Qualcomm firmware license, MIT, Broadcom bcm43xx firmware license
+RUBIK_PI3_FIRMWARE_LICENSE = Qualcomm firmware license, MIT, Broadcom bcm43xx firmware license, Renesas USB firmware license
 RUBIK_PI3_FIRMWARE_LICENSE_FILES = LICENSE.qcom LICENSE.qcom-2 LICENSE.MIT
 RUBIK_PI3_FIRMWARE_REDISTRIBUTE = NO
 RUBIK_PI3_FIRMWARE_DEPENDENCIES = linux-firmware
 
-# Pinned vendor commits for the AP6256 blobs (see header).
+# Pinned vendor commits for the AP6256 + Renesas blobs (see header).
 RUBIK_PI3_FIRMWARE_ARMBIAN_FW_VERSION = d9846710f54da5e4383e2d67311819659ac2cf5c
 RUBIK_PI3_FIRMWARE_ARMBIAN_FW_SITE = \
 	https://raw.githubusercontent.com/armbian/firmware/$(RUBIK_PI3_FIRMWARE_ARMBIAN_FW_VERSION)/brcm
+# renesas_usb_fw.mem lives at the armbian/firmware repo ROOT, not under
+# brcm/ -- same pinned commit as the AP6256 blobs, different path.
+RUBIK_PI3_FIRMWARE_ARMBIAN_ROOT_SITE = \
+	https://raw.githubusercontent.com/armbian/firmware/$(RUBIK_PI3_FIRMWARE_ARMBIAN_FW_VERSION)
 RUBIK_PI3_FIRMWARE_VENDOR_FW_VERSION = 040261c20ef198bae98eecaba4eb70c614f02984
 RUBIK_PI3_FIRMWARE_VENDOR_FW_SITE = \
 	https://raw.githubusercontent.com/rubikpi-ai/rubikpi3-firmware/$(RUBIK_PI3_FIRMWARE_VENDOR_FW_VERSION)/lib/firmware
@@ -115,7 +123,8 @@ RUBIK_PI3_FIRMWARE_EXTRA_DOWNLOADS = \
 	$(RUBIK_PI3_FIRMWARE_ARMBIAN_FW_SITE)/brcmfmac43456-sdio.bin \
 	$(RUBIK_PI3_FIRMWARE_ARMBIAN_FW_SITE)/brcmfmac43456-sdio.clm_blob \
 	$(RUBIK_PI3_FIRMWARE_ARMBIAN_FW_SITE)/nvram_ap6256.txt \
-	$(RUBIK_PI3_FIRMWARE_VENDOR_FW_SITE)/brcm/BCM4345C5.hcd
+	$(RUBIK_PI3_FIRMWARE_VENDOR_FW_SITE)/brcm/BCM4345C5.hcd \
+	$(RUBIK_PI3_FIRMWARE_ARMBIAN_ROOT_SITE)/renesas_usb_fw.mem
 
 # The DSP shells/skels are Hexagon (QUALCOMM DSP6) ELF objects executed by
 # the DSPs, not the AArch64 host -- exempt them from check-bin-arch (the
@@ -167,15 +176,15 @@ define RUBIK_PI3_FIRMWARE_INSTALL_TARGET_CMDS
 	# installed: analog audio is not a bring-up gate, so the card probe is
 	# deferred. The ax88179_178a NIC driver itself needs no blob, but its
 	# upstream Renesas uPD720201 xHC (CONFIG_USB_XHCI_PCI_RENESAS=y, see
-	# linux-7.1.defconfig) requires renesas_usb_fw.mem at probe, which is
-	# NOT present anywhere in the pinned linux-firmware (LINUX_FIRMWARE_VERSION
-	# 20260410) tree -- verified absent from WHENCE and from three
-	# separately extracted build trees of this exact snapshot. USB3/ethernet will
-	# still fail "-110"/ENOENT until that blob is sourced -- from a newer
-	# linux-firmware snapshot or a pinned vendor mirror, matching the
-	# AP6256 EXTRA_DOWNLOADS pattern above -- and installed here as
-	# $(RUBIK_PI3_FIRMWARE_FW_DIR)/renesas_usb_fw.mem (bare name, no
-	# subdir: that's what the driver requests).
+	# linux-7.1.defconfig) requires renesas_usb_fw.mem at probe. Upstream
+	# linux-firmware has never carried it (licensing), so it comes from the
+	# same pinned armbian/firmware commit as the AP6256 WiFi/BT blobs (see
+	# header) instead, installed below at the bare name the driver
+	# requests (no subdir). xhci-pci-renesas validates the image header at
+	# upload, so a corrupt or wrong file fails loudly rather than silently
+	# bricking the port.
+	$(INSTALL) -D -m 0644 $(RUBIK_PI3_FIRMWARE_DL_DIR)/renesas_usb_fw.mem \
+		$(RUBIK_PI3_FIRMWARE_FW_DIR)/renesas_usb_fw.mem
 	# ADSP: board image + fastrpc domain descriptors, at the DTS path
 	$(INSTALL) -D -m 0644 $(RUBIK_PI3_FIRMWARE_RP3_DIR)/adsp.mbn \
 		$(RUBIK_PI3_FIRMWARE_FW_DIR)/qcom/qcs6490/Thundercomm/RubikPi3/adsp.mbn
