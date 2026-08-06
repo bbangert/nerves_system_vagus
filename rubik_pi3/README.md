@@ -29,7 +29,7 @@ pending a later phase.
 | Fan            | Native PWM fan with dts thermal cooling maps          |
 | Expansion      | 40-pin header                                        |
 | Serial console | `ttyMSM0` (GENI debug UART, 115200n8) — dts `serial0 = &uart5`, pending live verification |
-| Boot           | EDK2 UEFI (SPI NOR, Thundercomm build) → GRUB2 arm64-efi → A/B |
+| Boot           | EDK2 UEFI (UFS LUN4, Thundercomm build) → GRUB2 arm64-efi → A/B |
 | Watchdog       | qcom_wdt + nerves_heart                              |
 | Containers     | balenaEngine v25 + cgroup v2 — ported from the Q6A/rpi3_64 stack, not yet device-proven here |
 
@@ -55,13 +55,17 @@ through (mirroring the Q6A port's own bring-up gates):
 
 ## Boot chain and A/B updates
 
-PBL → XBL (SPI NOR) → EDK2 UEFI (SPI NOR, Thundercomm's build) loads
-`\EFI\BOOT\BOOTAA64.EFI` (GRUB2, arm64-efi) from the ESP on the UFS. GRUB
-reads `grubenv` for the active slot and boots the kernel `Image` **from
-inside the active squashfs slot** (`squash4` module), so kernel,
-devicetree, firmware blobs, and rootfs update atomically per slot. fwup's
-uboot-env block carries the Nerves metadata; `upgrade.a`/`upgrade.b` flip
-both stores.
+PBL (SoC boot ROM) → XBL (UFS boot LUNs 1/2, A/B) → ... → EDK2 UEFI
+(`uefi.elf`, Thundercomm's build, UFS LUN4) loads
+`\EFI\BOOT\BOOTAA64.EFI` (GRUB2, arm64-efi) from the ESP on UFS LUN0.
+Unlike the Q6A (whose XBL/EDK2 live on a separate SPI-NOR chip), this
+board's entire stock boot chain — XBL, TZ, hypervisor, EDK2, DTB, and the
+rest of the firmware image — lives on the onboard UFS itself, alongside
+our GRUB/kernel/rootfs partitions on LUN0. GRUB reads `grubenv` for the
+active slot and boots the kernel `Image` **from inside the active
+squashfs slot** (`squash4` module), so kernel, devicetree, firmware
+blobs, and rootfs update atomically per slot. fwup's uboot-env block
+carries the Nerves metadata; `upgrade.a`/`upgrade.b` flip both stores.
 
 **The mainline DTB is loaded explicitly by GRUB** (`fdt` module,
 `devicetree` command) from the active slot rather than relying on the
@@ -79,15 +83,131 @@ verification.
 
 ## Flashing
 
-Qualcomm EDL/QDL to the onboard UFS (LUN0): `prog_firehose_ddr.elf` plus
-rawprogram/patch XMLs from Thundercomm. EDL entry is via `adb reboot edl`
-on the stock OS, or the board's EDL button combo. The 4Kn GPT-regeneration
-playbook (`tools/mk_ufs_image.py`) is carried over from the Q6A port's UFS
-flashing flow (see `docs/dragon-q6a-flashing.md`'s UFS section for the
-runbook it originated from).
+Qualcomm EDL to the onboard UFS, **LUN0 only** — the stock boot chain in
+LUNs 1/2/4 (see "Boot chain" above) is never touched, so this carries the
+same no-bootloader-reflash property as the Q6A's SPI-NOR-based board, just
+by a different mechanism (writing around the boot LUNs instead of a
+separate chip). The 4Kn GPT-regeneration playbook (`tools/mk_ufs_image.py`)
+is carried over from the Q6A port's UFS flashing flow.
 
-Detailed flash commands (EDL tool invocations, LUN provisioning XML,
-recovery paths) are **to be filled in during device bring-up**.
+### Sources / staging
+
+The stock loader and rawprogram XMLs come from Thundercomm's public
+FlatBuild flash package (no login, hosted on S3):
+`https://thundercomm.s3.dualstack.ap-northeast-1.amazonaws.com/uploads/web/rubik-pi-3/20250905/FlatBuild_RUBIKPi-3_xx.xx_LE1.0.R.debug.FC.r001004.zip`
+(2.85 GB). Only ~1 MB of it is actually needed: `ufs/prog_firehose_ddr.elf`
+(sha256 `32ac27b0c28d4661bac18541dd503c5755fb4f11f08ba09c6c7d5c04ed67903b`,
+1,019,904 bytes), plus optionally the stock `rawprogram0-6.xml`/
+`patch0-6.xml` for reference or full-restore. These are proprietary
+Thundercomm blobs — **not committed to this repo**; the sha256 above pins
+the loader. A ranged-extraction script can pull individual files out of
+the zip via HTTP range requests, so the full 2.85 GB archive never needs
+to be downloaded.
+
+Thundercomm's official flashing docs live in the `rubikpi-ai/documentation`
+GitHub repo; their supported tool is Qualcomm Device Loader (QDL) 2.3.4
+(Linux/macOS/Windows — Windows needs the WinUSB driver, and its CLI takes
+no wildcards). This target instead uses `edl-ng` plus the Q6A port's
+playbook for the custom LUN0-only write; QDL/FlatBuild remain the
+stock-restore path (see "Why LUN0-only is safe" below).
+
+### EDL entry
+
+Documented by Thundercomm, and expected to match the Q6A's EDL behavior
+(same SoC, same PBL/Sahara/Firehose flow):
+
+- Cold entry: hold the **[EDL]** button, connect 12 V power while
+  holding, then connect USB-C, wait ~3 s. The device enumerates as
+  `05c6:9008` (QDL mode) — verify with `lsusb | grep 9008`.
+- From a booted stock OS: `adb shell reboot edl`.
+
+Host-side traps proven on the Q6A from the same workstation, expected to
+carry over unchanged:
+
+- The `qcserial` kernel module steals the one-shot Sahara HELLO —
+  blacklist it (`modprobe -r qcserial` before entry, or a kernel-arg
+  blacklist) ahead of every EDL session.
+- A udev rule for `05c6:9008` with `MODE="0666"` avoids needing `sudo`.
+- If `edl-ng` reports `mode: Unknown` with a `04…0D…01` Sahara packet,
+  recover without power-cycling: run `bkerler/edl`'s `printgpt` once (it
+  uploads the loader and, as a side effect, leaves Firehose live in DDR),
+  then rerun `edl-ng`.
+
+See `docs/dragon-q6a-flashing.md` for the full EDL runbook these traps
+and the recovery path are drawn from, rather than re-documenting every
+detail here.
+
+### Flash procedure (LUN0 only)
+
+> Steps below are the intended bench procedure, carried over from the
+> Q6A port's UFS flow — **not yet device-proven on this board**.
+
+1. Build the firmware and expand it to a raw 512-LBA image:
+
+   ```sh
+   mix firmware   # MIX_TARGET=rubik_pi3
+   fwup -a -t complete -i vagus_platform.fw -d rubik_pi3.img
+   # ~1.6 GiB
+   ```
+
+2. Probe the module's exact capacity with the board in EDL — the 4Kn
+   backup-GPT placement and `/data` sizing both depend on the real byte
+   count, not the nominal one:
+
+   ```sh
+   probe_ufs_capacity.sh
+   # binary-search read-sector probes via edl-ng, carried from the Q6A
+   # port. Nominal capacity is 128 GB (UFS 2.2), but the exact byte
+   # count must come from the probe.
+   ```
+
+3. Regenerate the GPT for 4096-byte LBAs:
+
+   ```sh
+   tools/mk_ufs_image.py --input rubik_pi3.img \
+       --disk-bytes <probed-bytes> --out rubik_pi3_ufs
+   ```
+
+   Emits `rubik_pi3_ufs.img` + `rubik_pi3_ufs-backup-gpt.bin`, and prints
+   the two `edl-ng` write commands with the correct backup-GPT LBA.
+
+4. Write both pieces to LUN0 (example uses nominal 128 GiB geometry —
+   use the real LBAs the script in step 3 prints):
+
+   ```sh
+   edl-ng --loader prog_firehose_ddr.elf --memory ufs \
+       write-sector 0 rubik_pi3_ufs.img --lun 0
+   edl-ng --loader prog_firehose_ddr.elf --memory ufs \
+       write-sector <backup-lba> rubik_pi3_ufs-backup-gpt.bin --lun 0
+   ```
+
+5. Exit EDL: unplug USB-C, power-cycle. First boot should show the GRUB
+   A/B menu on serial (`ttyMSM0`, 115200n8), then erlinit/ssh.
+
+### Why LUN0-only is safe / recovery
+
+Writing LUN0 never touches the boot chain (LUNs 1/2/4) — a bad flash of
+our image can't brick the board, and EDL (the PBL in ROM) is always
+re-enterable regardless of what's on UFS.
+
+Full stock restore uses QDL 2.3.4 with the FlatBuild package, which
+rewrites every LUN:
+
+```sh
+# from the FlatBuild package's ufs/ directory
+./qdl --storage ufs prog_firehose_ddr.elf rawprogram*.xml patch*.xml
+```
+
+**Danger:** the FlatBuild package's `provision/provision_ufs_1_3.xml`
+re-provisions the UFS LUN layout, and per Thundercomm's own docs can
+**wipe the board's serial number and Ethernet MAC** (both stored in UFS).
+Never run provisioning on a working board — it is not part of either the
+flash or the restore flow above.
+
+This also inherits the 4Kn design already documented in
+`tools/mk_ufs_image.py`: fwup's on-device `expand-data` op is disallowed
+on this board, because sizing has to happen at image-generation time
+(step 3 above), not on-device.
 
 ## Storage layout
 
@@ -204,7 +324,7 @@ Three pieces:
 
 | Component | Version | Notes |
 |---|---|---|
-| SPI-NOR firmware | EDK2, EFI, Thundercomm's SPI-NOR build | provides the (unused-by-default) firmware DT |
+| Boot-chain firmware | EDK2 UEFI + XBL/TZ/hypervisor, Thundercomm's build (UFS LUNs 1/2/4) | provides the (unused-by-default) firmware DT |
 | Kernel | mainline **7.1.4** + 1 patch (`patches/linux/0003-*`) | in-tree `qcs6490-thundercomm-rubikpi3` DTS; the one carried patch is a SoC-generic qmp-ufs HS-G4 PHY init-table fix (sc7280), not board-specific |
 | Devicetree | in-tree `qcom/qcs6490-thundercomm-rubikpi3.dtb` (7.1.4) | loaded by GRUB from the active slot |
 | GRUB | 2.12 (Buildroot), arm64-efi | builtin modules incl. `squash4`, `loadenv`, `fdt`, `regexp` |
