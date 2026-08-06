@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.3.2
+
+fwup metadata fix (PR #17) closing a latent data-loss bug in the
+application-partition mount check, plus hardening against build-environment
+overrides.
+
+* **`NERVES_FW_APPLICATION_PART0_TARGET` corrected from `/data` (a rootfs
+  symlink to `root`) to the canonical `/root`**, exactly as reported in
+  `/proc/mounts`. nerves_runtime's Init compares that string literally
+  against `/proc/mounts` to decide whether the app partition is mounted;
+  with the alias it concluded `:unmounted` on every boot and ran
+  `mkfs.ext4 -F` against the live, mounted data partition each boot -- only
+  mkfs's own refusal to format a mounted device prevented data loss.
+  erlinit still mounts via the `/data` alias; on-disk layout and
+  application `/data` paths are unchanged.
+* Layout/identity fwup keys (devpath, part0 devpath/fstype/target, platform,
+  architecture) hardened to `define!()` so environment variables can't
+  silently override them -- fwup's plain `define()` loses to any exported
+  env var of the same name.
+
 ## v0.3.1
 
 Radxa 25W PoE+ HAT fan support (kernel-automatic, both storage variants),
