@@ -1262,5 +1262,15 @@ CONFIG_BT_BCM=m
 
 # ---- Rubik Pi 3 ethernet (USB AX88179B) ----
 # The board's GbE port is an ASIX AX88179B hanging off USB, not a PCIe NIC.
-# Needs no firmware blob. USB_USBNET=m is already set above.
+# Needs no firmware blob itself. USB_USBNET=m is already set above.
 CONFIG_USB_NET_AX88179_178A=m
+# The AX88179B sits behind a Renesas uPD720201 xHC on PCIe (0000:01:00.0).
+# This board has no firmware SPI ROM for it, so xhci-pci-renesas must
+# upload renesas_usb_fw.mem at probe -- without it the controller never
+# leaves CNR and probe fails "can't setup: -110" (observed on serial,
+# 2026-08-06), and the NIC never enumerates. USB_XHCI_PCI is implicit
+# default-y off CONFIG_PCI=y/USB_PCI in this defconfig (not previously
+# listed here); pin it explicitly alongside RENESAS so the pairing is
+# visible -- USB_XHCI_PCI_RENESAS `depends on USB_XHCI_PCI`.
+CONFIG_USB_XHCI_PCI=y
+CONFIG_USB_XHCI_PCI_RENESAS=y

@@ -165,7 +165,17 @@ define RUBIK_PI3_FIRMWARE_INSTALL_TARGET_CMDS
 		$(RUBIK_PI3_FIRMWARE_FW_DIR)/qcom/vpu-2.0/venus.mbn
 	# Board audio topology (QCS6490-Thundercomm-RubikPi3-tplg.bin) is NOT
 	# installed: analog audio is not a bring-up gate, so the card probe is
-	# deferred. Ethernet needs no blob (USB ax88179_178a, not PCIe Realtek).
+	# deferred. The ax88179_178a NIC driver itself needs no blob, but its
+	# upstream Renesas uPD720201 xHC (CONFIG_USB_XHCI_PCI_RENESAS=y, see
+	# linux-7.1.defconfig) requires renesas_usb_fw.mem at probe, which is
+	# NOT present anywhere in the pinned linux-firmware (LINUX_FIRMWARE_VERSION
+	# 20260410) tree -- verified absent from WHENCE and from three
+	# separately extracted build trees of this exact snapshot. USB3/ethernet will
+	# still fail "-110"/ENOENT until that blob is sourced -- from a newer
+	# linux-firmware snapshot or a pinned vendor mirror, matching the
+	# AP6256 EXTRA_DOWNLOADS pattern above -- and installed here as
+	# $(RUBIK_PI3_FIRMWARE_FW_DIR)/renesas_usb_fw.mem (bare name, no
+	# subdir: that's what the driver requests).
 	# ADSP: board image + fastrpc domain descriptors, at the DTS path
 	$(INSTALL) -D -m 0644 $(RUBIK_PI3_FIRMWARE_RP3_DIR)/adsp.mbn \
 		$(RUBIK_PI3_FIRMWARE_FW_DIR)/qcom/qcs6490/Thundercomm/RubikPi3/adsp.mbn
