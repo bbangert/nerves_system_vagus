@@ -9,6 +9,10 @@
 #    modules (they request /lib/firmware blobs, so they must probe after the
 #    rootfs is mounted),
 #  - dma-buf system heap for the NPU user-space contract.
+#  - NUMA(_BALANCING), MEMORY_HOTPLUG(REMOVE), HUGETLBFS/CGROUP_HUGETLB,
+#    VIRTIO_BALLOON and KALLSYMS_ALL removed: single-node SoC, no memory
+#    hotplug, not a VM guest, no hugetlbfs consumer -- dead symbols cost
+#    boot time/RAM and hide real config.
 #
 # Applied by Buildroot as a full .config via olddefconfig; unset symbols
 # take their Kconfig defaults. Regenerate by editing this file directly.
@@ -28,12 +32,10 @@ CONFIG_TASK_XACCT=y
 CONFIG_TASK_IO_ACCOUNTING=y
 CONFIG_IKCONFIG=y
 CONFIG_IKCONFIG_PROC=y
-CONFIG_NUMA_BALANCING=y
 CONFIG_MEMCG=y
 CONFIG_BLK_CGROUP=y
 CONFIG_CGROUP_PIDS=y
 CONFIG_CGROUP_FREEZER=y
-CONFIG_CGROUP_HUGETLB=y
 CONFIG_CPUSETS=y
 CONFIG_CGROUP_DEVICE=y
 CONFIG_CGROUP_CPUACCT=y
@@ -42,13 +44,11 @@ CONFIG_CGROUP_BPF=y
 CONFIG_USER_NS=y
 CONFIG_SCHED_AUTOGROUP=y
 CONFIG_BLK_DEV_INITRD=y
-CONFIG_KALLSYMS_ALL=y
 CONFIG_PROFILING=y
 CONFIG_KEXEC=y
 CONFIG_KEXEC_FILE=y
 CONFIG_CRASH_DUMP=y
 CONFIG_ARCH_QCOM=y
-CONFIG_NUMA=y
 CONFIG_XEN=y
 CONFIG_COMPAT=y
 CONFIG_RANDOMIZE_BASE=y
@@ -84,11 +84,15 @@ CONFIG_MODULE_UNLOAD=y
 CONFIG_IOSCHED_BFQ=y
 # CONFIG_CORE_DUMP_DEFAULT_ELF_HEADERS is not set
 # CONFIG_COMPAT_BRK is not set
-CONFIG_MEMORY_HOTPLUG=y
-CONFIG_MEMORY_HOTREMOVE=y
 CONFIG_KSM=y
 CONFIG_MEMORY_FAILURE=y
+# madvise, not never: ERTS never madvises hugepages on arm (otp PR #8702), so
+# BEAM gets zero AnonHugePages under madvise while legitimate madvise callers
+# still get them. Measured 536 MB of a 974 MB BEAM RSS was huge-page padding
+# under always.
 CONFIG_TRANSPARENT_HUGEPAGE=y
+CONFIG_TRANSPARENT_HUGEPAGE_MADVISE=y
+# CONFIG_TRANSPARENT_HUGEPAGE_ALWAYS is not set
 CONFIG_NET=y
 CONFIG_PACKET=y
 CONFIG_UNIX=y
@@ -829,7 +833,6 @@ CONFIG_RZ_DMAC=y
 CONFIG_VFIO=y
 CONFIG_VFIO_PCI=y
 CONFIG_VIRTIO_PCI=y
-CONFIG_VIRTIO_BALLOON=y
 CONFIG_VIRTIO_MMIO=y
 CONFIG_XEN_GNTDEV=y
 CONFIG_XEN_GRANT_DEV_ALLOC=y
@@ -1164,11 +1167,14 @@ CONFIG_CUSE=m
 CONFIG_OVERLAY_FS=m
 CONFIG_VFAT_FS=y
 CONFIG_TMPFS_POSIX_ACL=y
-CONFIG_HUGETLBFS=y
 CONFIG_CONFIGFS_FS=y
 CONFIG_EFIVAR_FS=y
 CONFIG_UBIFS_FS=m
 CONFIG_SQUASHFS=y
+# rpi/HAOS kernels use these; the unset default (FILE_CACHE + DECOMP_SINGLE)
+# serialises rootfs decompression on one core.
+CONFIG_SQUASHFS_FILE_DIRECT=y
+CONFIG_SQUASHFS_DECOMP_MULTI_PERCPU=y
 CONFIG_PSTORE_RAM=m
 CONFIG_NFS_FS=y
 CONFIG_NFS_V4=y
