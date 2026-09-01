@@ -10,7 +10,10 @@ built in CI so consumers never need a local buildroot toolchain.
 ```
 .
 ├── shared/
-│   └── linux-bluetooth.config  # canonical kernel fragment (edit here → make sync)
+│   ├── linux-bluetooth.config   # canonical kernel fragment (edit here → make sync)
+│   ├── linux-containers.config  # canonical kernel fragment (balena-engine boards)
+│   ├── linux-memory.config      # canonical kernel fragment (swap/reclaim tuning)
+│   └── sysctl.conf              # canonical overlay file → <target>/rootfs_overlay/etc/
 ├── rpi0/  rpi0_2/  rpi3/  rpi4/  rpi5/   # one Mix project per BT-capable target
 │   ├── mix.exs                 #   artifact_sites → THIS repo's Releases
 │   ├── nerves_defconfig        #   + BlueZ/D-Bus + firmware pkgs + kernel fragment ref
@@ -41,6 +44,9 @@ make check    # CI-friendly: fails if any copy drifted from shared/
 git add -A && git commit
 ```
 
+`shared/sysctl.conf` is synced the same way, into `<target>/rootfs_overlay/etc/`
+rather than the target root, since `make check` covers it too.
+
 (We can't reference `../shared` directly from a target, because a `sparse:`
 checkout only fetches that one subdir and the artifact checksum only covers
 subdir-local files.)
@@ -63,7 +69,8 @@ Same recipe as the existing five:
 1. Copy the upstream system into a new subdir (drop `.git`/`hex_metadata.config`).
 2. `mix.exs`: `@github_organization "bbangert"`, add `@releases_repo` +
    `{:github_releases, @releases_repo}` in `artifact_sites`, add
-   `"linux-bluetooth.config"` to `package_files()`, set `VERSION` to `0.1.0`.
+   `"linux-bluetooth.config"` and `"linux-memory.config"` to `package_files()`,
+   set `VERSION` to `0.1.0`.
 3. `nerves_defconfig`: add the `BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES` line +
    `BR2_PACKAGE_DBUS=y` / `BR2_PACKAGE_BLUEZ5_UTILS=y` /
    `BR2_PACKAGE_RPI_DISTRO_BLUEZ_FIRMWARE=y`.

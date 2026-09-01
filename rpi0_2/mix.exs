@@ -120,6 +120,7 @@ defmodule NervesSystemRpi02.MixProject do
       "LICENSES/*",
       "linux-6.18.defconfig",
       "linux-bluetooth.config",
+      "linux-memory.config",
       "mix.exs",
       "nerves_defconfig",
       "post-build.sh",
