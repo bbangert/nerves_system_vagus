@@ -45,7 +45,7 @@ git add -A && git commit
 ```
 
 `shared/sysctl.conf` is synced the same way, into `<target>/rootfs_overlay/etc/`
-rather than the target root, since `make check` covers it too.
+rather than the target root, and `make check` covers it too.
 
 (We can't reference `../shared` directly from a target, because a `sparse:`
 checkout only fetches that one subdir and the artifact checksum only covers

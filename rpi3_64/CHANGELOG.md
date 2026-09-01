@@ -16,6 +16,46 @@ follows:
    releases, and Linux kernel updates. They're also made to fix bugs and add
    features to the build infrastructure.
 
+## v0.1.4
+
+Kernel memory tuning via the new shared `shared/linux-memory.config`
+fragment (synced to all 11 targets) and a shared `shared/sysctl.conf`.
+Kernel-config change on a previously-working board — the merged `.config`
+is audited (every fragment symbol grepped in the merged config) and the
+existing capability smoke set is re-run on device before the tag. THP is
+untouched: this tree doesn't build it. Closes #18 (kernel half).
+
+* Fragment symbols relevant to this 6.18 tree: `PSI` (+ `/proc/pressure/*`
+  live), `LRU_GEN` + `LRU_GEN_ENABLED` (MGLRU on by default, runtime kill
+  switch at `/sys/kernel/mm/lru_gen/enabled`), `ZRAM`/`ZSWAP` + LZ4
+  (backend and default compressor respectively), and `BLK_DEV_RAM` off
+  (this defconfig had it on — 16 unused ramdisk devices; Nerves boots
+  squashfs directly). `SWAP` was already on by kernel default and is now
+  confirmed explicitly in the fragment.
+* **`shared/sysctl.conf` is now the canonical overlay file for every
+  target.** Removes this file's `vm.swappiness = 10` and the "RAM-tight
+  1GB Pi 3B+ ... with a swapfile" rationale that justified it — this board
+  has never had a swapfile, so swappiness was always inert here.
+  `vm.swappiness` is now set at runtime by `Vagus.Host.Swap` (vagus 0.9.0),
+  once it ships. Adds `vm.dirty_background_bytes = 16 MiB` /
+  `vm.dirty_bytes = 64 MiB` in place of the ratio defaults, protecting the
+  SD card from write storms.
+
+## v0.1.3
+
+fwup metadata fix (PR #17): `NERVES_FW_APPLICATION_PART0_TARGET` corrected
+to the canonical `/root`, matching what `/proc/mounts` reports for the
+`/data` symlink, so nerves_runtime's Init never mis-detects the app
+partition as unmounted and runs `mkfs` against it. Layout/identity fwup
+keys (devpath, part0 devpath/fstype/target, platform, architecture)
+hardened to `define!()` so environment variables can't silently override
+them.
+
+## v0.1.2
+
+`e2fsprogs`' `resize2fs` added to the system image (PR #14), extended from
+`dragon_q6a`-only to every target.
+
 ## v0.1.1
 
 Build-infrastructure fixes made while porting the container runtime to
