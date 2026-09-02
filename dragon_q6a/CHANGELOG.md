@@ -1,5 +1,55 @@
 # Changelog
 
+## v0.3.3
+
+Kernel memory tuning, shared across all 11 targets via a new
+`shared/linux-memory.config` fragment, plus a THP fix measured on this board.
+Kernel-config change on a previously-working board — the merged `.config` is
+audited (every fragment symbol grepped for both an rpi 6.18 build and this
+7.1 build) and the existing capability smoke set is re-run on device before
+the tag. Closes #18 (kernel half).
+
+* **THP `always` → `madvise`: measured 536 MB of a 974 MB BEAM (`beam.smp`)
+  RSS was AnonHugePages padding.** A live switch to madvise + add-on restart
+  took AnonHugePages to 0. `madvise` rather than `never` because ERTS never
+  madvises hugepages on arm (otp PR #8702), so BEAM gets zero huge pages
+  while legitimate madvise callers still get them.
+* **`CONFIG_PANIC_TIMEOUT` was unset here, i.e. 0: a kernel panic hung
+  forever.** The shared fragment sets 10 (matches the rpi trees; HAOS uses
+  5), so a panicked board now reboots on its own.
+* New `shared/linux-memory.config` fragment (synced to all 11 targets)
+  builds in `SWAP`, `PSI` (+ `/proc/pressure/*` live), `LRU_GEN` +
+  `LRU_GEN_ENABLED` (MGLRU on by default, with a runtime kill switch at
+  `/sys/kernel/mm/lru_gen/enabled`), `ZSMALLOC`, `ZRAM` + LZ4 backend, and
+  `ZSWAP` + LZ4 default compressor. `ZSWAP_DEFAULT_ON` is deliberately left
+  off: which backend is active is a runtime decision — the upcoming
+  `Vagus.Host.Swap` (vagus 0.9.0) picks zram on SD/eMMC boards or a `/data`
+  swapfile + zswap on UFS/NVMe boards, and zswap in front of zram would
+  double-compress. Until that release ships, this is a build-only change —
+  nothing activates swap, and behaviour is otherwise unchanged apart from
+  THP, `PANIC_TIMEOUT`, squashfs decompression, and `dirty_bytes`.
+  `BLK_DEV_RAM` is off (Nerves boots squashfs directly; the 16 default
+  ramdisk devices were dead weight).
+* Dead-symbol prune on this defconfig: `NUMA`/`NUMA_BALANCING`,
+  `MEMORY_HOTPLUG`/`MEMORY_HOTREMOVE`, `HUGETLBFS`/`CGROUP_HUGETLB`,
+  `VIRTIO_BALLOON`, and `KALLSYMS_ALL` removed — single-node SoC, bare
+  metal, no hugetlbfs consumer. Audited and kept: `PERF_EVENTS` (implied by
+  `CONFIG_PROFILING=y` already in this defconfig; `CGROUP_PERF` and the BPF
+  tracing paths hang off it, and it costs nothing at rest) and `KSM`
+  (inert — nothing on this board madvises `MERGEABLE`).
+* `SQUASHFS_FILE_DIRECT` + `SQUASHFS_COMPILE_DECOMP_MULTI_PERCPU` added — the unset
+  default (`FILE_CACHE` + `DECOMP_SINGLE`) serialises rootfs decompression
+  on one core; the rpi and HAOS kernels both build direct + per-CPU.
+* `shared/sysctl.conf` is now the canonical overlay file, synced into every
+  target's `rootfs_overlay/etc/` (`make sync`/`make check` cover it, so the
+  8 previously-dormant targets get it for the first time). Adds
+  `vm.dirty_background_bytes = 16 MiB` and `vm.dirty_bytes = 64 MiB` in
+  place of the 10/20 % ratio defaults: on this board's RAM the ratio lets
+  ~2.4 GB of dirty pages pile up before a flush stalls everything; on a
+  1 GB Pi the same ratio risks SD-card write storms. `vm.swappiness` is
+  removed — it depends on the backing (150 on zram boards, 10 on
+  swapfile+zswap boards) and is now set at runtime by `Vagus.Host.Swap`.
+
 ## v0.3.2
 
 fwup metadata fix (PR #17) closing a latent data-loss bug in the

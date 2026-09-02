@@ -12,6 +12,15 @@ follows:
    releases, and Linux kernel updates. They're also made to fix bugs and add
    features to the build infrastructure.
 
+## v0.1.7
+
+Shared memory-tuning fragment (`linux-memory.config`) and shared
+`sysctl.conf`, as on every other target in this repo (see the `dragon_q6a`
+v0.3.3 / `rpi3_64` v0.1.4 entries). One behaviour change specific to this
+target: `CONFIG_PANIC_TIMEOUT=10` — this defconfig left it unset (kernel
+default 0, a panic hangs forever), so an x86_64 appliance now reboots 10 s
+after a kernel panic, matching the rpi trees (HAOS uses 5 on all boards).
+
 ## v1.34.0
 
 This is a major update with security and feature updates throughout.
