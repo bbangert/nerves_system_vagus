@@ -37,7 +37,7 @@ the tag. Closes #18 (kernel half).
   `CONFIG_PROFILING=y` already in this defconfig; `CGROUP_PERF` and the BPF
   tracing paths hang off it, and it costs nothing at rest) and `KSM`
   (inert — nothing on this board madvises `MERGEABLE`).
-* `SQUASHFS_FILE_DIRECT` + `SQUASHFS_DECOMP_MULTI_PERCPU` added — the unset
+* `SQUASHFS_FILE_DIRECT` + `SQUASHFS_COMPILE_DECOMP_MULTI_PERCPU` added — the unset
   default (`FILE_CACHE` + `DECOMP_SINGLE`) serialises rootfs decompression
   on one core; the rpi and HAOS kernels both build direct + per-CPU.
 * `shared/sysctl.conf` is now the canonical overlay file, synced into every

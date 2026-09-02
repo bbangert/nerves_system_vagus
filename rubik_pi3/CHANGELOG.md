@@ -29,7 +29,7 @@ from `dragon_q6a`. Closes #18 (kernel half).
   removed. `PERF_EVENTS` and `KSM` audited and kept (same reasoning as
   `dragon_q6a`: `PROFILING=y` implies the former and it costs nothing at
   rest; nothing madvises `MERGEABLE` so the latter is inert).
-* `SQUASHFS_FILE_DIRECT` + `SQUASHFS_DECOMP_MULTI_PERCPU` added — the unset
+* `SQUASHFS_FILE_DIRECT` + `SQUASHFS_COMPILE_DECOMP_MULTI_PERCPU` added — the unset
   default serialises rootfs decompression on one core.
 * `shared/sysctl.conf` is now the canonical overlay file for this target
   too, adding `vm.dirty_background_bytes = 16 MiB` / `vm.dirty_bytes =
