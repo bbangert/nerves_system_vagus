@@ -1,17 +1,20 @@
 arm64: dts: qcom: qcs6490-radxa-dragon-q6a: enable UFS controller + PHY
 
-Armbian's qcs6490-7.1 patch 0001 (author Xilin Wu <sophon@radxa.com>),
-regenerated against 7.1.4 with our USB3 patch (0001-*) already applied:
-enables ufs_mem_hc (module reset on TLMM 175, VCC from l7b @2.96V,
+Patch 0001 from Armbian's qcs6490 7.1 series (author Xilin Wu
+<sophon@radxa.com>), regenerated to apply on top of our USB3 patch
+(0001-*): enables ufs_mem_hc (module reset on TLMM 175, VCC from l7b @2.96V,
 VCCQ/VCCQ2 from l9b @1.2V) and ufs_mem_phy (l10c/l6b supplies) for the
 board's UFS module socket. Two constraints Xilin Wu documents are kept
 verbatim: limit-gear-rate = "rate-a" (HS-G4 Rate-B is unstable due to
 board and UFS module design limitations — the property is parsed by
-mainline 7.1's ufshcd-pltfrm.c) and ICE stays off (qcom,ice deleted from
+mainline's ufshcd-pltfrm.c) and ICE stays off (qcom,ice deleted from
 the host controller, the ice node disabled — "takes a long time in
 ufshcd_init_crypto", and Nerves has no inline-crypto consumer). Boards
 without a module (the NVMe Q6A) get a clean ufshcd probe failure, not a
 boot hang. Needs 0003-* for HS-G4 to actually link up.
+
+Applies to v7.2.10 at --fuzz=0 with no offset; the UFS enable is not in
+mainline v7.2.10.
 
 --- a/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts
 +++ b/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts

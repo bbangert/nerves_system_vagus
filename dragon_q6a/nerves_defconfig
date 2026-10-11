@@ -37,6 +37,9 @@ BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.
 # controller + USB-A SS lanes (see patches/linux/0001-*).
 # UFS: board DTS enable (Gear-4 Rate-A, ICE off) + the sc7280 HS-G4 PHY
 # init-table fix mainline lacks (see patches/linux/0002-* and 0003-*).
+# PoE+ HAT fan: gpio-fan on GPIO_56 bound to the cpuss0 thermal zone, with
+# spi14 disabled because its pin group claims that GPIO (see
+# patches/linux/0004-*).
 BR2_LINUX_KERNEL_PATCH="${NERVES_DEFCONFIG_DIR}/patches/linux"
 # No BR2_LINUX_KERNEL_XZ: GRUB's arm64 `linux` loader boots the kernel via
 # its EFI stub, which requires the plain uncompressed Image. The kernel (and
@@ -137,7 +140,7 @@ BR2_PACKAGE_AIC8800_FIRMWARE=y
 # Vagus-owned external package (dragon_q6a/package/vagus-balena-engine/), a
 # byte-for-byte copy of rpi3_64's -- the recipe is arch- and
 # kernel-agnostic and both boards share the aarch64 toolchain and
-# nerves_system_br 1.34.0. Note cgroupfs-mount IS pulled in (the package's
+# nerves_system_br version. Note cgroupfs-mount IS pulled in (the package's
 # Config.in has `select BR2_PACKAGE_CGROUPFS_MOUNT if !BR2_PACKAGE_SYSTEMD`
 # and this is a BR2_INIT_NONE system), so /usr/bin/cgroupfs-mount ships --
 # but it is inert: it is a SysV init script helper and nothing ever invokes
