@@ -2,10 +2,14 @@
 #
 # fastrpc
 #
-# Qualcomm FastRPC userspace (BSD-3-Clause), pinned to v1.0.4 -- the same
-# version RadxaOS ships, and the one this system's bring-up validated 3/3
-# on `fastrpc_test -a v68` against the CDSP.HT.2.5.c3-00134 firmware set
-# installed by package/dragon-q6a-firmware.
+# Qualcomm FastRPC userspace (BSD-3-Clause), pinned to v1.0.8, which
+# carries the v1.0.5-v1.0.8 fixes: among them a use-after-free in session
+# teardown (#365), missing unlocks on failure paths (#337) and input
+# validation in the remote API entry points (#359).
+# Whether `fastrpc_test -a v68` is device-validated on this pin, against
+# the CDSP.HT.2.5.c3-00134 firmware set installed by
+# package/dragon-q6a-firmware, is recorded in README.md's VERSIONS table,
+# not here.
 #
 # The tarball has no pre-generated ./configure (autogen.sh), so autoreconf.
 #
@@ -22,12 +26,15 @@
 # processes should set ADSP_LIBRARY_PATH to avoid picking up CDSP sysmon
 # skels of the same name.
 #
-# The systemd units it installs are inert under Nerves (BR2_INIT_NONE);
-# daemon supervision is app-level (MuonTrap).
+# The systemd units, sysusers.d entry and udev rules it installs are inert
+# under Nerves (BR2_INIT_NONE, no udev); daemon supervision is app-level
+# (MuonTrap). Where udev rules are evaluated, upstream's 60-fastrpc.rules
+# (root:fastrpc 0640 on the non-secure nodes) sorts before rootfs_overlay's
+# 99-qcom-ai.rules, so the overlay's MODE="0666" is the one that applies.
 #
 ################################################################################
 
-FASTRPC_VERSION = 1.0.4
+FASTRPC_VERSION = 1.0.8
 FASTRPC_SITE = $(call github,qualcomm,fastrpc,v$(FASTRPC_VERSION))
 FASTRPC_LICENSE = BSD-3-Clause
 FASTRPC_LICENSE_FILES = LICENSE.txt

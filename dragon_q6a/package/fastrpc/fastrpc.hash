@@ -1,4 +1,4 @@
-# Locally computed (downloaded and sha256'd directly from GitHub on
-# 2026-07-24 in the dragon_q6a bring-up session).
-sha256  15ab8f195645ab48b1f0804ea51be3ee8f336dc218fe34b730eaf6b02238bafd  fastrpc-1.0.4.tar.gz
+# Locally computed: sha256 of the GitHub tag archive FASTRPC_SITE resolves
+# to, and of the LICENSE.txt inside it.
+sha256  b8582e8d816fd89c0f8348740f682277ca639e22d557808703d7056477ef0f02  fastrpc-1.0.8.tar.gz
 sha256  683e80f5436e6b0761139e626d2c764870ea0ed19b14916ef4c82772b99c4d44  LICENSE.txt
