@@ -16,6 +16,8 @@ follows:
 
 Repo tag v0.4.0. Security updates: `nerves_system_br` 1.34.0 → 1.34.4,
 which brings Buildroot 2026.05 → 2026.05.2 and Erlang/OTP 29.0.2 → 29.0.6.
+The Buildroot move includes OpenSSL 3.6.2 → 3.6.3, expat 2.8.1 → 2.8.3 and
+GLib 2.86.5 → 2.88.3.
 Linux 6.18.36 → 6.18.56 (20 stable point releases of the 6.18 LTS line; no
 kernel patches are carried, and every symbol the defconfig and fragments
 request resolves to the same value on both).

@@ -37,8 +37,10 @@ Kernel 7.2, and with it the onboard radio driver, fastrpc, balenaEngine and
   atomic write, so a power cut can no longer leave a truncated `opts.json`
   that stops the daemon starting.
 * `nerves_system_br` 1.34.0 → 1.34.4: Buildroot 2026.05 → 2026.05.2 and
-  Erlang/OTP 29.0.2 → 29.0.6, both security updates. GRUB (2.12), fwup
-  (1.16.0) and the toolchain (15.3.0) are unchanged.
+  Erlang/OTP 29.0.2 → 29.0.6, both security updates. The Buildroot move
+  includes wpa_supplicant 2.11 → 2.12, OpenSSL 3.6.2 → 3.6.3, expat 2.8.1
+  → 2.8.3 and GLib 2.86.5 → 2.88.3. GRUB (2.12), fwup (1.16.0) and the
+  toolchain (15.3.0) are unchanged.
 * Patch `0003` header corrected: commit `3929d18a1aaa` is from Radxa's
   kernel tree, not mainline (the v0.3.0 entry below calls it upstream).
 

@@ -20,7 +20,9 @@ follows:
 
 Repo tag v0.4.0. Security updates: `nerves_system_br` 1.34.0 → 1.34.4,
 which brings Buildroot 2026.05 → 2026.05.2 and Erlang/OTP 29.0.2 → 29.0.6.
-No kernel or configuration change on this target.
+The Buildroot move includes wpa_supplicant 2.11 → 2.12, OpenSSL 3.6.2 →
+3.6.3, expat 2.8.1 → 2.8.3 and GLib 2.86.5 → 2.88.3. No kernel or
+configuration change on this target.
 
 ## v2.1.0
 
