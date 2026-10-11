@@ -32,7 +32,7 @@
 #
 ################################################################################
 
-AIC8800_FIRMWARE_VERSION = 6e076049b719ac2ff7ce5c92786a680407b11cdb
+AIC8800_FIRMWARE_VERSION = d13d07963cd15d731e2895e8288a04cca6152ac9
 AIC8800_FIRMWARE_SITE = $(call github,radxa-pkg,aic8800,$(AIC8800_FIRMWARE_VERSION))
 AIC8800_FIRMWARE_LICENSE = PROPRIETARY (Aicsemi firmware, redistributed by radxa-pkg)
 AIC8800_FIRMWARE_LICENSE_FILES = LICENSE debian/copyright

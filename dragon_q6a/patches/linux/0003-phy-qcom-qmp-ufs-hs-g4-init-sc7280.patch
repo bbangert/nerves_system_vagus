@@ -1,9 +1,10 @@
 phy: qcom-qmp-ufs: fix HS-G4 PHY init table for sc7280
 
-Armbian's qcs6490-7.1 patch 0004 (author Xilin Wu <sophon@radxa.com>), a
-cherry-pick of upstream commit 3929d18a1aaa ("phy: qcom-qmp-ufs: Fix
-HS-G4 PHY init table for sc7280") that is not in 7.1 (verified: v7.1's
-sm8150_ufsphy_hs_g4_pcs[] carries only the two original entries). The
+Armbian's qcs6490 patch 0004 (author Xilin Wu <sophon@radxa.com>), taken
+from commit 3929d18a1aaa ("phy: qcom-qmp-ufs: Fix HS-G4 PHY init table
+for sc7280") in Radxa's kernel tree. It is NOT a mainline commit: the
+fix is absent from mainline v7.1 and v7.2.10, whose
+sm8150_ufsphy_hs_g4_pcs[] carry only the two original entries. The
 PHY's initial PCS register init limits it to HS-G3; these extra PCS
 writes are required for HS-G4 to link up. Without this, the UFS module
 enabled by 0002-* trains down (or fails link startup) instead of running

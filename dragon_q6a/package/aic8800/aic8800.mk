@@ -5,8 +5,9 @@
 # Out-of-tree driver for the Q6A's onboard AIC8800D80 WiFi 6 + BT 5.4
 # module (Quectel FCU760K, USB a69c:8d80), from Radxa's official
 # packaging of the Aicsemi vendor SDK. Pinned to the commit that ships
-# deb release 5.0+git20260123.5f7be68d-7 (includes the "Fix Linux 7.1
-# build" commit and the 6.12+ cfg80211 API fixes). Keep in lockstep
+# deb release 5.0+git20260123.5f7be68d-9 (the first release line whose
+# series builds against kernel 7.2; -7 fails on 7.2's cfg80211
+# remain_on_channel signature and strncpy removal). Keep in lockstep
 # with package/aic8800-firmware (same repo, same commit).
 #
 # Builds THREE modules, mirroring upstream's debian/aic8800-usb-dkms.dkms
@@ -18,7 +19,7 @@
 #
 # DEBIAN PATCH SERIES (first POST_PATCH hook): the raw GitHub tree is
 # the untouched Aicsemi SDK drop -- ALL of Radxa's kernel-compat work
-# (fix-linux-6.1 ... fix-linux-7.1-build.patch) and misc build fixes
+# (fix-linux-6.1 ... fix-linux-7.3-build.patch) and misc build fixes
 # live only in debian/patches/ and are applied by dpkg-source when
 # Radxa builds their DKMS debs. Building the raw tree against kernel
 # 7.1 fails with cfg80211 API errors (verified 2026-07-25). So we
@@ -26,7 +27,7 @@
 # vendor-tested debs are built from -- EXCEPT two patches whose USB
 # hunks cannot apply with GNU patch because the SDK V5.0 drop gave
 # those .c files CRLF line endings while the patches are LF
-# (verified against 5f7be68d-7; both are non-essential):
+# (verified against 5f7be68d-9; both are non-essential):
 #
 #   fix-usb-firmware-path.patch      -- only moves the firmware base
 #     dir to /lib/firmware/aic8800_fw/USB for Radxa's deb layout;
@@ -78,7 +79,7 @@
 #
 ################################################################################
 
-AIC8800_VERSION = 6e076049b719ac2ff7ce5c92786a680407b11cdb
+AIC8800_VERSION = d13d07963cd15d731e2895e8288a04cca6152ac9
 AIC8800_SITE = $(call github,radxa-pkg,aic8800,$(AIC8800_VERSION))
 AIC8800_LICENSE = GPL-2.0 (driver source), GPL-3.0+ (packaging)
 AIC8800_LICENSE_FILES = LICENSE debian/copyright
@@ -100,7 +101,7 @@ AIC8800_BTUSB_H = src/USB/driver_fw/drivers/aic_btusb/aic_btusb.h
 # would misorder them). Skips per the header comment; -f so a partial
 # apply can never be mistaken for success; --fuzz=0 so context drift
 # fails the build instead of being silently absorbed (the point of this
-# hook is to reproduce the vendor-tested source state exactly -- all 23
+# hook is to reproduce the vendor-tested source state exactly -- all 26
 # replayed patches apply with zero fuzz against the pinned commit).
 define AIC8800_APPLY_DEBIAN_PATCH_SERIES
 	cd $(@D) && while read -r p; do \
