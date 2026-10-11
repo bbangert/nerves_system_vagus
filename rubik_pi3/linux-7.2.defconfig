@@ -1270,3 +1270,68 @@ CONFIG_BT_BCM=m
 # The board's GbE port is an ASIX AX88179B hanging off USB, not a PCIe NIC.
 # Needs no firmware blob. USB_USBNET=m is already set above.
 CONFIG_USB_NET_AX88179_178A=m
+
+# Mainline 7.2 defaults every Qualcomm TLMM pinctrl driver to y under
+# ARCH_QCOM. Each carries large pin tables in rodata/data, about 1.45 MB
+# of resident kernel memory together, and no devicetree node on this
+# board binds any of them (the QCS6490 uses PINCTRL_SC7280 and the sc7280
+# LPASS LPI driver, which stay on). The remaining symbols are other 7.2
+# default-on options for hardware this SoC lacks: an IPQ clock
+# controller, two X1P42100 clock modules, a Cadence USB PCI glue module,
+# errata for Cortex-A725 and HiSilicon HIP09 cores (this SoC is
+# Cortex-A78/A55), and an Alibaba NIC vendor gate.
+# CONFIG_PINCTRL_GLYMUR is not set
+# CONFIG_PINCTRL_HAWI is not set
+# CONFIG_PINCTRL_IPQ5018 is not set
+# CONFIG_PINCTRL_IPQ5210 is not set
+# CONFIG_PINCTRL_IPQ5332 is not set
+# CONFIG_PINCTRL_IPQ5424 is not set
+# CONFIG_PINCTRL_IPQ6018 is not set
+# CONFIG_PINCTRL_IPQ8074 is not set
+# CONFIG_PINCTRL_IPQ9574 is not set
+# CONFIG_PINCTRL_IPQ9650 is not set
+# CONFIG_PINCTRL_KAANAPALI is not set
+# CONFIG_PINCTRL_MILOS is not set
+# CONFIG_PINCTRL_MSM8916 is not set
+# CONFIG_PINCTRL_MSM8953 is not set
+# CONFIG_PINCTRL_MSM8976 is not set
+# CONFIG_PINCTRL_MSM8994 is not set
+# CONFIG_PINCTRL_MSM8996 is not set
+# CONFIG_PINCTRL_MSM8998 is not set
+# CONFIG_PINCTRL_NORD is not set
+# CONFIG_PINCTRL_QCM2290 is not set
+# CONFIG_PINCTRL_QCS404 is not set
+# CONFIG_PINCTRL_QCS615 is not set
+# CONFIG_PINCTRL_QCS8300 is not set
+# CONFIG_PINCTRL_QDF2XXX is not set
+# CONFIG_PINCTRL_QDU1000 is not set
+# CONFIG_PINCTRL_SA8775P is not set
+# CONFIG_PINCTRL_SC7180 is not set
+# CONFIG_PINCTRL_SC8180X is not set
+# CONFIG_PINCTRL_SC8280XP is not set
+# CONFIG_PINCTRL_SDM660 is not set
+# CONFIG_PINCTRL_SDM670 is not set
+# CONFIG_PINCTRL_SDM845 is not set
+# CONFIG_PINCTRL_SDX75 is not set
+# CONFIG_PINCTRL_SHIKRA is not set
+# CONFIG_PINCTRL_SM4450 is not set
+# CONFIG_PINCTRL_SM6115 is not set
+# CONFIG_PINCTRL_SM6125 is not set
+# CONFIG_PINCTRL_SM6350 is not set
+# CONFIG_PINCTRL_SM6375 is not set
+# CONFIG_PINCTRL_SM7150 is not set
+# CONFIG_PINCTRL_SM8150 is not set
+# CONFIG_PINCTRL_SM8250 is not set
+# CONFIG_PINCTRL_SM8350 is not set
+# CONFIG_PINCTRL_SM8450 is not set
+# CONFIG_PINCTRL_SM8550 is not set
+# CONFIG_PINCTRL_SM8650 is not set
+# CONFIG_PINCTRL_SM8750 is not set
+# CONFIG_PINCTRL_X1E80100 is not set
+# CONFIG_IPQ_GCC_9650 is not set
+# CONFIG_CLK_X1P42100_CAMCC is not set
+# CONFIG_CLK_X1P42100_VIDEOCC is not set
+# CONFIG_USB_CDNSP_PCI is not set
+# CONFIG_ARM64_ERRATUM_3821522 is not set
+# CONFIG_HISILICON_ERRATUM_162100125 is not set
+# CONFIG_NET_VENDOR_ALIBABA is not set
