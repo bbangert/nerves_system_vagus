@@ -1,6 +1,50 @@
 # Changelog
 
+Headings are this target's `VERSION`. Git tags are repo-wide and can differ;
+an entry names its repo tag where it does.
+
+## v0.4.0
+
+Kernel 7.2, and with it the onboard radio driver, fastrpc, balenaEngine and
+`nerves_system_br`. Not yet run on hardware.
+
+* **Kernel 7.1.4 → 7.2.10.** 7.1 reached end of life with 7.1.13
+  (2026-09-02); 7.2 is the only maintained 7.x line.
+  `linux-7.1.defconfig` is renamed `linux-7.2.defconfig`. The four carried
+  patches apply at `--fuzz=0` with no offset, and none of their changes is
+  in mainline v7.2.10.
+* 55 symbols that 7.2 turns on by default are disabled: 48 TLMM pinctrl
+  drivers for other Qualcomm SoCs (≈ 1.45 MB resident), an IPQ clock
+  controller, two X1P42100 clock modules, a Cadence USB PCI module, two
+  errata for cores this SoC lacks, and the Alibaba NIC vendor gate. No
+  devicetree node on this board binds to any of them.
+* `aic8800` + `aic8800-firmware` → radxa-pkg/aic8800 `d13d079` (deb
+  `5.0+git20260123.5f7be68d-9`). The previous pin (`6e07604`, deb `-7`) has
+  no build support past 7.1. 26 of the 28 debian patches are replayed; the
+  same two CRLF-blocked patches stay skipped.
+* **fastrpc v1.0.4 → v1.0.8** (a use-after-free in session teardown, missing
+  unlocks on failure paths, input validation in the remote API entry
+  points). **The daemons (`adsprpcd`, `cdsprpcd`, `sdsprpcd`, `gdsprpcd`)
+  move from `/usr/bin` to `/usr/sbin`.** Both are on erlinit's default
+  `PATH`, so bare names still resolve; anything that spawns them by
+  absolute path has to follow. New: `/usr/bin/fastrpc-healthcheck`.
+  Upstream now also installs `/lib/udev/rules.d/60-fastrpc.rules` and
+  `/usr/lib/sysusers.d/fastrpc.conf`; both are inert under Nerves, and
+  where udev does run the overlay's `99-qcom-ai.rules` sorts later, so its
+  `MODE="0666"` is still the one that applies.
+* balenaEngine `d7af640` → `338143c` (still v25.0.14; the commit
+  meta-balena pins). The one source change: volume options are saved with an
+  atomic write, so a power cut can no longer leave a truncated `opts.json`
+  that stops the daemon starting.
+* `nerves_system_br` 1.34.0 → 1.34.4: Buildroot 2026.05 → 2026.05.2 and
+  Erlang/OTP 29.0.2 → 29.0.6, both security updates. GRUB (2.12), fwup
+  (1.16.0) and the toolchain (15.3.0) are unchanged.
+* Patch `0003` header corrected: commit `3929d18a1aaa` is from Radxa's
+  kernel tree, not mainline (the v0.3.0 entry below calls it upstream).
+
 ## v0.3.3
+
+Repo tag v0.3.4.
 
 Kernel memory tuning, shared across all 11 targets via a new
 `shared/linux-memory.config` fragment, plus a THP fix measured on this board.
@@ -51,6 +95,8 @@ the tag. Closes #18 (kernel half).
   swapfile+zswap boards) and is now set at runtime by `Vagus.Host.Swap`.
 
 ## v0.3.2
+
+Repo tag v0.3.3.
 
 fwup metadata fix (PR #17) closing a latent data-loss bug in the
 application-partition mount check, plus hardening against build-environment
@@ -151,6 +197,25 @@ target. Kernel-config change on a previously-working board — the merged
 * `rootfs_overlay/etc/sysctl.conf`: corrected the inherited swappiness
   rationale, which described a 1 GB Pi with a swapfile. The value stays at
   10; it is inert on this board (no swap device configured).
+
+This is also the first tagged release of this target (`VERSION` 0.1.0 below
+was never tagged), so it is where the work that landed between the initial
+target and the container runtime first shipped:
+
+* Onboard AIC8800D80 WiFi + Bluetooth: `package/aic8800` (`aic_load_fw`,
+  `aic8800_fdrv` → `wlan0`, `aic_btusb` → `hci0`) and
+  `package/aic8800-firmware`, both at radxa-pkg/aic8800 `6e07604`, with
+  Radxa's debian patch series replayed and `CONFIG_BLUEDROID` flipped to
+  BlueZ. With it: `wireless-regdb`, the rpi3_64 `wpa_supplicant` option
+  set, `CONFIG_IP_ADVANCED_ROUTER` + `CONFIG_IP_MULTIPLE_TABLES`
+  (`vintage_net`'s RouteManager requires policy routing), and a faster LE
+  advertising interval in `/etc/bluetooth/main.conf`.
+* USB3: `patches/linux/0001` enables the SuperSpeed controller and the
+  USB-A SS lanes.
+* `alsa-utils` (`aplay`/`amixer`) for headphone-jack playback.
+* `expand-data` fwup op + `resize2fs`, to grow `/data` after an EDL flash.
+* Firmware: `rtl_nic/rtl8168h-2.fw` and the board audio topology at the
+  `qcom/qcs6490/` request path.
 
 ## v0.1.0
 

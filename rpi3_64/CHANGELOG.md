@@ -16,6 +16,18 @@ follows:
    releases, and Linux kernel updates. They're also made to fix bugs and add
    features to the build infrastructure.
 
+## v0.1.5
+
+Repo tag v0.4.0. Security updates and a container-engine fix. No kernel or
+configuration change on this target.
+
+* `nerves_system_br` 1.34.0 → 1.34.4: Buildroot 2026.05 → 2026.05.2 and
+  Erlang/OTP 29.0.2 → 29.0.6, both security updates.
+* balenaEngine `d7af640` → `338143c` (still v25.0.14; the commit
+  meta-balena pins). The one source change: volume options are saved with an
+  atomic write, so a power cut can no longer leave a truncated `opts.json`
+  that stops the daemon starting.
+
 ## v0.1.4
 
 Kernel memory tuning via the new shared `shared/linux-memory.config`

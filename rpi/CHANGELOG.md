@@ -16,6 +16,12 @@ follows:
    releases, and Linux kernel updates. They're also made to fix bugs and add
    features to the build infrastructure.
 
+## v0.1.8
+
+Repo tag v0.4.0. Security updates: `nerves_system_br` 1.34.0 → 1.34.4,
+which brings Buildroot 2026.05 → 2026.05.2 and Erlang/OTP 29.0.2 → 29.0.6.
+No kernel or configuration change on this target.
+
 ## v2.1.0
 
 This is a major update with security and feature updates throughout.
