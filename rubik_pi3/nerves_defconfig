@@ -29,14 +29,14 @@ BR2_ROOTFS_POST_BUILD_SCRIPT="${NERVES_DEFCONFIG_DIR}/post-build.sh ${BR2_EXTERN
 BR2_ROOTFS_POST_IMAGE_SCRIPT="${NERVES_DEFCONFIG_DIR}/post-createfs.sh"
 BR2_LINUX_KERNEL=y
 BR2_LINUX_KERNEL_CUSTOM_VERSION=y
-BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="7.1.4"
+BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="7.2.10"
 BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
-BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${NERVES_DEFCONFIG_DIR}/linux-7.1.defconfig"
+BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${NERVES_DEFCONFIG_DIR}/linux-7.2.defconfig"
 BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.config ${NERVES_DEFCONFIG_DIR}/linux-containers.config ${NERVES_DEFCONFIG_DIR}/linux-memory.config"
 # USB3 and UFS are already enabled in the upstream rubikpi3 in-tree DTS, so
 # no board-DTS patch is carried here (unlike dragon_q6a). The one patch that
 # remains is SoC-generic, not board-specific:
-# sc7280 HS-G4 PHY init-table fix 7.1 lacks (see patches/linux/0003-*).
+# sc7280 HS-G4 PHY init-table fix mainline lacks (see patches/linux/0003-*).
 BR2_LINUX_KERNEL_PATCH="${NERVES_DEFCONFIG_DIR}/patches/linux"
 # No BR2_LINUX_KERNEL_XZ: GRUB's arm64 `linux` loader boots the kernel via
 # its EFI stub, which requires the plain uncompressed Image. The kernel (and
@@ -113,7 +113,7 @@ BR2_PACKAGE_FASTRPC=y
 
 # ---- Onboard WiFi/BT: AMPAK AP6256 (BCM43456-class) ----
 # WiFi is SDIO on &sdhc_2 driven by the mainline brcmfmac (kernel modules
-# brcmfmac/brcmutil, see linux-7.1.defconfig); BT is a `brcm,bcm4345c5`
+# brcmfmac/brcmutil, see linux-7.2.defconfig); BT is a `brcm,bcm4345c5`
 # serdev child of &uart7 driven by hci_bcm. Both need firmware at runtime --
 # brcm/brcmfmac43456-sdio.{bin,clm_blob}, the board NVRAM .txt, and the
 # brcm/BCM4345C5.hcd patchram -- all installed by package/rubik-pi3-firmware.

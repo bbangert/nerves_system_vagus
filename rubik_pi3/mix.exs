@@ -127,7 +127,7 @@ defmodule NervesSystemRubikPi3.MixProject do
       "fwup.conf",
       "grub.cfg",
       "LICENSES/*",
-      "linux-7.1.defconfig",
+      "linux-7.2.defconfig",
       "linux-bluetooth.config",
       "linux-containers.config",
       "linux-memory.config",
