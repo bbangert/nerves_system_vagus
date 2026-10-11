@@ -16,16 +16,16 @@
 # see VAGUS_BALENA_ENGINE_VERSION below, which pins the exact commit).
 # balena-os/balena-engine branch: release/v25.0
 # balena-os/balena-engine tag-equivalent (meta-balena BALENA_VERSION): v25.0.14
-# Commit date: 2026-06-19T17:44:27Z
+# Commit date: 2026-08-20T02:35:20Z
 VAGUS_BALENA_ENGINE_DOCKER_VERSION = v25.0.14
-VAGUS_BALENA_ENGINE_GITCOMMIT = d7af640
+VAGUS_BALENA_ENGINE_GITCOMMIT = 338143c
 
 # VERSION is the git commit SRCREV meta-balena's own recipe pins on
 # release/v25.0, so this package tracks exactly what balenaOS ships rather
 # than an independently-chosen ref. Site fetches the GitHub commit tarball
 # (not a `vNN.NN.NN` tag -- balena-os/balena-engine's release branches are
 # not necessarily tagged at every commit meta-balena consumes).
-VAGUS_BALENA_ENGINE_VERSION = d7af640472d60e72bf086cfdc5a3e35a35a0cf2e
+VAGUS_BALENA_ENGINE_VERSION = 338143c6a6ec84d7b6e6382a0beb6ce444f0ce0b
 VAGUS_BALENA_ENGINE_SITE = $(call github,balena-os,balena-engine,$(VAGUS_BALENA_ENGINE_VERSION))
 
 VAGUS_BALENA_ENGINE_LICENSE = Apache-2.0
@@ -98,7 +98,7 @@ VAGUS_BALENA_ENGINE_DEPENDENCIES = libseccomp
 # deleted vendor/modules.txt and vendor/archive outright, so there was
 # nothing left for Go's vendor-consistency checker to reject.
 #
-# None of that applies to the pinned v25 rev (d7af640...), and reusing the
+# None of that applies to the pinned v25 rev (338143c...), and reusing the
 # trick verbatim would be actively wrong here:
 #
 #   - The tree already has a real, modern module manifest: `vendor.mod` /
