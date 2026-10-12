@@ -6,7 +6,11 @@ an entry names its repo tag where it does.
 ## v0.4.0
 
 Kernel 7.2, and with it the onboard radio driver, fastrpc, balenaEngine and
-`nerves_system_br`. Not yet run on hardware.
+`nerves_system_br`. Validated on hardware 2026-10-12 on a UFS and an NVMe
+board: OTA from 0.3.3, A/B revert, ethernet, watchdog, `fastrpc_test` 3/3,
+Venus decode, `aplay` without error (output not listened to), USB3, WiFi and
+BLE scan, PoE fan, and the container stack. Not re-run: WiFi association, BLE
+advertising/GATT, and the QAIRT host recipe.
 
 * **Kernel 7.1.4 → 7.2.10.** 7.1 reached end of life with 7.1.13
   (2026-09-02); 7.2 is the only maintained 7.x line.
@@ -21,6 +25,10 @@ Kernel 7.2, and with it the onboard radio driver, fastrpc, balenaEngine and
 * `CONFIG_VIDEO_QCOM_IRIS` is disabled so the Venus driver keeps the codec: 7.2
   would otherwise hand the `qcom,sc7280-venus` node to iris, which does not
   probe here.
+* The Venus nodes come up in the other order than on 7.1.4: the decoder is
+  `/dev/video1` and the encoder `/dev/video0`. The numbering follows module
+  load order; select a node by `/sys/class/video4linux/*/name`
+  (`qcom-venus-decoder` / `qcom-venus-encoder`).
 * `aic8800` + `aic8800-firmware` → radxa-pkg/aic8800 `d13d079` (deb
   `5.0+git20260123.5f7be68d-9`). The previous pin (`6e07604`, deb `-7`) has
   no build support past 7.1. 26 of the 28 debian patches are replayed; the
