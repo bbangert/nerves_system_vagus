@@ -2,14 +2,10 @@
 #
 # fastrpc
 #
-# Qualcomm FastRPC userspace (BSD-3-Clause), pinned to v1.0.8, which
-# carries the v1.0.5-v1.0.8 fixes: among them a use-after-free in session
-# teardown (#365), missing unlocks on failure paths (#337) and input
-# validation in the remote API entry points (#359).
-# Whether `fastrpc_test -a v68` is device-validated on this pin, against
-# the CDSP.HT.2.5.c3-00134 firmware set installed by
-# package/dragon-q6a-firmware, is recorded in README.md's VERSIONS table,
-# not here.
+# Qualcomm FastRPC userspace (BSD-3-Clause), run against the
+# CDSP.HT.2.5.c3-00134 firmware set installed by
+# package/dragon-q6a-firmware. README.md's VERSIONS table records which
+# pin `fastrpc_test -a v68` was last device-validated on.
 #
 # The tarball has no pre-generated ./configure (autogen.sh), so autoreconf.
 #

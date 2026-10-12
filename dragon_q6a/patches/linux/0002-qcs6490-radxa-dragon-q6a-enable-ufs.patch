@@ -13,8 +13,8 @@ ufshcd_init_crypto", and Nerves has no inline-crypto consumer). Boards
 without a module (the NVMe Q6A) get a clean ufshcd probe failure, not a
 boot hang. Needs 0003-* for HS-G4 to actually link up.
 
-Applies to v7.2.10 at --fuzz=0 with no offset; the UFS enable is not in
-mainline v7.2.10.
+As of v7.2.10 this applies at --fuzz=0 with no offset and the UFS enable
+is not in mainline.
 
 --- a/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts
 +++ b/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts

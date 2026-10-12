@@ -30,8 +30,9 @@ permissions:
 
 env:
   # nerves_system_br targets OTP 29; the host toolchain must match that
-  # major or Nerves aborts with a host/target OTP mismatch. Track the
-  # latest OTP 29.x + Elixir here.
+  # major or Nerves aborts with a host/target OTP mismatch. Pin the OTP
+  # release nerves_system_br builds for the target, so host and target
+  # match exactly.
   OTP_VERSION: "29.0.6"
   ELIXIR_VERSION: "1.20.2-otp-29"
 

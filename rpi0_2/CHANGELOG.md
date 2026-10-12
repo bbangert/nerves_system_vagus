@@ -24,6 +24,9 @@ The Buildroot move includes wpa_supplicant 2.11 → 2.12, OpenSSL 3.6.2 →
 3.6.3, expat 2.8.1 → 2.8.3 and GLib 2.86.5 → 2.88.3. No kernel or
 configuration change on this target.
 
+Versions 0.1.x are this fork's own; the entries below are the upstream
+history.
+
 ## v2.1.0
 
 This is a major update with security and feature updates throughout.

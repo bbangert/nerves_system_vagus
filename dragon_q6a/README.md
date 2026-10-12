@@ -32,9 +32,9 @@ atomically per slot. fwup's uboot-env block carries the Nerves metadata;
 Radxa's 6.18-era tree whose CDSP reserved-memory layout
 (`cdsp_mem@8e000000`) mismatches the mainline board DTS's
 (`cdsp_mem@87000000`) — with the firmware DT the CDSP boots but every
-fastrpc invoke fails. If the
-DTB load fails, grub.cfg falls back to the firmware DT (system boots;
-DSP offload degraded). Memory and XBL reservations always arrive via the
+fastrpc invoke fails (device-proven 2026-07-24 on kernel 7.1). If the DTB
+load fails, grub.cfg falls back to the firmware DT (system boots; DSP
+offload degraded). Memory and XBL reservations always arrive via the
 EFI memory map, so bypassing EDK2's DT fixups is safe on this board
 (device-verified).
 
@@ -126,7 +126,7 @@ ADSP_LIBRARY_PATH="/usr/lib/dsp/adsp;" adsprpcd &
 
 Bare names resolve because `/usr/sbin` is on erlinit's default `PATH`. A
 supervisor that spawns them by absolute path must use `/usr/sbin/…`:
-fastrpc up to v1.0.4 installed them to `/usr/bin`.
+fastrpc up to v1.0.5 installed them to `/usr/bin`.
 
 ## Audio playback (validated recipe)
 
@@ -174,8 +174,8 @@ program audio while still passing transient clicks.
 The original rows below were validated together on hardware on 2026-07-24
 (boot → ethernet → A/B OTA + revert → watchdog → `fastrpc_test` 3/3).
 Components added since carry their own proof date in the Notes column.
-A row marked "last hardware-validated on …" ships a newer version than the
-one its proof covers.
+A row marked "last hardware-validated on …" ships, or rides on, a newer
+version than the one its proof covers.
 
 | Component | Version | Notes |
 |---|---|---|
@@ -191,10 +191,10 @@ one its proof covers.
 | ADSP firmware | `radxa/dragon-q6a/adsp.mbn` = **ADSP.HT.5.5.c9-00028-KODIAK-2** | + `adspr.jsn`/`adspua.jsn` |
 | ADSP shells | hexagon-dsp-binaries `qcs6490/radxa/dragon-q6a/ADSP.HT.5.5.c9-00028-KODIAK-2` | → `/usr/lib/dsp/adsp` |
 | fastrpc userspace | v1.0.8 (qualcomm/fastrpc) | search path patched to `/usr/lib/dsp/{cdsp,adsp}`; `fastrpc_test -a v68` 3/3 last hardware-validated on v1.0.4 (2026-07-27) |
-| Venus firmware | `qcom/vpu-2.0/venus.mbn` (= `vpu/vpu20_p1.mbn`) | `test_src/venus_dec_smoke` decodes 30/30 frames on hardware |
-| QAIRT | — not shipped (user-provisioned to `/data/qairt`); **2.48.40.260702 validated on this system** | HTP validator unit test PASS; yolov11 w8a8 via `qtld-net-run`: ≤7.4 ms/inference (I/O-inclusive), CPU 11%/8 cores, 221 ms warm start via delegate cache |
+| Venus firmware | `qcom/vpu-2.0/venus.mbn` (= `vpu/vpu20_p1.mbn`) | `test_src/venus_dec_smoke` decodes 30/30 frames on hardware; last hardware-validated on kernel 7.1.4 |
+| QAIRT | — not shipped (user-provisioned to `/data/qairt`); **2.48.40.260702 validated on this system** | HTP validator unit test PASS; yolov11 w8a8 via `qtld-net-run`: ≤7.4 ms/inference (I/O-inclusive), CPU 11%/8 cores, 221 ms warm start via delegate cache; last hardware-validated on kernel 7.1.4 + fastrpc v1.0.4 |
 | AIC8800 driver | radxa-pkg/aic8800 @ `d13d079` (deb `5.0+git20260123.5f7be68d-9`) | `aic_load_fw` + `aic8800_fdrv` (→ `wlan0`) + `aic_btusb` (→ `hci0`); debian patch series replayed (26 of 28), `CONFIG_BLUEDROID` flipped to BlueZ; last hardware-validated on `6e07604` (deb `-7`), 2026-07-25/26 |
-| AIC8800 firmware | same commit, `fw/aic8800D80/` | installed to `/lib/firmware/aic8800D80/`; proprietary Aicsemi blobs; last hardware-validated on `6e07604` |
+| AIC8800 firmware | same commit, `fw/aic8800D80/` | installed to `/lib/firmware/aic8800D80/`; proprietary Aicsemi blobs, byte-identical to `6e07604`'s (hardware-validated 2026-07-25/26 with that pin's driver; the driver row covers the new one) |
 | wpa_supplicant | 2.12 (Buildroot pin), rpi3_64 option set (incl. `CTRL_IFACE`) | vintage_net_wifi's required control socket at `/usr/sbin/wpa_supplicant`; last hardware-validated on 2.11, 2026-07-25/26 |
 | wireless-regdb | Buildroot pin | mandatory — this kernel sets `CFG80211_REQUIRE_SIGNED_REGDB=y` |
 | balenaEngine | v25.0.14 (`338143c`, balena-os `release/v25.0`) | `package/vagus-balena-engine`, byte-identical to rpi3_64's; `seccomp` build tag; full stack device-proven 2026-07-27 (Core, add-ons, MQTT, ingress, OTA) — last hardware-validated on `d7af640` |
@@ -418,10 +418,12 @@ board never notices, because ssh keeps working).
 1. Apply `patches/linux/*` in order to a scratch copy of the new tree with
    `patch -p1 --fuzz=0`. Regenerate any patch that needs fuzz or an offset;
    drop one only once its change is in the new tree.
-2. Check [radxa-pkg/aic8800](https://github.com/radxa-pkg/aic8800)
-   `debian/patches/series` for a `fix-linux-<new version>-build.patch`.
-   Without one the pinned driver has no build support for that kernel, and
-   both aic8800 packages move to the commit that ships it. While there —
+2. Build the aic8800 driver against the new kernel. If the replayed series
+   fails, look at what [radxa-pkg/aic8800](https://github.com/radxa-pkg/aic8800)
+   has added to `debian/patches/series` since the pin and move both aic8800
+   packages to a commit whose series builds. A missing
+   `fix-linux-<series>-build.patch` proves nothing by itself: upstream adds
+   one only for a kernel that broke the build. While there —
    if the two skipped patches were refreshed (or line endings normalized),
    prefer dropping the skip over carrying it.
 3. Check Armbian's DKMS version guard in
@@ -434,16 +436,25 @@ board never notices, because ssh keeps working).
    and diff the two `.config`s for symbols the new kernel turns on by
    default. Audit each against the `compatible` strings in the board DTB
    and disable what nothing binds to.
-5. Run the requested-vs-resolved audit: every symbol the defconfig and the
-   fragments set must appear in the resolved `.config` with the requested
-   value (a renamed or re-parented symbol is dropped silently).
+5. On both trees, list the symbols the defconfig and the fragments set
+   that the resolved `.config` does not carry with the requested value.
+   The list is never empty (about 110 entries: other-SoC options, and
+   requests Kconfig legitimately overrides, e.g. `CONFIG_BT=y` → `m`), so
+   compare the two: they must match apart from what the bump intends. A
+   new entry is a renamed or re-parented symbol, dropped silently.
 6. Decompile the old and new board DTBs (`dtc -I dtb -O dts`), normalise
    the phandle numbers, and diff. Every difference should trace to an
    upstream DTS change or a carried patch.
-7. Rebuild and re-run the three radio gates: WiFi STA association, `hci0` +
-   BLE advertising (verify off-board, not just `ActiveInstances`), and a
-   BLE scan/advertise/WiFi coexistence soak. Then clear the "last
-   hardware-validated on" markers in VERSIONS for what was re-proven.
+7. Rebuild and re-run the gate behind every VERSIONS row the bump moved
+   or whose proof rides on something it moved. For a kernel bump: the base
+   sequence at the top of VERSIONS (boot → ethernet → A/B OTA + revert →
+   watchdog → `fastrpc_test` 3/3), a UFS-module boot, the Venus decode
+   smoke test, the QAIRT HTP run, the container stack, and the three radio
+   gates: WiFi STA association, `hci0` + BLE advertising (verify off-board,
+   not just `ActiveInstances`), and a BLE scan/advertise/WiFi coexistence
+   soak. A "last hardware-validated on" marker is cleared by replacing it,
+   and any older proof date beside it, with the new dated proof; deleting
+   the marker alone leaves the new version inside the old proof.
 - **UFS variant**: DONE, device-proven 2026-08-02 (boot, ethernet, /data at
   full module size, A/B OTA cycle). Same `.fw`; the EDL image's GPT is
   regenerated for 4096-byte sectors by `tools/mk_ufs_image.py` ("Fork A" —

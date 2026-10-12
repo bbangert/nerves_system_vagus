@@ -2,14 +2,10 @@
 #
 # fastrpc
 #
-# Qualcomm FastRPC userspace (BSD-3-Clause), pinned to v1.0.8, which
-# carries the v1.0.5-v1.0.8 fixes: among them a use-after-free in session
-# teardown (#365), missing unlocks on failure paths (#337) and input
-# validation in the remote API entry points (#359).
-# Rubik Pi 3 carries the same pin as the Q6A port, against the
+# Qualcomm FastRPC userspace (BSD-3-Clause), run against the
 # CDSP.HT.2.5.c3-00134 firmware set installed by
-# package/rubik-pi3-firmware; `fastrpc_test -a v68` validation on this
-# board is pending device bring-up.
+# package/rubik-pi3-firmware. Same pin as the Q6A port; `fastrpc_test
+# -a v68` validation on this board is pending device bring-up.
 #
 # The tarball has no pre-generated ./configure (autogen.sh), so autoreconf.
 #

@@ -5,8 +5,8 @@
 # Out-of-tree driver for the Q6A's onboard AIC8800D80 WiFi 6 + BT 5.4
 # module (Quectel FCU760K, USB a69c:8d80), from Radxa's official
 # packaging of the Aicsemi vendor SDK. Pinned to the commit that ships
-# deb release 5.0+git20260123.5f7be68d-9 (the first release line whose
-# series builds against kernel 7.2; -7 fails on 7.2's cfg80211
+# deb release 5.0+git20260123.5f7be68d-9, whose series carries the 7.2
+# and 7.3 build fixes (-7's stops at 7.1 and fails on 7.2's cfg80211
 # remain_on_channel signature and strncpy removal). Keep in lockstep
 # with package/aic8800-firmware (same repo, same commit).
 #

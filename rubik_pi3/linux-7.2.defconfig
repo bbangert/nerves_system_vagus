@@ -1271,15 +1271,15 @@ CONFIG_BT_BCM=m
 # Needs no firmware blob. USB_USBNET=m is already set above.
 CONFIG_USB_NET_AX88179_178A=m
 
-# Mainline 7.2 defaults every Qualcomm TLMM pinctrl driver to y under
-# ARCH_QCOM. Each carries large pin tables in rodata/data, about 1.45 MB
-# of resident kernel memory together, and no devicetree node on this
-# board binds any of them (the QCS6490 uses PINCTRL_SC7280 and the sc7280
-# LPASS LPI driver, which stay on). The remaining symbols are other 7.2
-# default-on options for hardware this SoC lacks: an IPQ clock
-# controller, two X1P42100 clock modules, a Cadence USB PCI glue module,
-# errata for Cortex-A725 and HiSilicon HIP09 cores (this SoC is
-# Cortex-A78/A55), and an Alibaba NIC vendor gate.
+# Mainline 7.2 defaults nearly every Qualcomm TLMM pinctrl driver to y
+# under ARCH_QCOM. Each carries large pin tables in rodata/data; the ones
+# dropped here cost about 1.45 MB of resident kernel memory together, and
+# no devicetree node on this board binds any of them (the QCS6490 uses
+# PINCTRL_SC7280 and the sc7280 LPASS LPI driver, which stay on). The
+# remaining symbols are other 7.2 default-on options for hardware this
+# SoC lacks: an IPQ clock controller, two X1P42100 clock modules, a
+# Cadence USB PCI glue module, errata for Cortex-A725 and HiSilicon HIP09
+# cores (this SoC is Cortex-A78/A55), and an Alibaba NIC vendor gate.
 # CONFIG_PINCTRL_GLYMUR is not set
 # CONFIG_PINCTRL_HAWI is not set
 # CONFIG_PINCTRL_IPQ5018 is not set
