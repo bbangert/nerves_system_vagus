@@ -435,7 +435,10 @@ board never notices, because ssh keeps working).
 4. Resolve the same defconfig + fragments against the old and the new tree
    and diff the two `.config`s for symbols the new kernel turns on by
    default. Audit each against the `compatible` strings in the board DTB
-   and disable what nothing binds to.
+   and disable what nothing binds to. A driver can also take over
+   a devicetree node between releases with no symbol changing, so compare
+   which driver is bound to each proven device node before and after
+   (`/sys/bus/platform/devices/*/driver`).
 5. On both trees, list the symbols the defconfig and the fragments set
    that the resolved `.config` does not carry with the requested value.
    The list is never empty (about 110 entries: other-SoC options, and

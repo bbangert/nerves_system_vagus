@@ -18,6 +18,9 @@ Kernel 7.2, and with it the onboard radio driver, fastrpc, balenaEngine and
   controller, two X1P42100 clock modules, a Cadence USB PCI module, two
   errata for cores this SoC lacks, and the Alibaba NIC vendor gate. No
   devicetree node on this board binds to any of them.
+* `CONFIG_VIDEO_QCOM_IRIS` is disabled so the Venus driver keeps the codec: 7.2
+  would otherwise hand the `qcom,sc7280-venus` node to iris, which does not
+  probe here.
 * `aic8800` + `aic8800-firmware` → radxa-pkg/aic8800 `d13d079` (deb
   `5.0+git20260123.5f7be68d-9`). The previous pin (`6e07604`, deb `-7`) has
   no build support past 7.1. 26 of the 28 debian patches are replayed; the

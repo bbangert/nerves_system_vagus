@@ -17,6 +17,9 @@ has never booted on hardware.
   controller, two X1P42100 clock modules, a Cadence USB PCI module, two
   errata for cores this SoC lacks, and the Alibaba NIC vendor gate. No
   devicetree node on this board binds to any of them.
+* `CONFIG_VIDEO_QCOM_IRIS` is disabled so the Venus driver keeps the codec: 7.2
+  would otherwise hand the `qcom,sc7280-venus` node to iris, which does not
+  probe here.
 * **fastrpc v1.0.4 → v1.0.8** (a use-after-free in session teardown, missing
   unlocks on failure paths, input validation in the remote API entry
   points). **The daemons (`adsprpcd`, `cdsprpcd`, `sdsprpcd`, `gdsprpcd`)

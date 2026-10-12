@@ -574,7 +574,12 @@ CONFIG_VIDEO_CADENCE_CSI2RX=m
 CONFIG_VIDEO_WAVE_VPU=m
 CONFIG_VIDEO_E5010_JPEG_ENC=m
 CONFIG_VIDEO_QCOM_CAMSS=m
-CONFIG_VIDEO_QCOM_IRIS=m
+# The SoC's qcom,sc7280-venus node matches both Venus and iris, and from
+# 7.2 Venus yields it to iris whenever iris is enabled. iris does not
+# probe on this board and requests firmware from a path the firmware
+# package does not install; Venus is the driver the decode smoke test
+# validates.
+# CONFIG_VIDEO_QCOM_IRIS is not set
 CONFIG_VIDEO_QCOM_VENUS=m
 CONFIG_VIDEO_SYNOPSYS_HDMIRX=m
 CONFIG_VIDEO_SYNOPSYS_HDMIRX_LOAD_DEFAULT_EDID=y
