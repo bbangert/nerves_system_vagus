@@ -19,7 +19,9 @@ follows:
 ## v0.1.5
 
 Repo tag v0.4.0. Security updates and a container-engine fix. No kernel or
-configuration change on this target.
+configuration change on this target. Validated on hardware 2026-10-12 (OTA,
+A/B revert, ethernet, Bluetooth, container stack); WiFi association not
+exercised.
 
 * `nerves_system_br` 1.34.0 → 1.34.4: Buildroot 2026.05 → 2026.05.2 and
   Erlang/OTP 29.0.2 → 29.0.6, both security updates. The Buildroot move

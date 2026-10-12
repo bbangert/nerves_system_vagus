@@ -11,7 +11,7 @@ foundation** (Hexagon NPU via fastrpc, Venus video codec).
 | Storage        | NVMe (M.2) or UFS module — both device-proven   |
 | Ethernet       | RTL8125 2.5 GbE (r8169 driver, `eth0`)          |
 | NPU/DSP        | Hexagon v68 CDSP (~12 TOPS) via fastrpc         |
-| Video          | Venus V4L2 M2M (`/dev/video0` dec, `1` enc)     |
+| Video          | Venus V4L2 M2M decoder + encoder (`/dev/video*`) |
 | GPU            | Adreno 643 (drm/msm module; userspace not shipped) |
 | Serial console | `ttyMSM0` (GENI debug UART, 115200n8)           |
 | Boot           | EDK2 UEFI (SPI NOR) → GRUB2 arm64-efi → A/B     |
@@ -74,8 +74,12 @@ per component under VERSIONS):
 
 - **Kernel**: `QCOM_FASTRPC` built in; `/dev/fastrpc-adsp`,
   `/dev/fastrpc-cdsp`, `/dev/fastrpc-cdsp-secure` present; DMA-BUF system
-  heap at `/dev/dma_heap/system`; Venus at `/dev/video0` (dec) and
-  `/dev/video1` (enc).
+  heap at `/dev/dma_heap/system`; two Venus nodes, a decoder and an
+  encoder, at `/dev/video0` and `/dev/video1`. Which is which follows
+  module load order and was observed both ways (`video0` = decoder on
+  kernel 7.1.4, `video0` = encoder on 7.2.10), so identify them by
+  `/sys/class/video4linux/*/name`: `qcom-venus-decoder` /
+  `qcom-venus-encoder`.
 - **Firmware** (`/lib/firmware/qcom/...`): matched CDSP set (c3 line, see
   VERSIONS), board ADSP set with `.jsn` fastrpc domain descriptors, Adreno
   a660 GMU/SQE/zap, Venus `vpu-2.0/venus.mbn`, GENI `qupv3fw.elf` — all
@@ -173,31 +177,33 @@ program audio while still passing transient clicks.
 
 The original rows below were validated together on hardware on 2026-07-24
 (boot → ethernet → A/B OTA + revert → watchdog → `fastrpc_test` 3/3).
-Components added since carry their own proof date in the Notes column.
-A row marked "last hardware-validated on …" ships, or rides on, a newer
-version than the one its proof covers.
+Components added or moved since carry their own proof date in the Notes
+column; the 2026-10-12 proofs ran on this system version, on one board
+booting from NVMe and one from a UFS module.
+Where a note says "last hardware-validated on …", the capability it names
+ships, or rides on, a newer version than the one its proof covers.
 
 | Component | Version | Notes |
 |---|---|---|
 | SPI-NOR firmware | EDK2, EFI v2.7 by Qualcomm | Radxa flat_build; provides the (unused-by-default) firmware DT |
-| Kernel | mainline **7.2.10** + 4 patches (`patches/linux/`) | Q6A DTS in-tree. `0001` enables USB3 (USB-only trim of Armbian's USB3/HDMI patch); `0002` enables the UFS controller + PHY (Armbian's qcs6490 series); `0003` is the qmp-ufs HS-G4 PHY init table from Radxa's kernel tree, absent from mainline; `0004` is the PoE+ HAT fan, authored here. last hardware-validated on 7.1.4 |
-| Devicetree | in-tree `qcom/qcs6490-radxa-dragon-q6a.dtb` (7.2.10) + the three DTS patches above | loaded by GRUB from the active slot; last hardware-validated on 7.1.4 |
+| Kernel | mainline **7.2.10** + 4 patches (`patches/linux/`) | Q6A DTS in-tree. `0001` enables USB3 (USB-only trim of Armbian's USB3/HDMI patch); `0002` enables the UFS controller + PHY (Armbian's qcs6490 series); `0003` is the qmp-ufs HS-G4 PHY init table from Radxa's kernel tree, absent from mainline; `0004` is the PoE+ HAT fan, authored here. Hardware-validated 2026-10-12: OTA from 0.3.3 and boot on an NVMe and a UFS board, A/B revert on the UFS board |
+| Devicetree | in-tree `qcom/qcs6490-radxa-dragon-q6a.dtb` (7.2.10) + the three DTS patches above | loaded by GRUB from the active slot; hardware-validated 2026-10-12 with the kernel |
 | GRUB | 2.12 (Buildroot), arm64-efi | builtin modules incl. `squash4`, `loadenv`, `fdt`, `regexp` (grub.cfg derives the boot disk from `$root`) |
-| Buildroot | 2026.05.2 via nerves_system_br 1.34.4 | Erlang/OTP 29.0.6; last hardware-validated on 2026.05 / nerves_system_br 1.34.0 |
+| Buildroot | 2026.05.2 via nerves_system_br 1.34.4 | Erlang/OTP 29.0.6; hardware-validated 2026-10-12 (OTA from 0.3.3, boot, container stack) |
 | Toolchain | `aarch64-nerves-linux-gnu` 15.3.0 (glibc) | `-march=armv8.2-a` (no a78.a55 `-mcpu` pair in GCC) |
 | linux-firmware | 20260410 (Buildroot pin) | single source for all qcom blobs |
 | CDSP firmware | `qcom/qcm6490/cdsp.mbn` = **CDSP.HT.2.5.c3-00134-KODIAK-1** | matched pair with shells below |
 | CDSP shells/skels | hexagon-dsp-binaries `qcm6490/Thundercomm/RB3gen2/CDSP.HT.2.5.c3-00134-KODIAK-1` @ 2113cae | → `/usr/lib/dsp/cdsp` |
 | ADSP firmware | `radxa/dragon-q6a/adsp.mbn` = **ADSP.HT.5.5.c9-00028-KODIAK-2** | + `adspr.jsn`/`adspua.jsn` |
 | ADSP shells | hexagon-dsp-binaries `qcs6490/radxa/dragon-q6a/ADSP.HT.5.5.c9-00028-KODIAK-2` | → `/usr/lib/dsp/adsp` |
-| fastrpc userspace | v1.0.8 (qualcomm/fastrpc) | search path patched to `/usr/lib/dsp/{cdsp,adsp}`; `fastrpc_test -a v68` 3/3 last hardware-validated on v1.0.4 (2026-07-27) |
-| Venus firmware | `qcom/vpu-2.0/venus.mbn` (= `vpu/vpu20_p1.mbn`) | `test_src/venus_dec_smoke` decodes 30/30 frames on hardware; last hardware-validated on kernel 7.1.4 |
-| QAIRT | — not shipped (user-provisioned to `/data/qairt`); **2.48.40.260702 validated on this system** | HTP validator unit test PASS; yolov11 w8a8 via `qtld-net-run`: ≤7.4 ms/inference (I/O-inclusive), CPU 11%/8 cores, 221 ms warm start via delegate cache; last hardware-validated on kernel 7.1.4 + fastrpc v1.0.4 |
-| AIC8800 driver | radxa-pkg/aic8800 @ `d13d079` (deb `5.0+git20260123.5f7be68d-9`) | `aic_load_fw` + `aic8800_fdrv` (→ `wlan0`) + `aic_btusb` (→ `hci0`); debian patch series replayed (26 of 28), `CONFIG_BLUEDROID` flipped to BlueZ; last hardware-validated on `6e07604` (deb `-7`), 2026-07-25/26 |
+| fastrpc userspace | v1.0.8 (qualcomm/fastrpc) | search path patched to `/usr/lib/dsp/{cdsp,adsp}`; `fastrpc_test -a v68` 3/3, 2026-10-12 |
+| Venus firmware | `qcom/vpu-2.0/venus.mbn` (= `vpu/vpu20_p1.mbn`) | `test_src/venus_dec_smoke`: 30/30 frames, 2026-10-12 on kernel 7.2.10 (decoder node; see the node-order note in the AI foundation contract) |
+| QAIRT | — not shipped (user-provisioned to `/data/qairt`); **2.48.40.260702 validated on this system** | HTP validator unit test PASS; yolov11 w8a8 via `qtld-net-run`: ≤7.4 ms/inference (I/O-inclusive), CPU 11%/8 cores, 221 ms warm start via delegate cache — this host-side recipe last hardware-validated on kernel 7.1.4 + fastrpc v1.0.4. QNN inference on the Hexagon DSP from an app container: proven 2026-10-12 on kernel 7.2.10 |
+| AIC8800 driver | radxa-pkg/aic8800 @ `d13d079` (deb `5.0+git20260123.5f7be68d-9`) | `aic_load_fw` + `aic8800_fdrv` (→ `wlan0`) + `aic_btusb` (→ `hci0`); debian patch series replayed (26 of 28), `CONFIG_BLUEDROID` flipped to BlueZ. Module + firmware load, `wlan0` scan (2.4 and 5 GHz), `hci0` + BLE scan: 2026-10-12. Association, WPA3, BLE advertising, GATT: last hardware-validated on `6e07604` (deb `-7`), 2026-07-25/26 |
 | AIC8800 firmware | same commit, `fw/aic8800D80/` | installed to `/lib/firmware/aic8800D80/`; proprietary Aicsemi blobs, byte-identical to `6e07604`'s (hardware-validated 2026-07-25/26 with that pin's driver; the driver row covers the new one) |
-| wpa_supplicant | 2.12 (Buildroot pin), rpi3_64 option set (incl. `CTRL_IFACE`) | vintage_net_wifi's required control socket at `/usr/sbin/wpa_supplicant`; last hardware-validated on 2.11, 2026-07-25/26 |
+| wpa_supplicant | 2.12 (Buildroot pin), rpi3_64 option set (incl. `CTRL_IFACE`) | vintage_net_wifi's required control socket at `/usr/sbin/wpa_supplicant`; start-up and scan proven 2026-10-12; association last hardware-validated on 2.11, 2026-07-25/26 |
 | wireless-regdb | Buildroot pin | mandatory — this kernel sets `CFG80211_REQUIRE_SIGNED_REGDB=y` |
-| balenaEngine | v25.0.14 (`338143c`, balena-os `release/v25.0`) | `package/vagus-balena-engine`, byte-identical to rpi3_64's; `seccomp` build tag; full stack device-proven 2026-07-27 (Core, add-ons, MQTT, ingress, OTA) — last hardware-validated on `d7af640` |
+| balenaEngine | v25.0.14 (`338143c`, balena-os `release/v25.0`) | `package/vagus-balena-engine`, byte-identical to rpi3_64's; `seccomp` build tag; full stack device-proven 2026-07-27 on `d7af640` (Core, add-ons, MQTT, ingress, OTA) and re-proven 2026-10-12 on `338143c` (Core, apps, ingress, OTA; MQTT broker up) |
 
 **Matched-pair rule:** the CDSP firmware and the fastrpc shells must carry
 the same `QC_IMAGE_VERSION_STRING` (`strings cdsp.mbn | grep QC_IMAGE`).
@@ -352,6 +358,10 @@ that mix kills LE scanning outright on this firmware (0 devices vs 84).
 
 ### Status (device-proven 2026-07-25/26, kernel 7.1.4)
 
+On 2026-10-12, with kernel 7.2.10 and the `d13d079` driver, the WiFi scan
+(2.4 and 5 GHz), BT adapter and BLE scanning rows were re-run; the other
+rows were not.
+
 | Capability | State |
 |---|---|
 | WiFi STA (`wlan0`) | **Works** — WPA2-PSK association, DHCP, data path; regdb loads, channels 1–165; 2.4 GHz and 5 GHz both proven |
@@ -457,7 +467,9 @@ board never notices, because ssh keeps working).
    not just `ActiveInstances`), and a BLE scan/advertise/WiFi coexistence
    soak. A "last hardware-validated on" marker is cleared by replacing it,
    and any older proof date beside it, with the new dated proof; deleting
-   the marker alone leaves the new version inside the old proof.
+   the marker alone leaves the new version inside the old proof. A gate
+   re-run only in part clears it only for that part: date what was re-run
+   and keep the marker on the rest.
 - **UFS variant**: DONE, device-proven 2026-08-02 (boot, ethernet, /data at
   full module size, A/B OTA cycle). Same `.fw`; the EDL image's GPT is
   regenerated for 4096-byte sectors by `tools/mk_ufs_image.py` ("Fork A" —
