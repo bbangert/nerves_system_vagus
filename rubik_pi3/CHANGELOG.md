@@ -1,5 +1,45 @@
 # Changelog
 
+## v0.2.0
+
+Repo tag v0.4.0. Follows `dragon_q6a` to kernel 7.2, with the same fastrpc,
+balenaEngine and `nerves_system_br` moves. Build-proof only: this target
+has never booted on hardware.
+
+* **Kernel 7.1.4 → 7.2.10.** 7.1 reached end of life with 7.1.13
+  (2026-09-02); 7.2 is the only maintained 7.x line.
+  `linux-7.1.defconfig` is renamed `linux-7.2.defconfig`. The one carried
+  patch (`0003`, the qmp-ufs HS-G4 PHY init table) is unchanged below its
+  header; the header now attributes commit `3929d18a1aaa` to Radxa's
+  kernel tree, not mainline.
+* 55 symbols that 7.2 turns on by default are disabled: 48 TLMM pinctrl
+  drivers for other Qualcomm SoCs (≈ 1.45 MB resident), an IPQ clock
+  controller, two X1P42100 clock modules, a Cadence USB PCI module, two
+  errata for cores this SoC lacks, and the Alibaba NIC vendor gate. No
+  devicetree node on this board binds to any of them.
+* `CONFIG_VIDEO_QCOM_IRIS` is disabled so the Venus driver keeps the codec: 7.2
+  would otherwise hand the `qcom,sc7280-venus` node to iris, which does not
+  probe here.
+* **fastrpc v1.0.4 → v1.0.8** (a use-after-free in session teardown, missing
+  unlocks on failure paths, input validation in the remote API entry
+  points). **The daemons (`adsprpcd`, `cdsprpcd`, `sdsprpcd`, `gdsprpcd`)
+  move from `/usr/bin` to `/usr/sbin`.** Both are on erlinit's default
+  `PATH`, so bare names still resolve; anything that spawns them by
+  absolute path has to follow. New: `/usr/bin/fastrpc-healthcheck`.
+  Upstream now also installs `/lib/udev/rules.d/60-fastrpc.rules` and
+  `/usr/lib/sysusers.d/fastrpc.conf`; both are inert under Nerves, and
+  where udev does run the overlay's `99-qcom-ai.rules` sorts later, so its
+  `MODE="0666"` is still the one that applies.
+* balenaEngine `d7af640` → `338143c` (still v25.0.14; the commit
+  meta-balena pins). The one source change: volume options are saved with an
+  atomic write, so a power cut can no longer leave a truncated `opts.json`
+  that stops the daemon starting.
+* `nerves_system_br` 1.34.0 → 1.34.4: Buildroot 2026.05 → 2026.05.2 and
+  Erlang/OTP 29.0.2 → 29.0.6, both security updates. The Buildroot move
+  includes wpa_supplicant 2.11 → 2.12, OpenSSL 3.6.2 → 3.6.3, expat 2.8.1
+  → 2.8.3 and GLib 2.86.5 → 2.88.3. GRUB (2.12), fwup (1.16.0) and the
+  toolchain (15.3.0) are unchanged.
+
 ## v0.1.1
 
 Kernel memory tuning, shared with `dragon_q6a` (this target's 7.1 defconfig

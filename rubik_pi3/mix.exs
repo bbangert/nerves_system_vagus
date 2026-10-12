@@ -74,7 +74,7 @@ defmodule NervesSystemRubikPi3.MixProject do
   defp deps do
     [
       {:nerves, "~> 1.11", runtime: false},
-      {:nerves_system_br, "1.34.0", runtime: false},
+      {:nerves_system_br, "1.34.4", runtime: false},
       {:nerves_toolchain_aarch64_nerves_linux_gnu, "~> 15.3.0", runtime: false},
       {:nerves_system_linter, "~> 0.4", only: [:dev, :test], runtime: false},
       {:ex_doc, "~> 0.22", only: :docs, runtime: false}
@@ -127,7 +127,7 @@ defmodule NervesSystemRubikPi3.MixProject do
       "fwup.conf",
       "grub.cfg",
       "LICENSES/*",
-      "linux-7.1.defconfig",
+      "linux-7.2.defconfig",
       "linux-bluetooth.config",
       "linux-containers.config",
       "linux-memory.config",

@@ -1,12 +1,14 @@
 arm64: dts: qcom: qcs6490-radxa-dragon-q6a: enable USB3 (USB-A SS lanes)
 
-USB-only trim of Armbian's qcs6490-7.1 patch 0002 (author Xilin Wu
-<sophon@radxa.com>): enables usb_1 (a600000, the SuperSpeed-capable
-controller) with the qmpphy RX1/TX1 pair routed to the USB-A port.
-The HDMI/DP half of the original patch (RA620 bridge, mdss_dp, DP
-audio DAI) is dropped: the radxa,ra620 bridge driver is not in
-mainline 7.1, and the DP audio DAI link would break the working
-sound-card probe. The qmpphy DP lane endpoint is omitted accordingly.
+USB-only trim of patch 0002 from Armbian's qcs6490 7.1 series (author
+Xilin Wu <sophon@radxa.com>): enables usb_1 (a600000, the
+SuperSpeed-capable controller) with the qmpphy RX1/TX1 pair routed to
+the USB-A port. The HDMI/DP half of the original patch (RA620 bridge,
+mdss_dp, DP audio DAI) is not carried and is untested on this system;
+the qmpphy DP lane endpoint is omitted with it.
+
+As of v7.2.10 this applies at --fuzz=0 with no offset and the USB3 enable
+is not in mainline.
 
 --- a/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts
 +++ b/arch/arm64/boot/dts/qcom/qcs6490-radxa-dragon-q6a.dts

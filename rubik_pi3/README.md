@@ -67,7 +67,8 @@ both stores.
 `devicetree` command) from the active slot rather than relying on the
 firmware-provided DT. On the Q6A port (same SoC, Radxa's EDK2/6.18-era
 firmware DT), the firmware DT's CDSP reserved-memory layout mismatched
-mainline 7.1's, so the CDSP booted but every fastrpc invoke failed. The
+the mainline board DTS's, so the CDSP booted but every fastrpc invoke
+failed. The
 same explicit-DTB fixup is carried here on the presumption that
 Thundercomm's firmware DT has an analogous mismatch — **pending
 verification on this board**. If the DTB load fails, `grub.cfg` falls back
@@ -130,8 +131,9 @@ What this system aims to guarantee to applications (config-reviewed;
   fastrpc's built-in search path is patched to include both, `cdsp/`
   first; ADSP-domain processes should set `ADSP_LIBRARY_PATH` explicitly.
 - **fastrpc userspace**: `libcdsprpc.so`/`libadsprpc.so`, the
-  `adsprpcd`/`cdsprpcd` daemons, and `fastrpc_test` (+ v68 test skels) —
-  same `package/fastrpc` build as the Q6A port, pinned to v1.0.4.
+  `adsprpcd`/`cdsprpcd` daemons in `/usr/sbin`, `fastrpc_test` (+ v68 test
+  skels) and upstream's `fastrpc-healthcheck` in `/usr/bin` — same
+  `package/fastrpc` build as the Q6A port, pinned to v1.0.8.
 - **`libstdc++` in the target rootfs** — required by QAIRT, same as the
   Q6A port.
 - **QAIRT is NOT shipped.** Applications provision the QAIRT runtime
@@ -140,6 +142,11 @@ What this system aims to guarantee to applications (config-reviewed;
 - **udev rules** at `/etc/udev/rules.d/99-qcom-ai.rules` are the
   documented device-permission contract; they are inert on Nerves itself
   (no udev; the app runs as root) but apply in containers/dev images.
+  fastrpc upstream also installs `/lib/udev/rules.d/60-fastrpc.rules`
+  (`root:fastrpc` `0640` on the non-secure nodes) and
+  `/usr/lib/sysusers.d/fastrpc.conf`, equally inert here. Where udev does
+  evaluate rules, `99-qcom-ai.rules` sorts later, so its `MODE="0666"` is
+  the one that applies.
 
 A build-time matched-pair check (`rubik-pi3-firmware.mk`) fails the build
 if the installed CDSP/ADSP `.mbn` and their fastrpc shells don't carry the
@@ -150,7 +157,8 @@ twice during the Q6A bring-up).
 ## DSP daemon supervision (deliberate non-decision)
 
 Same approach as the Q6A port: the system SHIPS the fastrpc daemons
-(`adsprpcd`, `cdsprpcd`) but does NOT start or supervise them — there is
+(`adsprpcd`, `cdsprpcd`, in `/usr/sbin`) but does NOT start or supervise
+them — there is
 no init system on Nerves. Supervision is app-level: start them from your
 OTP application (e.g. with [MuonTrap](https://hex.pm/packages/muontrap))
 so restarts, backoff, and shutdown ride the app's supervision tree.
@@ -159,6 +167,8 @@ so restarts, backoff, and shutdown ride the app's supervision tree.
 DSP_LIBRARY_PATH="/usr/lib/dsp/cdsp;" cdsprpcd &
 ADSP_LIBRARY_PATH="/usr/lib/dsp/adsp;" adsprpcd &
 ```
+
+Bare names resolve because `/usr/sbin` is on erlinit's default `PATH`.
 
 ## WiFi / Bluetooth (onboard AP6256)
 
@@ -205,22 +215,22 @@ Three pieces:
 | Component | Version | Notes |
 |---|---|---|
 | SPI-NOR firmware | EDK2, EFI, Thundercomm's SPI-NOR build | provides the (unused-by-default) firmware DT |
-| Kernel | mainline **7.1.4** + 1 patch (`patches/linux/0003-*`) | in-tree `qcs6490-thundercomm-rubikpi3` DTS; the one carried patch is a SoC-generic qmp-ufs HS-G4 PHY init-table fix (sc7280), not board-specific |
-| Devicetree | in-tree `qcom/qcs6490-thundercomm-rubikpi3.dtb` (7.1.4) | loaded by GRUB from the active slot |
+| Kernel | mainline **7.2.10** + 1 patch (`patches/linux/0003-*`) | in-tree `qcs6490-thundercomm-rubikpi3` DTS; the one carried patch is the SoC-generic qmp-ufs HS-G4 PHY init table (sc7280) from Radxa's kernel tree, absent from mainline — not board-specific |
+| Devicetree | in-tree `qcom/qcs6490-thundercomm-rubikpi3.dtb` (7.2.10) | loaded by GRUB from the active slot |
 | GRUB | 2.12 (Buildroot), arm64-efi | builtin modules incl. `squash4`, `loadenv`, `fdt`, `regexp` |
-| Buildroot | 2026.05 via nerves_system_br 1.34.0 | |
+| Buildroot | 2026.05.2 via nerves_system_br 1.34.4 | Erlang/OTP 29.0.6 |
 | Toolchain | `aarch64-nerves-linux-gnu` 15.3.0 (glibc) | `-march=armv8.2-a` |
 | linux-firmware | 20260410 (Buildroot pin) | source for Adreno/Venus/GENI/CDSP blobs |
 | CDSP firmware | `qcom/qcs6490/cdsp.mbn` = **CDSP.HT.2.5.c3-00134-KODIAK-1** | matched pair with shells below; same generic set the Q6A port validated |
 | CDSP shells/skels | hexagon-dsp-binaries `qcm6490/Thundercomm/RB3gen2/CDSP.HT.2.5.c3-00134-KODIAK-1` | → `/usr/lib/dsp/cdsp` |
 | ADSP firmware | `qcom/qcs6490/Thundercomm/RubikPi3/adsp.mbn` = **ADSP.HT.5.5.c8-00217-KODIAK-1** | board-native pair (upstream linux-firmware ships a RubikPi3 board dir) |
 | ADSP shells | hexagon-dsp-binaries `qcs6490/Thundercomm/RubikPi3/ADSP.HT.5.5.c8-00217-KODIAK-1` | → `/usr/lib/dsp/adsp` |
-| fastrpc userspace | v1.0.4 (qualcomm/fastrpc) | search path patched to `/usr/lib/dsp/{cdsp,adsp}` |
+| fastrpc userspace | v1.0.8 (qualcomm/fastrpc) | search path patched to `/usr/lib/dsp/{cdsp,adsp}` |
 | Venus firmware | `qcom/vpu-2.0/venus.mbn` (= `vpu/vpu20_p1.mbn`) | |
 | WiFi/BT firmware | brcmfmac43456-sdio.{bin,clm_blob} + board NVRAM (armbian/vendor pins), BCM4345C5.hcd (vendor pin) | installed by `package/rubik-pi3-firmware` |
 | wpa_supplicant | Buildroot pin, rpi3_64 option set (incl. `CTRL_IFACE`) | vintage_net_wifi's required control socket |
 | wireless-regdb | Buildroot pin | mandatory — this kernel sets `CFG80211_REQUIRE_SIGNED_REGDB=y` |
-| balenaEngine | v25.0.14, ported from the Q6A/rpi3_64 package | not yet device-proven on this board |
+| balenaEngine | v25.0.14 (`338143c`, balena-os `release/v25.0`), ported from the Q6A/rpi3_64 package | not yet device-proven on this board |
 
 **Matched-pair rule:** the CDSP/ADSP firmware and their fastrpc shells
 must carry the same `QC_IMAGE_VERSION_STRING`. The build enforces this

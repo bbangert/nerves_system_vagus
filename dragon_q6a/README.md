@@ -30,10 +30,11 @@ atomically per slot. fwup's uboot-env block carries the Nerves metadata;
 **The mainline DTB is loaded explicitly by GRUB** (`fdt` module,
 `devicetree` command) from the active slot. The EDK2-provided devicetree is
 Radxa's 6.18-era tree whose CDSP reserved-memory layout
-(`cdsp_mem@8e000000`) mismatches mainline 7.1's (`cdsp_mem@87000000`) —
-with the firmware DT the CDSP boots but every fastrpc invoke fails. If the
-DTB load fails, grub.cfg falls back to the firmware DT (system boots;
-DSP offload degraded). Memory and XBL reservations always arrive via the
+(`cdsp_mem@8e000000`) mismatches the mainline board DTS's
+(`cdsp_mem@87000000`) — with the firmware DT the CDSP boots but every
+fastrpc invoke fails (device-proven 2026-07-24 on kernel 7.1). If the DTB
+load fails, grub.cfg falls back to the firmware DT (system boots; DSP
+offload degraded). Memory and XBL reservations always arrive via the
 EFI memory map, so bypassing EDK2's DT fixups is safe on this board
 (device-verified).
 
@@ -68,7 +69,8 @@ recovery paths). The SPI-NOR EDK2 firmware is a user-flashed prerequisite.
 
 ## AI foundation contract
 
-What this system guarantees to applications (all device-validated):
+What this system guarantees to applications (device validation is recorded
+per component under VERSIONS):
 
 - **Kernel**: `QCOM_FASTRPC` built in; `/dev/fastrpc-adsp`,
   `/dev/fastrpc-cdsp`, `/dev/fastrpc-cdsp-secure` present; DMA-BUF system
@@ -86,8 +88,10 @@ What this system guarantees to applications (all device-validated):
   fastrpc's built-in search path is patched to include both, `cdsp/`
   first; ADSP-domain processes should set `ADSP_LIBRARY_PATH` explicitly.
 - **fastrpc userspace**: `libcdsprpc.so`/`libadsprpc.so`, the
-  `adsprpcd`/`cdsprpcd` daemons, and `fastrpc_test` (+ v68 test skels).
-  `fastrpc_test -a v68` passes 3/3 out of the box.
+  `adsprpcd`/`cdsprpcd` daemons in `/usr/sbin`, `fastrpc_test` (+ v68 test
+  skels) and upstream's `fastrpc-healthcheck` in `/usr/bin`.
+  `fastrpc_test -a v68` passed 3/3 out of the box on fastrpc v1.0.4 and
+  kernel 7.1.4; see VERSIONS for the shipped pin.
 - **`libstdc++` in the target rootfs** — required by QAIRT.
 - **QAIRT is NOT shipped.** Applications provision the QAIRT runtime
   bundle (and models) to `/data` themselves; the HTP delegate's
@@ -99,11 +103,16 @@ What this system guarantees to applications (all device-validated):
 - **udev rules** at `/etc/udev/rules.d/99-qcom-ai.rules` are the
   documented device-permission contract; they are inert on Nerves itself
   (no udev; the app runs as root) but apply in containers/dev images.
+  fastrpc upstream also installs `/lib/udev/rules.d/60-fastrpc.rules`
+  (`root:fastrpc` `0640` on the non-secure nodes) and
+  `/usr/lib/sysusers.d/fastrpc.conf`, equally inert here. Where udev does
+  evaluate rules, `99-qcom-ai.rules` sorts later, so its `MODE="0666"` is
+  the one that applies.
 
 ## DSP daemon supervision (deliberate non-decision)
 
-The system SHIPS the fastrpc daemons (`adsprpcd`, `cdsprpcd`) but does NOT
-start or supervise them — there is no init system on Nerves. Supervision is
+The system SHIPS the fastrpc daemons (`adsprpcd`, `cdsprpcd`, in
+`/usr/sbin`) but does NOT start or supervise them — there is no init system on Nerves. Supervision is
 app-level: start them from your OTP application (e.g. with
 [MuonTrap](https://hex.pm/packages/muontrap)) so restarts, backoff, and
 shutdown ride the app's supervision tree. Note the daemons serve root-PD
@@ -114,6 +123,10 @@ unsigned-PD offload works without them.
 DSP_LIBRARY_PATH="/usr/lib/dsp/cdsp;" cdsprpcd &
 ADSP_LIBRARY_PATH="/usr/lib/dsp/adsp;" adsprpcd &
 ```
+
+Bare names resolve because `/usr/sbin` is on erlinit's default `PATH`. A
+supervisor that spawns them by absolute path must use `/usr/sbin/…`:
+fastrpc up to v1.0.5 installed them to `/usr/bin`.
 
 ## Audio playback (validated recipe)
 
@@ -161,28 +174,30 @@ program audio while still passing transient clicks.
 The original rows below were validated together on hardware on 2026-07-24
 (boot → ethernet → A/B OTA + revert → watchdog → `fastrpc_test` 3/3).
 Components added since carry their own proof date in the Notes column.
+A row marked "last hardware-validated on …" ships, or rides on, a newer
+version than the one its proof covers.
 
 | Component | Version | Notes |
 |---|---|---|
 | SPI-NOR firmware | EDK2, EFI v2.7 by Qualcomm | Radxa flat_build; provides the (unused-by-default) firmware DT |
-| Kernel | mainline **7.1.4** + 1 DTS patch (`patches/linux/`) | Q6A DTS in-tree; patch enables the SuperSpeed controller (USB-only trim of Armbian's USB3/HDMI patch) |
-| Devicetree | in-tree `qcom/qcs6490-radxa-dragon-q6a.dtb` (7.1.4) | loaded by GRUB from the active slot |
+| Kernel | mainline **7.2.10** + 4 patches (`patches/linux/`) | Q6A DTS in-tree. `0001` enables USB3 (USB-only trim of Armbian's USB3/HDMI patch); `0002` enables the UFS controller + PHY (Armbian's qcs6490 series); `0003` is the qmp-ufs HS-G4 PHY init table from Radxa's kernel tree, absent from mainline; `0004` is the PoE+ HAT fan, authored here. last hardware-validated on 7.1.4 |
+| Devicetree | in-tree `qcom/qcs6490-radxa-dragon-q6a.dtb` (7.2.10) + the three DTS patches above | loaded by GRUB from the active slot; last hardware-validated on 7.1.4 |
 | GRUB | 2.12 (Buildroot), arm64-efi | builtin modules incl. `squash4`, `loadenv`, `fdt`, `regexp` (grub.cfg derives the boot disk from `$root`) |
-| Buildroot | 2026.05 via nerves_system_br 1.34.0 | |
+| Buildroot | 2026.05.2 via nerves_system_br 1.34.4 | Erlang/OTP 29.0.6; last hardware-validated on 2026.05 / nerves_system_br 1.34.0 |
 | Toolchain | `aarch64-nerves-linux-gnu` 15.3.0 (glibc) | `-march=armv8.2-a` (no a78.a55 `-mcpu` pair in GCC) |
 | linux-firmware | 20260410 (Buildroot pin) | single source for all qcom blobs |
 | CDSP firmware | `qcom/qcm6490/cdsp.mbn` = **CDSP.HT.2.5.c3-00134-KODIAK-1** | matched pair with shells below |
 | CDSP shells/skels | hexagon-dsp-binaries `qcm6490/Thundercomm/RB3gen2/CDSP.HT.2.5.c3-00134-KODIAK-1` @ 2113cae | → `/usr/lib/dsp/cdsp` |
 | ADSP firmware | `radxa/dragon-q6a/adsp.mbn` = **ADSP.HT.5.5.c9-00028-KODIAK-2** | + `adspr.jsn`/`adspua.jsn` |
 | ADSP shells | hexagon-dsp-binaries `qcs6490/radxa/dragon-q6a/ADSP.HT.5.5.c9-00028-KODIAK-2` | → `/usr/lib/dsp/adsp` |
-| fastrpc userspace | v1.0.4 (qualcomm/fastrpc) | search path patched to `/usr/lib/dsp/{cdsp,adsp}` |
-| Venus firmware | `qcom/vpu-2.0/venus.mbn` (= `vpu/vpu20_p1.mbn`) | `test_src/venus_dec_smoke` decodes 30/30 frames on hardware |
-| QAIRT | — not shipped (user-provisioned to `/data/qairt`); **2.48.40.260702 validated on this system** | HTP validator unit test PASS; yolov11 w8a8 via `qtld-net-run`: ≤7.4 ms/inference (I/O-inclusive), CPU 11%/8 cores, 221 ms warm start via delegate cache |
-| AIC8800 driver | radxa-pkg/aic8800 @ `6e07604` (deb `5.0+git20260123.5f7be68d-7`) | `aic_load_fw` + `aic8800_fdrv` (→ `wlan0`) + `aic_btusb` (→ `hci0`); debian patch series replayed, `CONFIG_BLUEDROID` flipped to BlueZ |
-| AIC8800 firmware | same commit, `fw/aic8800D80/` | installed to `/lib/firmware/aic8800D80/`; proprietary Aicsemi blobs |
-| wpa_supplicant | Buildroot pin, rpi3_64 option set (incl. `CTRL_IFACE`) | vintage_net_wifi's required control socket at `/usr/sbin/wpa_supplicant` |
+| fastrpc userspace | v1.0.8 (qualcomm/fastrpc) | search path patched to `/usr/lib/dsp/{cdsp,adsp}`; `fastrpc_test -a v68` 3/3 last hardware-validated on v1.0.4 (2026-07-27) |
+| Venus firmware | `qcom/vpu-2.0/venus.mbn` (= `vpu/vpu20_p1.mbn`) | `test_src/venus_dec_smoke` decodes 30/30 frames on hardware; last hardware-validated on kernel 7.1.4 |
+| QAIRT | — not shipped (user-provisioned to `/data/qairt`); **2.48.40.260702 validated on this system** | HTP validator unit test PASS; yolov11 w8a8 via `qtld-net-run`: ≤7.4 ms/inference (I/O-inclusive), CPU 11%/8 cores, 221 ms warm start via delegate cache; last hardware-validated on kernel 7.1.4 + fastrpc v1.0.4 |
+| AIC8800 driver | radxa-pkg/aic8800 @ `d13d079` (deb `5.0+git20260123.5f7be68d-9`) | `aic_load_fw` + `aic8800_fdrv` (→ `wlan0`) + `aic_btusb` (→ `hci0`); debian patch series replayed (26 of 28), `CONFIG_BLUEDROID` flipped to BlueZ; last hardware-validated on `6e07604` (deb `-7`), 2026-07-25/26 |
+| AIC8800 firmware | same commit, `fw/aic8800D80/` | installed to `/lib/firmware/aic8800D80/`; proprietary Aicsemi blobs, byte-identical to `6e07604`'s (hardware-validated 2026-07-25/26 with that pin's driver; the driver row covers the new one) |
+| wpa_supplicant | 2.12 (Buildroot pin), rpi3_64 option set (incl. `CTRL_IFACE`) | vintage_net_wifi's required control socket at `/usr/sbin/wpa_supplicant`; last hardware-validated on 2.11, 2026-07-25/26 |
 | wireless-regdb | Buildroot pin | mandatory — this kernel sets `CFG80211_REQUIRE_SIGNED_REGDB=y` |
-| balenaEngine | v25.0.14 (`d7af640`, balena-os `release/v25.0`) | `package/vagus-balena-engine`, byte-identical to rpi3_64's; `seccomp` build tag; full stack device-proven 2026-07-27 (Core, add-ons, MQTT, ingress, OTA) |
+| balenaEngine | v25.0.14 (`338143c`, balena-os `release/v25.0`) | `package/vagus-balena-engine`, byte-identical to rpi3_64's; `seccomp` build tag; full stack device-proven 2026-07-27 (Core, add-ons, MQTT, ingress, OTA) — last hardware-validated on `d7af640` |
 
 **Matched-pair rule:** the CDSP firmware and the fastrpc shells must carry
 the same `QC_IMAGE_VERSION_STRING` (`strings cdsp.mbn | grep QC_IMAGE`).
@@ -391,8 +406,8 @@ VintageNet.configure("wlan0", %{
 `ieee80211w: 2` (management-frame protection required) is mandatory for
 WPA3 — omit it and the association fails.
 
-Kernel-config note: `CONFIG_IP_ADVANCED_ROUTER` + `CONFIG_IP_MULTIPLE_TABLES`
-were added to `linux-7.1.defconfig` for this work. `vintage_net`'s
+Kernel-config note: `linux-7.2.defconfig` sets `CONFIG_IP_ADVANCED_ROUTER`
++ `CONFIG_IP_MULTIPLE_TABLES` for the radio. `vintage_net`'s
 RouteManager hard-requires policy routing — without it every `set_route`
 fails with RTNETLINK "Operation not supported", RouteManager crash-loops,
 and the whole `vintage_net` application goes down (which an ethernet-only
@@ -400,19 +415,49 @@ board never notices, because ssh keeps working).
 
 ### Tracking upstream (do this on every kernel bump)
 
-1. Check [radxa-pkg/aic8800](https://github.com/radxa-pkg/aic8800) for new
-   releases and kernel-API fixes, and re-read `debian/patches/series` —
+1. Apply `patches/linux/*` in order to a scratch copy of the new tree with
+   `patch -p1 --fuzz=0`. Regenerate any patch that needs fuzz or an offset;
+   drop one only once its change is in the new tree.
+2. Build the aic8800 driver against the new kernel. If the replayed series
+   fails, look at what [radxa-pkg/aic8800](https://github.com/radxa-pkg/aic8800)
+   has added to `debian/patches/series` since the pin and move both aic8800
+   packages to a commit whose series builds. A missing
+   `fix-linux-<series>-build.patch` proves nothing by itself: upstream adds
+   one only for a kernel that broke the build. While there —
    if the two skipped patches were refreshed (or line endings normalized),
    prefer dropping the skip over carrying it.
-2. Check Armbian's DKMS version guard in
+3. Check Armbian's DKMS version guard in
    [`extensions/radxa-aic8800.sh`](https://github.com/armbian/build/blob/main/extensions/radxa-aic8800.sh)
    and their kernel-bump PRs — the guard tells you which kernels upstream
    believes the driver builds against. **Never sync this package to their
    extension blindly:** Armbian compiles the source with `CONFIG_BLUEDROID`
    *unflipped*, i.e. with no working BlueZ Bluetooth.
-3. Rebuild and re-run the three gates: WiFi STA association, `hci0` +
-   BLE advertising (verify off-board, not just `ActiveInstances`), and a
-   BLE scan/advertise/WiFi coexistence soak.
+4. Resolve the same defconfig + fragments against the old and the new tree
+   and diff the two `.config`s for symbols the new kernel turns on by
+   default. Audit each against the `compatible` strings in the board DTB
+   and disable what nothing binds to. A driver can also take over
+   a devicetree node between releases with no symbol changing, so compare
+   which driver is bound to each proven device node before and after
+   (`/sys/bus/platform/devices/*/driver`).
+5. On both trees, list the symbols the defconfig and the fragments set
+   that the resolved `.config` does not carry with the requested value.
+   The list is never empty (about 110 entries: other-SoC options, and
+   requests Kconfig legitimately overrides, e.g. `CONFIG_BT=y` → `m`), so
+   compare the two: they must match apart from what the bump intends. A
+   new entry is a renamed or re-parented symbol, dropped silently.
+6. Decompile the old and new board DTBs (`dtc -I dtb -O dts`), normalise
+   the phandle numbers, and diff. Every difference should trace to an
+   upstream DTS change or a carried patch.
+7. Rebuild and re-run the gate behind every VERSIONS row the bump moved
+   or whose proof rides on something it moved. For a kernel bump: the base
+   sequence at the top of VERSIONS (boot → ethernet → A/B OTA + revert →
+   watchdog → `fastrpc_test` 3/3), a UFS-module boot, the Venus decode
+   smoke test, the QAIRT HTP run, the container stack, and the three radio
+   gates: WiFi STA association, `hci0` + BLE advertising (verify off-board,
+   not just `ActiveInstances`), and a BLE scan/advertise/WiFi coexistence
+   soak. A "last hardware-validated on" marker is cleared by replacing it,
+   and any older proof date beside it, with the new dated proof; deleting
+   the marker alone leaves the new version inside the old proof.
 - **UFS variant**: DONE, device-proven 2026-08-02 (boot, ethernet, /data at
   full module size, A/B OTA cycle). Same `.fw`; the EDL image's GPT is
   regenerated for 4096-byte sectors by `tools/mk_ufs_image.py` ("Fork A" —
