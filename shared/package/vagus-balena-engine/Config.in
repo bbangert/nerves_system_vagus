@@ -1,0 +1,36 @@
+config BR2_PACKAGE_VAGUS_BALENA_ENGINE
+	bool "vagus-balena-engine"
+	depends on BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS
+	depends on BR2_PACKAGE_HOST_GO_TARGET_CGO_LINKING_SUPPORTS
+	depends on BR2_PACKAGE_LIBSECCOMP_ARCH_SUPPORTS # libseccomp
+	depends on BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_17 # libseccomp
+	depends on !BR2_TOOLCHAIN_USES_UCLIBC # no fexecve
+	depends on BR2_USE_MMU # util-linux
+	select BR2_PACKAGE_CGROUPFS_MOUNT if !BR2_PACKAGE_SYSTEMD # runtime
+	select BR2_PACKAGE_HOST_GO
+	select BR2_PACKAGE_IPTABLES # runtime
+	select BR2_PACKAGE_LIBSECCOMP
+	select BR2_PACKAGE_UTIL_LINUX # runtime
+	select BR2_PACKAGE_UTIL_LINUX_BINARIES # runtime
+	select BR2_PACKAGE_UTIL_LINUX_MOUNT # runtime
+	select BR2_PACKAGE_UTIL_LINUX_MOUNTPOINT # runtime
+	select BR2_PACKAGE_UTIL_LINUX_PIVOT_ROOT # runtime
+	help
+	  Vagus-owned fork of Buildroot's balena-engine package.
+
+	  balenaEngine is a container engine purpose-built for embedded
+	  and IoT use cases and compatible with Docker containers. Unlike
+	  upstream Buildroot's package (pinned to 20.10.26, no seccomp),
+	  this package tracks balenaOS's actually-shipped release/v25.0
+	  branch (v25.0.14) and builds with the "seccomp" tag enabled
+	  against libseccomp, matching balena-engine's own upstream
+	  Dockerfile build-tag default.
+
+	  https://github.com/balena-os/balena-engine
+
+comment "vagus-balena-engine needs a glibc or musl toolchain w/ threads, libseccomp arch support and headers >= 3.17"
+	depends on BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS
+	depends on BR2_PACKAGE_HOST_GO_TARGET_CGO_LINKING_SUPPORTS
+	depends on BR2_PACKAGE_LIBSECCOMP_ARCH_SUPPORTS
+	depends on !BR2_TOOLCHAIN_HAS_THREADS || BR2_TOOLCHAIN_USES_UCLIBC || !BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_17
+	depends on BR2_USE_MMU

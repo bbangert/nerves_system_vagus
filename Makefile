@@ -6,7 +6,8 @@
 # input. `make sync` materializes the shared fragment(s) into each target;
 # edit shared/, run `make sync`, commit. shared/ also carries rootfs overlay
 # files (currently sysctl.conf), synced the same way into each target's
-# rootfs_overlay/etc/.
+# rootfs_overlay/etc/. shared/package/<name>/ holds Buildroot packages, synced
+# as whole directories into <target>/package/<name>/ for PKG_TARGETS.
 #
 # Controller firmware is NOT vendored here — each system enables
 # BR2_PACKAGE_RPI_DISTRO_BLUEZ_FIRMWARE, which installs the Pi BT .hcd set
@@ -17,6 +18,10 @@
 # fragment are inert there but harmless.
 TARGETS := dragon_q6a rpi rpi0 rpi0_2 rpi2 rpi3 rpi3_64 rpi4 rpi5 rubik_pi3 x86_64
 
+# Only the boards that ship a container engine carry its Buildroot package.
+PKG_TARGETS := dragon_q6a rpi3_64 rubik_pi3
+
+PKGS := $(wildcard shared/package/*)
 CFG := $(wildcard shared/*.config)
 OVERLAY_FILES := $(wildcard shared/sysctl.conf)
 
@@ -33,6 +38,14 @@ sync:
 	    install -D -m 0644 "$$f" "$$t/rootfs_overlay/etc/$$(basename $$f)"; \
 	    echo "synced $$f -> $$t/rootfs_overlay/etc/"; \
 	  done; \
+	done; \
+	for t in $(PKG_TARGETS); do \
+	  for p in $(PKGS); do \
+	    rm -rf "$$t/package/$$(basename $$p)"; \
+	    mkdir -p "$$t/package"; \
+	    cp -a "$$p" "$$t/package/$$(basename $$p)"; \
+	    echo "synced $$p -> $$t/package/"; \
+	  done; \
 	done
 
 ## Fail if any target's copy has drifted from shared/ (use in CI).
@@ -44,6 +57,11 @@ check:
 	  done; \
 	  for f in $(OVERLAY_FILES); do \
 	    cmp -s "$$f" "$$t/rootfs_overlay/etc/$$(basename $$f)" || { echo "DRIFT: $$t/rootfs_overlay/etc/$$(basename $$f) (run 'make sync')"; status=1; }; \
+	  done; \
+	done; \
+	for t in $(PKG_TARGETS); do \
+	  for p in $(PKGS); do \
+	    diff -r "$$p" "$$t/package/$$(basename $$p)" >/dev/null 2>&1 || { echo "DRIFT: $$t/package/$$(basename $$p) (run 'make sync')"; status=1; }; \
 	  done; \
 	done; \
 	[ $$status -eq 0 ] && echo "ok: all targets in sync"; \
