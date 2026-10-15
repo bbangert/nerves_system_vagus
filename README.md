@@ -13,7 +13,8 @@ built in CI so consumers never need a local buildroot toolchain.
 │   ├── linux-bluetooth.config   # canonical kernel fragment (edit here → make sync)
 │   ├── linux-containers.config  # canonical kernel fragment (balena-engine boards)
 │   ├── linux-memory.config      # canonical kernel fragment (swap/reclaim tuning)
-│   └── sysctl.conf              # canonical overlay file → <target>/rootfs_overlay/etc/
+│   ├── sysctl.conf              # canonical overlay file → <target>/rootfs_overlay/etc/
+│   └── package/<name>/          # canonical Buildroot package → <target>/package/<name>/ (PKG_TARGETS only)
 ├── rpi0/  rpi0_2/  rpi3/  rpi4/  rpi5/   # one Mix project per BT-capable target
 │   ├── mix.exs                 #   artifact_sites → THIS repo's Releases
 │   ├── nerves_defconfig        #   + BlueZ/D-Bus + firmware pkgs + kernel fragment ref
@@ -46,6 +47,12 @@ git add -A && git commit
 
 `shared/sysctl.conf` is synced the same way, into `<target>/rootfs_overlay/etc/`
 rather than the target root, and `make check` covers it too.
+
+`shared/package/<name>/` is synced as a whole directory (destination replaced,
+so deletions propagate) into `<target>/package/<name>/` for the `PKG_TARGETS` in
+the Makefile, i.e. only the boards that ship a container engine (`dragon_q6a`,
+`rpi3_64`, `rubik_pi3`). `make check` fails on any file difference, extra file
+or missing directory.
 
 (We can't reference `../shared` directly from a target, because a `sparse:`
 checkout only fetches that one subdir and the artifact checksum only covers
