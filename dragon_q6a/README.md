@@ -16,7 +16,7 @@ foundation** (Hexagon NPU via fastrpc, Venus video codec).
 | Serial console | `ttyMSM0` (GENI debug UART, 115200n8)           |
 | Boot           | EDK2 UEFI (SPI NOR) → GRUB2 arm64-efi → A/B     |
 | Watchdog       | qcom_wdt + nerves_heart                         |
-| Containers     | balenaEngine v25 + cgroup v2 — full Vagus stack device-proven |
+| Containers     | podman 6.1.4 + netavark (nftables) + cgroup v2 — not yet device-proven on this image |
 
 ## Boot chain and A/B updates
 
@@ -203,7 +203,7 @@ ships, or rides on, a newer version than the one its proof covers.
 | AIC8800 firmware | same commit, `fw/aic8800D80/` | installed to `/lib/firmware/aic8800D80/`; proprietary Aicsemi blobs, byte-identical to `6e07604`'s (hardware-validated 2026-07-25/26 with that pin's driver; the driver row covers the new one) |
 | wpa_supplicant | 2.12 (Buildroot pin), rpi3_64 option set (incl. `CTRL_IFACE`) | vintage_net_wifi's required control socket at `/usr/sbin/wpa_supplicant`; start-up and scan proven 2026-10-12; association last hardware-validated on 2.11, 2026-07-25/26 |
 | wireless-regdb | Buildroot pin | mandatory — this kernel sets `CFG80211_REQUIRE_SIGNED_REGDB=y` |
-| balenaEngine | v25.0.14 (`338143c`, balena-os `release/v25.0`) | `package/vagus-balena-engine`, byte-identical to rpi3_64's; `seccomp` build tag; full stack device-proven 2026-07-27 on `d7af640` (Core, add-ons, MQTT, ingress, OTA) and re-proven 2026-10-12 on `338143c` (Core, apps, ingress, OTA; MQTT broker up) |
+| podman | 6.1.4, with netavark 2.1.0, crun 1.30.1, conmon 2.1.8, catatonit 0.2.1 | `package/vagus-{podman,netavark,crun}` (synced from `shared/package/`); ran Core and the bench apps, driven by hand, in a throwaway build, 2026-10-13; not yet device-proven as shipped |
 
 **Matched-pair rule:** the CDSP firmware and the fastrpc shells must carry
 the same `QC_IMAGE_VERSION_STRING` (`strings cdsp.mbn | grep QC_IMAGE`).
@@ -211,68 +211,39 @@ A mismatch fails with fastrpc error `0x80000600` and no kernel log. The
 board-specific c4-00004 CDSP pair is a known dead-end on mainline kernels
 (PD creates, all invokes fail) — do not swap it back without new evidence.
 
-## Container runtime (balenaEngine)
+## Container runtime (podman)
 
-Added in v0.2.0 to bring this board to rpi3_64 parity as a Vagus target
-(HA Core and add-ons run as containers). Three pieces, all of which have to
-be present for the daemon to start:
+HA Core and apps run as podman containers, which Vagus drives one operation
+at a time through the `podman` CLI; there is no engine daemon. Three pieces
+have to be present:
 
 | Piece | Where |
 | --- | --- |
-| Engine binary | `package/vagus-balena-engine` (balenaEngine v25.0.14, `seccomp` build tag) + `BR2_PACKAGE_VAGUS_BALENA_ENGINE=y`, `BR2_PACKAGE_LIBSECCOMP=y` |
-| Kernel support | `linux-containers.config` — a **shared** fragment (`shared/`, `make sync`, `make check`); overlayfs, cgroup controllers, netfilter + legacy iptables + NAT, bridge/veth, seccomp, `CGROUP_BPF` |
+| Engine | `package/vagus-podman` (podman 6.1.4, with the baked `/etc/containers/containers.conf` and `storage.conf`), `package/vagus-netavark` (netavark 2.1.0, nftables driver, no aardvark-dns), `package/vagus-crun` (crun 1.30.1); Buildroot's `conmon`, `catatonit`, `containers-image-config`, `nftables` and util-linux |
+| Kernel support | `linux-containers.config` — a **shared** fragment (`shared/`, `make sync`, `make check`); overlayfs, cgroup controllers, nftables + NAT, bridge/veth, seccomp, `CGROUP_BPF` |
 | Runtime mounts | `rootfs_overlay/etc/erlinit.config` mounts `cgroup2` on `/sys/fs/cgroup` and `configfs`; **both** GRUB slots pass `cgroup_no_v1=all cgroup_enable=memory` |
 
 Notes for anyone touching this:
 
-- The package is a byte-for-byte copy of rpi3_64's. Buildroot packages are
-  per-board by design in this repo (the `shared/` mechanism is kernel-config
-  fragments only), so the two copies must be kept in step by hand.
+- The three `vagus-*` recipes are synced from `shared/package/` by
+  `make sync`; edit them there. `make check` fails on drift.
+- The baked config is profile-neutral with the frugal (small-RAM) values.
+  Vagus writes `/run/vagus/podman/containers.conf` at boot and points
+  `CONTAINERS_CONF_OVERRIDE` at it to pick the board's profile.
+- Images live under `/root/containers/storage`; container state is in the
+  transient store on `/run`, so every container is recreated each boot.
 - `/etc/resolv.conf` is a symlink to `/run/resolv.conf`, not the skeleton's
-  `../tmp/resolv.conf`. The engine daemon reads resolver config once at
-  start, and Vagus writes `/run/resolv.conf` before spawning it.
+  `../tmp/resolv.conf`; Vagus writes `/run/resolv.conf` at boot.
 - The app-data partition mounts at `/data`, which the Nerves skeleton ships
   as a symlink to `/root` — so `mount`/`/proc/mounts` show the partition on
   **`/root`**, and container data really does live on writable storage.
   That is expected, not a misconfiguration.
-- The legacy-iptables symbols in the fragment hang off
-  `NETFILTER_XTABLES_LEGACY`, which is `depends on !PREEMPT_RT`. This board
-  uses plain `CONFIG_PREEMPT`; do not switch it to `PREEMPT_RT` without
-  moving the container stack to nftables first.
 
-**Status: the engine is device-proven (2026-07-27, fw `c26439b5`).** After an
-A/B OTA the balena-engine daemon starts on its own, creates its `bridge` and
-`hassio` networks, and programs NAT — `iptables -t nat -L -n` shows real
-MASQUERADE rules for `172.30.32.0/23` and `172.17.0.0/16`. `cgroup2` is
-mounted on `/sys/fs/cgroup`, the app partition is on `/root` (rw), and
-`/etc/resolv.conf` resolves to `/run/resolv.conf`. No pre-existing capability
-regressed from the kernel-config change: `fastrpc_test -a v68` 3/3,
-`/dev/video0`+`1`, USB3 root hub at 5000 Mbps, `wlan0` + `hci0`.
-
-**The full Vagus stack is now device-proven too (2026-07-27).** Everything
-the rpi3_64 does, this board does: HA Core 2026.7.3 cold-starts from a 2.33 GB
-pull to `:healthy` on `:8123`; all 20 hassio coordinator endpoints answer 200
-and Core mints a `hassio_user` with a `loaded` `hassio: Supervisor` config
-entry; `Vagus.DNS` resolves on `172.30.32.3:53`; the native `core_mqtt` broker
-is adopted by Core and held one MQTT session across a 6+ minute soak with zero
-reconnects; a container add-on (`core_configurator`) installs, runs healthy on
-the `hassio` bridge and serves real content over ingress; an A/B OTA **with
-containers running** brings both back automatically; both Core-watchdog legs
-behave per the ladder; and an **unclean power cycle** recovers cleanly (ext4
-journal replay, anchors re-bound, containers restarted, Core healthy, ingress
-still serving).
-
-Two notes from that bring-up:
-
-* Ingress needed a Vagus-side fix — add-on connections originated from the
-  bridge gateway `172.30.32.1` instead of the supervisor anchor `172.30.32.2`.
-  Add-ons that filter on client IP reject traffic from the gateway, so ingress
-  failed until Vagus bound its source address to the anchor. That was a
-  *pre-existing* gap affecting rpi3_64 identically, not specific to this board.
-* balena-engine's own container metadata (`StartedAt`, `RestartCount`) is
-  **not durable across a power cut** — it rolled back several minutes of
-  updates after journal recovery. The containers themselves restart and run
-  correctly; only the engine's recorded history is stale.
+**Status: not yet device-proven on this image.** podman 6.1.4 with this
+netavark, crun and conmon ran Core and the bench apps on this board,
+driven by hand, in a throwaway build (2026-10-13); the full Vagus stack was
+device-proven on balenaEngine through v0.4.0 (Core, apps, MQTT, ingress,
+OTA, unclean power cycle).
 
 > **An OTA cannot update `grub.cfg` on this board.** `fwup.conf` writes it to
 > the ESP only in `task complete` (a full flash); `upgrade.a`/`upgrade.b`

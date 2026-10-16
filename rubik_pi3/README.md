@@ -31,7 +31,7 @@ pending a later phase.
 | Serial console | `ttyMSM0` (GENI debug UART, 115200n8) — dts `serial0 = &uart5`, pending live verification |
 | Boot           | EDK2 UEFI (SPI NOR, Thundercomm build) → GRUB2 arm64-efi → A/B |
 | Watchdog       | qcom_wdt + nerves_heart                              |
-| Containers     | balenaEngine v25 + cgroup v2 — ported from the Q6A/rpi3_64 stack, not yet device-proven here |
+| Containers     | podman 6.1.4 + netavark (nftables) + cgroup v2 — same stack as the Q6A, not yet device-proven here |
 
 ## Device-proven status
 
@@ -45,7 +45,7 @@ through (mirroring the Q6A port's own bring-up gates):
 | Dual-disk `rootdisk0` aliasing with NVMe populated | pending |
 | WiFi STA (WPA2/WPA3) + AP mode | pending |
 | BT / Improv provisioning | pending |
-| balena containers | pending |
+| podman containers | pending |
 | Home Assistant stack | pending |
 | Thermal fan control | pending |
 | OTA A/B update cycle | pending |
@@ -198,16 +198,16 @@ in-tree `qcs6490-thundercomm-rubikpi3.dts` describes the module exactly
 this way) but **has not been exercised on real hardware** — device
 verification is pending, same as the rest of this target.
 
-## Container runtime (balenaEngine)
+## Container runtime (podman)
 
-Ported from the Q6A/rpi3_64 stack to bring this board to platform parity
-(HA Core and add-ons run as containers) — not yet device-proven here.
-Three pieces:
+The same stack as `dragon_q6a`, so HA Core and apps run as containers that
+Vagus drives through the `podman` CLI — not yet device-proven here (build-
+proof only). Three pieces:
 
 | Piece | Where |
 | --- | --- |
-| Engine binary | `package/vagus-balena-engine` (byte-for-byte copy of rpi3_64's/dragon_q6a's) + `BR2_PACKAGE_VAGUS_BALENA_ENGINE=y`, `BR2_PACKAGE_LIBSECCOMP=y` |
-| Kernel support | `linux-containers.config` — a **shared** fragment (`shared/`, `make sync`, `make check`); overlayfs, cgroup controllers, netfilter + legacy iptables + NAT, bridge/veth, seccomp, `CGROUP_BPF` |
+| Engine | `package/vagus-podman` (podman 6.1.4, with the baked `/etc/containers/containers.conf` and `storage.conf`), `package/vagus-netavark` (netavark 2.1.0, nftables driver, no aardvark-dns), `package/vagus-crun` (crun 1.30.1), all synced from `shared/package/` by `make sync`; Buildroot's `conmon`, `catatonit`, `containers-image-config`, `nftables` and util-linux |
+| Kernel support | `linux-containers.config` — a **shared** fragment (`shared/`, `make sync`, `make check`); overlayfs, cgroup controllers, nftables + NAT, bridge/veth, seccomp, `CGROUP_BPF` |
 | Runtime mounts | `rootfs_overlay/etc/erlinit.config` mounts `cgroup2` on `/sys/fs/cgroup` and `configfs`; both GRUB slots pass `cgroup_no_v1=all cgroup_enable=memory` |
 
 ## VERSIONS (target stack — not yet device-validated)
@@ -230,7 +230,7 @@ Three pieces:
 | WiFi/BT firmware | brcmfmac43456-sdio.{bin,clm_blob} + board NVRAM (armbian/vendor pins), BCM4345C5.hcd (vendor pin) | installed by `package/rubik-pi3-firmware` |
 | wpa_supplicant | Buildroot pin, rpi3_64 option set (incl. `CTRL_IFACE`) | vintage_net_wifi's required control socket |
 | wireless-regdb | Buildroot pin | mandatory — this kernel sets `CFG80211_REQUIRE_SIGNED_REGDB=y` |
-| balenaEngine | v25.0.14 (`338143c`, balena-os `release/v25.0`), ported from the Q6A/rpi3_64 package | not yet device-proven on this board |
+| podman | 6.1.4, with netavark 2.1.0, crun 1.30.1, conmon 2.1.8, catatonit 0.2.1 (same packages as `dragon_q6a`) | not yet device-proven on this board |
 
 **Matched-pair rule:** the CDSP/ADSP firmware and their fastrpc shells
 must carry the same `QC_IMAGE_VERSION_STRING`. The build enforces this

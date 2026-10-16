@@ -1,0 +1,5 @@
+# Locally computed. The tarball is Buildroot's cargo-vendored repack (the
+# "-cargo5" in the name), not GitHub's archive, so a different host cargo
+# or crates.io state can change it.
+sha256  13c7b0b32db1b3ad44cff8f4c29bcfc60e4239dd1d499d1ea038ccdb4a90ee45  vagus-netavark-2.1.0-cargo5.tar.gz
+sha256  c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4  LICENSE

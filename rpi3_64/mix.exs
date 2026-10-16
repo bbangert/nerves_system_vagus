@@ -109,12 +109,12 @@ defmodule NervesSystemRpi364.MixProject do
 
   # NOTE: this list is the Nerves artifact checksum input (nerves_package's
   # :checksum above), not just the hex package manifest -- anything omitted
-  # here does NOT invalidate a cached artifact when it changes. Config.in,
-  # external.mk, package/ and linux-containers.config were all missing until
-  # vagus-q6a-wiring P1-T5, so edits to the vagus-balena-engine recipe or the
-  # container kernel fragment could silently leave a stale engine binary in a
-  # supposedly-rebuilt system. fwup.conf is deliberately absent: this board
-  # generates it from fwup.conf.eex at build time.
+  # here does NOT invalidate a cached artifact when it changes, so Config.in,
+  # external.mk, package/ and linux-containers.config must stay listed or an
+  # edit to a container-engine recipe or the container kernel fragment can
+  # leave a stale binary in a supposedly-rebuilt system. fwup.conf is
+  # deliberately absent: this board generates it from fwup.conf.eex at build
+  # time.
   #
   # Still NOT covered (matches upstream nerves_system convention, but worth
   # knowing): mix.lock is unlisted, and deps float (e.g. the toolchain at
