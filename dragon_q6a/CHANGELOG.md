@@ -3,10 +3,12 @@
 Headings are this target's `VERSION`. Git tags are repo-wide and can differ;
 an entry names its repo tag where it does.
 
-## Unreleased
+## v0.5.0
 
-Not yet tagged. podman replaces balenaEngine as the container engine, and
-nftables replaces iptables. Not yet validated on hardware.
+podman replaces balenaEngine as the container engine, and nftables replaces
+iptables. Build-proof only so far: the device gates (migration from
+balenaEngine, A/B revert, reboots) run with the Vagus release that switches
+to podman.
 
 * **podman 6.1.4 replaces balenaEngine v25.0.14.** The image ships podman
   (rootful, built without systemd), netavark 2.1.0 (nftables driver; no

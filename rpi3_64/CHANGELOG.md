@@ -16,11 +16,12 @@ follows:
    releases, and Linux kernel updates. They're also made to fix bugs and add
    features to the build infrastructure.
 
-## Unreleased
+## v0.2.0
 
-Not yet tagged. podman replaces balenaEngine as the container engine, and
-nftables replaces iptables. No other change on this target. Not yet
-validated on hardware.
+Repo tag v0.5.0. podman replaces balenaEngine as the container engine, and
+nftables replaces iptables. No other change on this target. Build-proof only
+so far: the device gates (migration from balenaEngine, A/B revert, reboots)
+run with the Vagus release that switches to podman.
 
 * **podman 6.1.4 replaces balenaEngine v25.0.14.** The image ships podman
   (rootful, built without systemd), netavark 2.1.0 (nftables driver; no
