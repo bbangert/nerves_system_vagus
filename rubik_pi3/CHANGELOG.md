@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## v0.3.0
 
-Not yet tagged. Follows `dragon_q6a`: podman replaces balenaEngine as the
+Repo tag v0.5.0. Follows `dragon_q6a`: podman replaces balenaEngine as the
 container engine, and nftables replaces iptables. Build-proof only: this
 target has never booted on hardware.
 
