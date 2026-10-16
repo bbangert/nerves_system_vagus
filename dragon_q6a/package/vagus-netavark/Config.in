@@ -1,0 +1,24 @@
+config BR2_PACKAGE_VAGUS_NETAVARK
+	bool "vagus-netavark"
+	depends on BR2_PACKAGE_HOST_RUSTC_TARGET_ARCH_SUPPORTS
+	depends on BR2_PACKAGE_HOST_PROTOBUF_ARCH_SUPPORTS # host-protobuf
+	depends on BR2_USE_WCHAR # nftables
+	depends on BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_12 # nftables
+	select BR2_PACKAGE_HOST_RUSTC
+	select BR2_PACKAGE_NFTABLES # runtime
+	select BR2_PACKAGE_NFTABLES_JSON # runtime
+	help
+	  Vagus-owned netavark 2.x, the network stack podman 6
+	  requires (Buildroot ships 1.17.x). nftables is the only
+	  kernel firewall driver left in 2.x, and netavark drives it
+	  through nft's JSON interface.
+
+	  aardvark-dns is deliberately not selected: without it
+	  netavark sets networks up with container DNS disabled.
+
+	  https://github.com/containers/netavark
+
+comment "vagus-netavark needs a toolchain w/ wchar, headers >= 3.12"
+	depends on BR2_PACKAGE_HOST_RUSTC_TARGET_ARCH_SUPPORTS
+	depends on BR2_PACKAGE_HOST_PROTOBUF_ARCH_SUPPORTS
+	depends on !BR2_USE_WCHAR || !BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_12

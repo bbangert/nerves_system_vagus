@@ -4,10 +4,9 @@ CONFIG_SYSVIPC=y
 CONFIG_POSIX_MQUEUE=y
 CONFIG_NO_HZ=y
 CONFIG_HIGH_RES_TIMERS=y
-# PREEMPT_RT (inherited from the audio-focused universal_proxy fork) is
-# incompatible with legacy iptables on 6.9+ (NETFILTER_XTABLES_LEGACY depends
-# on !PREEMPT_RT). This target is a container host, not a low-latency audio
-# node: use standard full preemption like HAOS.
+# Not the PREEMPT_RT of the audio-focused universal_proxy fork: this target
+# is a container host, not a low-latency audio node, so it uses standard
+# full preemption like HAOS.
 CONFIG_PREEMPT=y
 CONFIG_IKCONFIG=y
 CONFIG_IKCONFIG_PROC=y

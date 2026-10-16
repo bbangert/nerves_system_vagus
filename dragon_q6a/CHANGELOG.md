@@ -3,6 +3,41 @@
 Headings are this target's `VERSION`. Git tags are repo-wide and can differ;
 an entry names its repo tag where it does.
 
+## Unreleased
+
+Not yet tagged. podman replaces balenaEngine as the container engine, and
+nftables replaces iptables. Not yet validated on hardware.
+
+* **podman 6.1.4 replaces balenaEngine v25.0.14.** The image ships podman
+  (rootful, built without systemd), netavark 2.1.0 (nftables driver; no
+  aardvark-dns, so container DNS is off), crun 1.30.1, Buildroot's conmon
+  2.1.8 and catatonit 0.2.1, and Buildroot's containers-image-config
+  (`policy.json` accepts any image; `registries.conf` searches only
+  `docker.io` for short names). The recipes live in `shared/package/` and
+  `make sync` copies them here. **Breaking:** `balena-engine*`, its socket
+  and the `balena-engine` system user are gone; this system needs a Vagus
+  that drives podman.
+* `/etc/containers/containers.conf` and `storage.conf` are baked in:
+  graphroot `/root/containers/storage`, runroot `/run/containers/storage`,
+  `transient_store = true`, the events file at
+  `/run/libpod/events/events.log` (4 MiB cap), and the frugal pull settings
+  (one layer at a time, spool under the graphroot). Vagus overrides the
+  per-board settings at boot through `CONTAINERS_CONF_OVERRIDE`.
+* **nftables.** The container kernel fragment gains `NF_TABLES`,
+  `NF_TABLES_INET`, `NF_CONNTRACK_MARK`, `NFT_CT`, `NFT_NAT`, `NFT_MASQ` and
+  `NFT_FIB_IPV4`/`IPV6`/`INET`, plus the namespace, cgroup and POSIX mqueue
+  symbols balenaEngine's kernel fixups used to set. `nft` (with JSON) is in
+  the image.
+* **iptables removed.** The userland (`iptables-legacy`, `/usr/lib/xtables`,
+  `libxtables`, `libip4tc`, `libip6tc`) and the legacy xtables kernel
+  symbols (`NETFILTER_XTABLES_LEGACY`, `IP_NF_*`, `IP6_NF_*`,
+  `NETFILTER_XT_NAT`, `NETFILTER_XT_TARGET_MASQUERADE`,
+  `NETFILTER_XT_MARK`) are gone. **Breaking** for anything that runs
+  `iptables`.
+* util-linux is now enabled in the defconfig rather than through
+  balenaEngine's selects: `mount`, `swapon`, `mkswap`, `mountpoint` and
+  `pivot_root` stay, and `nsenter` is added. `cgroupfs-mount` is gone.
+
 ## v0.4.0
 
 Kernel 7.2, and with it the onboard radio driver, fastrpc, balenaEngine and

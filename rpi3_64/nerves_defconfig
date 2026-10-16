@@ -92,13 +92,34 @@ BR2_PACKAGE_RPI_DISTRO_BLUEZ_FIRMWARE=y
 BR2_PACKAGE_LINUX_FIRMWARE=y
 BR2_PACKAGE_LINUX_FIRMWARE_RTL_87XX_BT=y
 
-# ---- Custom: container runtime (vagus-runtime-spike) ----
-# Vagus-owned external package (rpi3_64/package/vagus-balena-engine/), not
-# upstream Buildroot's package/balena-engine. Note cgroupfs-mount IS pulled
-# in (the package's Config.in has `select BR2_PACKAGE_CGROUPFS_MOUNT if
-# !BR2_PACKAGE_SYSTEMD` and this is a BR2_INIT_NONE system), so
-# /usr/bin/cgroupfs-mount ships -- but it is inert: it is a SysV init script
-# helper and nothing ever invokes it under erlinit. The fork owns cgroup
-# mounting via erlinit.config instead.
-BR2_PACKAGE_VAGUS_BALENA_ENGINE=y
-BR2_PACKAGE_LIBSECCOMP=y
+# ---- Custom: container engine ----
+# podman, driven per operation by Vagus through its CLI. The vagus-* recipes
+# are synced from shared/package/ by `make sync`; the kernel side is
+# shared/linux-containers.config. cgroup v2 is mounted by erlinit.config.
+BR2_PACKAGE_VAGUS_CRUN=y
+BR2_PACKAGE_VAGUS_NETAVARK=y
+BR2_PACKAGE_VAGUS_PODMAN=y
+# Buildroot's 2.1.8. At the size cap it renames a fresh file over the log,
+# the same rotation as the 2.2.1 Vagus's log follower was tested against.
+BR2_PACKAGE_CONMON=y
+# The init process podman runs for --init.
+BR2_PACKAGE_CATATONIT=y
+# policy.json, and registries.conf with docker.io as the only unqualified
+# search registry, as Docker resolved short names.
+BR2_PACKAGE_CONTAINERS_IMAGE_CONFIG=y
+# netavark's firewall driver, and Vagus programs its own NAT table with nft.
+BR2_PACKAGE_NFTABLES=y
+BR2_PACKAGE_NFTABLES_JSON=y
+# This BusyBox has no swapon, mkswap, nsenter, mountpoint or pivot_root,
+# and Vagus's swapon, mkswap and mount calls were proven against util-linux.
+# nsenter is how to look into a container's namespaces from the board's
+# shell.
+BR2_PACKAGE_UTIL_LINUX=y
+BR2_PACKAGE_UTIL_LINUX_BINARIES=y
+BR2_PACKAGE_UTIL_LINUX_MOUNT=y
+BR2_PACKAGE_UTIL_LINUX_MOUNTPOINT=y
+BR2_PACKAGE_UTIL_LINUX_PIVOT_ROOT=y
+BR2_PACKAGE_UTIL_LINUX_NSENTER=y
+# podman's state database compiles in the sqlite that go-sqlite3 vendors
+# (see vagus-podman.mk), so no system sqlite.
+# BR2_PACKAGE_SQLITE is not set

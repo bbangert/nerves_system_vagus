@@ -1,0 +1,4 @@
+# Locally computed. The archive ships vendor/, so the go download
+# post-process exits early and this is the GitHub archive itself.
+sha256  200fd9b4b6d820cae24fc99d8e290ec945512365cf3cda8283b3905c0c284ea8  vagus-podman-v6.1.4-go2.tar.gz
+sha256  62fb8a3a9621dc2388174caaabe9c2317b694bb9a1d46c98bcf5655b68f51be3  LICENSE

@@ -3,4 +3,6 @@
 # If these are non-proprietary, please consider contributing them back to
 # Nerves or Buildroot.
 
-source "$NERVES_DEFCONFIG_DIR/package/vagus-balena-engine/Config.in"
+source "$NERVES_DEFCONFIG_DIR/package/vagus-crun/Config.in"
+source "$NERVES_DEFCONFIG_DIR/package/vagus-netavark/Config.in"
+source "$NERVES_DEFCONFIG_DIR/package/vagus-podman/Config.in"
