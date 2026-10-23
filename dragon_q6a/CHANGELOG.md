@@ -3,7 +3,7 @@
 Headings are this target's `VERSION`. Git tags are repo-wide and can differ;
 an entry names its repo tag where it does.
 
-## Unreleased
+## v0.6.0
 
 Hardware-debug device classes for the agent-dev-board flavor of Vagus, which
 runs hardware tasks in containers: a container brings its own userland, but

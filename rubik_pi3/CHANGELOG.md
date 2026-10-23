@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## v0.4.0
 
-Follows `dragon_q6a`: the `linux-hwdebug.config` fragment (hidraw, extra USB
+Repo tag v0.6.0. Follows `dragon_q6a`: the `linux-hwdebug.config` fragment (hidraw, extra USB
 serial drivers, usbmon, USB/IP host, CAN dongles, knfsd, HID gadget function,
 802.15.4, USB-I2C bridges, netem, RNDIS host, GPIO cdev v1) and nfs-utils with
 the NFS server tools. Build-proof on dragon_q6a only; the usbip userland is
