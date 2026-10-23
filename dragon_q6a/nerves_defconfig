@@ -32,7 +32,7 @@ BR2_LINUX_KERNEL_CUSTOM_VERSION=y
 BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="7.2.10"
 BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
 BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${NERVES_DEFCONFIG_DIR}/linux-7.2.defconfig"
-BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.config ${NERVES_DEFCONFIG_DIR}/linux-containers.config ${NERVES_DEFCONFIG_DIR}/linux-memory.config"
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.config ${NERVES_DEFCONFIG_DIR}/linux-containers.config ${NERVES_DEFCONFIG_DIR}/linux-memory.config ${NERVES_DEFCONFIG_DIR}/linux-hwdebug.config"
 # USB3: USB-only trim of Armbian's DTS enables for the SuperSpeed
 # controller + USB-A SS lanes (see patches/linux/0001-*).
 # UFS: board DTS enable (Gear-4 Rate-A, ICE off) + the sc7280 HS-G4 PHY
@@ -165,5 +165,16 @@ BR2_PACKAGE_UTIL_LINUX_MOUNTPOINT=y
 BR2_PACKAGE_UTIL_LINUX_PIVOT_ROOT=y
 BR2_PACKAGE_UTIL_LINUX_NSENTER=y
 # podman's state database compiles in the sqlite that go-sqlite3 vendors
-# (see vagus-podman.mk), so no system sqlite.
-# BR2_PACKAGE_SQLITE is not set
+# (see vagus-podman.mk); the system libsqlite3 is only here because nfs-utils
+# selects it.
+
+# ---- Hardware-debug host services ----
+# Kernel side is linux-hwdebug.config. knfsd serves nfsroot to targets and
+# needs rpc.nfsd/rpc.mountd/exportfs (plus rpcbind, which RPC_NFSD selects)
+# on the host, not in a container. Nothing starts them: with BR2_INIT_NONE no
+# init script is installed, so they run only when launched explicitly.
+# The usbip userland is NOT here: Buildroot's usbip package depends on udev,
+# which Nerves does not ship, so `usbip bind`/usbipd run from a privileged
+# container against the host's usbip-host module.
+BR2_PACKAGE_NFS_UTILS=y
+BR2_PACKAGE_NFS_UTILS_RPC_NFSD=y

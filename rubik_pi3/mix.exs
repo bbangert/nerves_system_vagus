@@ -130,6 +130,7 @@ defmodule NervesSystemRubikPi3.MixProject do
       "linux-7.2.defconfig",
       "linux-bluetooth.config",
       "linux-containers.config",
+      "linux-hwdebug.config",
       "linux-memory.config",
       "mix.exs",
       "nerves_defconfig",

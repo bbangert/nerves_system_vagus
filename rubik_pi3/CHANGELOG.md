@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+Follows `dragon_q6a`: the `linux-hwdebug.config` fragment (hidraw, extra USB
+serial drivers, usbmon, USB/IP host, CAN dongles, knfsd, HID gadget function,
+802.15.4, USB-I2C bridges, netem, RNDIS host, GPIO cdev v1) and nfs-utils with
+the NFS server tools. Build-proof on dragon_q6a only; the usbip userland is
+not included (needs udev).
+
 ## v0.3.0
 
 Repo tag v0.5.0. Follows `dragon_q6a`: podman replaces balenaEngine as the

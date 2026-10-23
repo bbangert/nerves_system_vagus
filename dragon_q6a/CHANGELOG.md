@@ -3,6 +3,25 @@
 Headings are this target's `VERSION`. Git tags are repo-wide and can differ;
 an entry names its repo tag where it does.
 
+## Unreleased
+
+Hardware-debug device classes for the agent-dev-board flavor of Vagus, which
+runs hardware tasks in containers: a container brings its own userland, but
+only the host kernel can expose a probe, dongle or bus as a device.
+
+* **New kernel fragment `linux-hwdebug.config`** (shared, synced): hidraw and
+  hiddev (CMSIS-DAP/DAPLink probes), USB serial `generic`, `simple`, CH341 and
+  PL2303, usbmon, USB/IP host, gs_usb and slcan CAN dongles, knfsd (v3 and v4),
+  the configfs HID gadget function, IEEE 802.15.4, USB-to-I2C bridges
+  (`i2c-tiny-usb`, MCP2221), netem, RNDIS host, and the GPIO cdev v1 ABI.
+  Every `depends on` prerequisite is listed explicitly. rootfs +2.5 MiB.
+* **nfs-utils with `rpc.nfsd`, `rpc.mountd`, `exportfs` and rpcbind** so a
+  target can boot `nfsroot` from the board; nothing starts them (no init
+  scripts under `BR2_INIT_NONE`). nfs-utils selects a system libsqlite3.
+* The usbip userland is **not** included: Buildroot's package depends on
+  udev, which this system does not ship. The `usbip-core`/`usbip-host`
+  modules are present; `usbipd` runs from a privileged container.
+
 ## v0.5.0
 
 podman replaces balenaEngine as the container engine, and nftables replaces
