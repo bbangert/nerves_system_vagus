@@ -117,6 +117,7 @@ defmodule NervesSystemDragonQ6a.MixProject do
   # without moving the artifact checksum.
   defp package_files do
     [
+      "br-patches",
       "Config.in",
       "external.mk",
       "fwup_include",

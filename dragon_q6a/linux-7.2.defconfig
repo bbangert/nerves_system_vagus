@@ -1244,6 +1244,13 @@ CONFIG_UDMABUF=y
 CONFIG_QRTR=m
 CONFIG_QCOM_PD_MAPPER=m
 
+# The Adreno SMMU (3da0000) and GPU wait on gpucc-sc7280, a module that only
+# loads once Erlang is up (nerves_uevent runs modprobe); the 10 s default
+# gives up first (arm-smmu 3da0000.iommu -110) and the SMMU driver refuses a
+# later rebind, so the GPU is dead for the whole boot. Same value as
+# Qualcomm's qcom.config and the rubik_pi3 target.
+CONFIG_DRIVER_DEFERRED_PROBE_TIMEOUT=60
+
 # Mainline 7.2 defaults nearly every Qualcomm TLMM pinctrl driver to y
 # under ARCH_QCOM. Each carries large pin tables in rodata/data; the ones
 # dropped here cost about 1.45 MB of resident kernel memory together, and
