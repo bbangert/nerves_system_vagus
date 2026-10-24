@@ -54,9 +54,10 @@ Ethernet, USB3, watchdog, GPU/display probe and an A → B OTA work.
 * **WiFi firmware 7.45.96.215.** `brcmfmac43456-sdio.bin` is now the board
   vendor's `fw_bcm43456c5_ag.bin` (rubikpi-ai/rubikpi3-firmware, the same
   file as Thundercomm's stock image) instead of armbian's 7.45.96.0 from
-  2017. Every AP rejected the old firmware's join with status 16; the new one
-  authenticates and associates. WPA3-SAE still doesn't work: the firmware's
-  external SAE is bcmdhd's `assoc_mgr_cmd` flow, which brcmfmac lacks.
+  2017. Every AP rejected the old firmware's join with status 16; with the
+  new one WPA2-PSK connects and passes traffic. WPA3-SAE doesn't work: the
+  firmware's external SAE is bcmdhd's `assoc_mgr_cmd` flow, and even with
+  that ported the firmware associates with an empty SSID.
 * Docs: there is no SPI NOR on this board. XBL, UEFI, TZ, the hypervisor
   and the firmware DT all live on UFS LUNs 1-6, and the README, `grub.cfg`,
   `nerves_defconfig` and `fwup-common.conf` now say so. The README gains
