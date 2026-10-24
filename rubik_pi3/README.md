@@ -52,7 +52,7 @@ port's):
 | RTC / clock | **proven**: PMIC RTC (`allow-set-time`) holds time across reboot. A never-synced board boots at 1970 and NervesTime's ntpd (started before DHCP/DNS) takes ~3 min to sync, so first-boot TLS fails until then |
 | GPU / display | **proven probe**: msm DRM binds DSI + DP + Adreno, `/dev/dri/card0` + `renderD128`, a660 SQE/GMU firmware load, LT9611 bridge detected; no monitor attached yet, so HDMI scan-out untested. Failed on 7.2.10 |
 | USB-C gadget (`usb0`) | not provided: the UDC (`a600000.usb`) probes, but this system (like `dragon_q6a`) configures no gadget function, so the `usb0` a `nerves.new` app config lists never appears |
-| Dual-disk `rootdisk0` aliasing with NVMe populated | pending |
+| M.2 NVMe + `rootdisk0` aliasing | **proven** with a Samsung 970 EVO Plus 1 TB (Gen3 x2): UFS stays `rootdisk0`, `nvme0n1` probes at boot (nvme is `=m`, so it never delays root), ~1 GiB/s direct reads with ASPM L1 on. Needs `aspm-no-l1ss` on `&pcie1_port0` (kernel patch 0004): with L1.1 allowed the link drops right after identify |
 | WiFi STA (WPA2/WPA3) + AP mode | scan **proven** (both bands, `brcmfmac43456-sdio` 7.45.96.2; give `quick_scan` ~10 s); association pending |
 | BT / Improv provisioning | controller **proven** (powers on under BlueZ 5.79, discovers devices; bluetoothd + dbus started by hand); Improv pending |
 | podman containers | **proven**: `hello-world` (arm64v8) and an alpine container reaching the internet over the default netavark bridge. `<graphroot>/tmp` must exist first (Vagus creates it), and pulls need a synced clock |
@@ -144,10 +144,22 @@ p4  rootfs-b squashfs 512 MiB
 p5  data     ext4    512 MiB+ /data (expand=true)
 ```
 
-The M.2 NVMe slot is enabled in the kernel config and DTS and is expected
-to be mountable, but is not used for boot or application data — the
-onboard UFS is the sole boot disk on this board (unlike the Q6A port,
-which supports either NVMe or UFS as the boot disk).
+The M.2 NVMe slot works as extra storage, but this system doesn't use it for
+boot or application data. The onboard UFS is the only boot disk on this board
+(unlike the Q6A port, which can boot from NVMe or UFS). nvme is built as a
+module so a slow or failing SSD can't hold up the root mount.
+
+pcie-qcom turns on every ASPM state, L1.1/L1.2 included, for devices present
+when the host bridge probes. On this slot the link drops as soon as L1.1 is
+allowed: "Recovering Root Port due to Link Down" ~50 ms after nvme identify,
+then a 60 s admin timeout. This was bisected on hardware: L1 and Clock PM are
+fine, L1.1 breaks it. Forcing the PHY endpoint refclk on (Thundercomm's
+downstream `qcom,refclk-always-on`) didn't help. Patch 0004 keeps L1 and blocks
+the substates with `aspm-no-l1ss`. The `arm-smmu ... iova=0x40100000
+cbfrsynra=0x1c80` fault that sometimes follows NVMe probe comes from the Root
+Port's own AER/PME MSI (SID 0x1c80 is RID 0). qcom-next keeps that MSI enabled
+as a workaround (it reverts upstream f5cd8a929c82). The fault is harmless to
+the NVMe, but Root Port AER/PME interrupts are lost.
 
 ## AI foundation contract
 

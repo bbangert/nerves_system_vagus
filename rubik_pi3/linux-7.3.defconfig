@@ -243,7 +243,10 @@ CONFIG_MTD_HYPERBUS=m
 CONFIG_BLK_DEV_LOOP=y
 CONFIG_BLK_DEV_NBD=m
 CONFIG_VIRTIO_BLK=y
-CONFIG_BLK_DEV_NVME=y
+# Module, not built in: the M.2 NVMe is data-only on this board (UFS is the
+# sole boot disk), and built in, its probe at ~3 s sits on the root-mount
+# path -- wait_for_device_probe() holds root until it finishes.
+CONFIG_BLK_DEV_NVME=m
 CONFIG_QCOM_COINCELL=m
 CONFIG_QCOM_FASTRPC=y
 CONFIG_SRAM=y
