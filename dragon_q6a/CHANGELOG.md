@@ -3,6 +3,24 @@
 Headings are this target's `VERSION`. Git tags are repo-wide and can differ;
 an entry names its repo tag where it does.
 
+## v0.6.1
+
+Adreno GPU render node (`/dev/dri/renderD128`) on an unattended boot. No GPU
+userspace (Mesa) is shipped, so nothing renders yet.
+
+* **Adreno GPU render node** — `CONFIG_DRIVER_DEFERRED_PROBE_TIMEOUT=60`: the
+  GPU SMMU waits on gpucc-sc7280, a module nerves_uevent loads after Erlang
+  starts; the 10 s default gave up (-110) and arm-smmu cannot be rebound.
+  Also clears the dwc3/cpufreq deferred-probe noise at boot.
+* **`/etc/modprobe.d/msm.conf` with `separate_gpu_kms=1`** — the DTS leaves
+  mdss disabled, so without it msm parks the GPU as a component waiting for a
+  KMS master; now `/dev/dri/card0` + `renderD128` (GPU only) appear on boot
+  and a660 SQE/GMU firmware loads on first open.
+* **busybox patch: modprobe keeps dots in modalias names**
+  (`br-patches/busybox/`, via `BR2_GLOBAL_PATCH_DIR`) — busybox cut the
+  requested name at the first `.`, so `qcom,adreno-635.0` never matched and
+  msm never autoloaded; affects any devicetree compatible with a version dot.
+
 ## v0.6.0
 
 Hardware-debug device classes for the agent-dev-board flavor of Vagus, which

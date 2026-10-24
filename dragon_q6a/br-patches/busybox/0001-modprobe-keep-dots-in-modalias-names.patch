@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Ben Bangert <ben@groovie.org>
+Date: Sat, 24 Oct 2026 00:00:00 +0000
+Subject: [PATCH] modprobe: keep dots in modalias names
+
+filename2modname() stops copying at the first '.' to strip ".ko", and
+modprobe runs both the requested name and every modules.alias wildcard
+through it. A devicetree modalias with a versioned compatible, such as
+of:NgpuT(null)Cqcom,adreno-635.0Cqcom,adreno, is cut at the dot and can
+never match, so the Adreno GPU on the Dragon Q6A never autoloads msm.
+Skip the truncation when the name contains a ':', as every modalias does.
+---
+--- a/modutils/modutils.c
++++ b/modutils/modutils.c
+@@ -86,7 +86,7 @@
+ char* FAST_FUNC filename2modname(const char *filename, char *modname)
+ {
+ 	char local_modname[MODULE_NAME_LEN];
+-	int i;
++	int i, alias;
+ 	const char *from;
+ 
+ 	if (filename == NULL)
+@@ -98,7 +98,12 @@
+ 	// 'basenamization' was here in the first place.
+ 	//from = bb_get_last_path_component_nostrip(filename);
+ 	from = filename;
+-	for (i = 0; i < (MODULE_NAME_LEN-1) && from[i] != '\0' && from[i] != '.'; i++)
++	/* Modaliases and alias wildcards always contain a ':', module names and
++	 * filenames never do. Devicetree compatibles such as qcom,adreno-635.0
++	 * carry a version dot; truncating there makes the kernel's modalias
++	 * unmatchable, so autoload silently fails. */
++	alias = (strchr(from, ':') != NULL);
++	for (i = 0; i < (MODULE_NAME_LEN-1) && from[i] != '\0' && (alias || from[i] != '.'); i++)
+ 		modname[i] = (from[i] == '-') ? '_' : from[i];
+ 	modname[i] = '\0';
+ 
+-- 
+2.51.0
+

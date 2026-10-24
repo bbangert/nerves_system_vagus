@@ -12,7 +12,7 @@ foundation** (Hexagon NPU via fastrpc, Venus video codec).
 | Ethernet       | RTL8125 2.5 GbE (r8169 driver, `eth0`)          |
 | NPU/DSP        | Hexagon v68 CDSP (~12 TOPS) via fastrpc         |
 | Video          | Venus V4L2 M2M decoder + encoder (`/dev/video*`) |
-| GPU            | Adreno 643 (drm/msm module; userspace not shipped) |
+| GPU            | Adreno 643 (drm/msm module, GPU-only DRM device: `/dev/dri/renderD128`; userspace not shipped) |
 | Serial console | `ttyMSM0` (GENI debug UART, 115200n8)           |
 | Boot           | EDK2 UEFI (SPI NOR) → GRUB2 arm64-efi → A/B     |
 | Watchdog       | qcom_wdt + nerves_heart                         |
@@ -262,8 +262,14 @@ OTA, unclean power cycle).
   is the one leg not yet exercised. The early boot line
   `dwc3-qcom: failed to register DWC3 Core` is a transient from before
   the HS PHY probes; the driver retries and binds.
-- **GPU/display**: drm/msm ships as a module but the Adreno SMMU defers
-  (-110) and no GPU userspace (mesa) is shipped.
+- **GPU render node: device-proven.** The Adreno SMMU probes (the 60 s
+  deferred-probe timeout outlasts the gpucc-sc7280 module that
+  nerves_uevent loads after Erlang starts) and msm autoloads (busybox
+  modalias dot fix) with `separate_gpu_kms=1` from `modprobe.d`, since the
+  DTS leaves mdss disabled. `/dev/dri/renderD128` appears unattended and
+  the a660 SQE/GMU firmware loads on first open. The display stays off (no
+  mdss in the DTS) and no GPU userspace (mesa) is shipped. The render node
+  is root-only (0600).
 - **Audio playback: device-proven** through the headphone jack (WCD938x)
   with `aplay` — see the mixer recipe below. Capture is unvalidated.
   Cosmetic dmesg: soundwire `cgcr reset` + `din/dout-ports mismatch`
