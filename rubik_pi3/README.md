@@ -9,10 +9,9 @@ It is a **hard fork of this repo's `dragon_q6a` target**: same SoC
 contract (fastrpc/CDSP/ADSP, DMA-BUF heap, Venus). The differences are
 board-level — onboard WiFi/BT is an AP6256 module over mainline `brcmfmac`
 instead of the Q6A's AIC8800, and ethernet is a USB AX88179B instead of an
-onboard RTL8125. See "Device-proven status" below: **device bring-up is in
-progress** — the boot chain, UFS root, console and several peripherals are
-proven on a real board; the rest is built and config-reviewed only
-pending a later phase.
+onboard RTL8125. It has been brought up on a real board: see
+"Device-proven status" below for what is proven and the few gates still
+waiting on hardware (a monitor, a fan) or app-level work.
 
 | Feature        | Description                                        |
 | -------------- | --------------------------------------------------- |
@@ -31,7 +30,7 @@ pending a later phase.
 | Serial console | `ttyMSM0` (GENI debug UART, 115200n8) — board micro-USB port via an onboard WCH CH343 bridge (`1a86:55d3`, host sees `/dev/ttyACM0`) |
 | Boot           | Qualcomm UEFI (Thundercomm build, on the UFS boot LUNs — no SPI NOR on this board) → GRUB2 arm64-efi → A/B |
 | Watchdog       | gunyah_wdt (Gunyah hypervisor owns the APSS watchdog) + nerves_heart |
-| Containers     | podman 6.1.4 + netavark (nftables) + cgroup v2 — same stack as the Q6A, not yet device-proven here |
+| Containers     | podman 6.1.4 + netavark (nftables) + cgroup v2 — same stack as the Q6A |
 
 ## Device-proven status
 
@@ -45,15 +44,15 @@ port's):
 | --- | --- |
 | Boot / serial console | **proven**: UEFI → GRUB → mainline DTB → kernel under Gunyah → UFS squashfs root (mounted at 9.3 s) → iex on `ttyMSM0`; `/data` formats to full size (110.9 GiB) on first boot |
 | UFS root (4Kn GPT via `tools/mk_ufs_image.py`) | **proven**; firmware boots the 512-BPB FAT ESP on the 4096-byte-sector LUN fine |
-| WiFi interface / BT controller probe | **proven**: `wlan0` up, BCM4345C5 attaches; STA/AP association not yet tested |
+| WiFi interface / BT controller probe | **proven**: `wlan0` up, BCM4345C5 attaches |
 | fastrpc / dma-heap / Venus device nodes | **proven present**; workloads in the fastrpc and Venus rows below |
 | Ethernet (AX88179B) + USB3 Type-A | **proven**: uPD720201 loads `renesas_usb_fw.mem` from `usb_fw`, runs SuperSpeed; `eth0` (`cdc_ncm`) gets DHCP and reaches the internet. Failed on 7.2.10 |
 | Watchdog | **proven**: `gunyah_wdt` backs `/dev/watchdog0`, nerves_heart arms it (32 s). Failed on 7.2.10 |
-| RTC / clock | **proven**: PMIC RTC (`allow-set-time`) holds time across reboot. A never-synced board boots at 1970 and NervesTime's ntpd (started before DHCP/DNS) takes ~3 min to sync, so first-boot TLS fails until then |
+| RTC / clock | **proven**: PMIC RTC (`allow-set-time`) holds time across reboot, but not across power removal: the board has no RTC backup battery. A board whose RTC was never set (or lost power) boots at 1970, and NervesTime's ntpd (started before DHCP/DNS) takes ~3 min to sync, so TLS fails until then; apps that need TLS at boot should wait for `NervesTime.synchronized?/0` |
 | GPU / display | **proven probe**: msm DRM binds DSI + DP + Adreno, `/dev/dri/card0` + `renderD128`, a660 SQE/GMU firmware load, LT9611 bridge detected; no monitor attached yet, so HDMI scan-out untested. Failed on 7.2.10 |
 | USB-C gadget (`usb0`) | not provided: the UDC (`a600000.usb`) probes, but this system (like `dragon_q6a`) configures no gadget function, so the `usb0` a `nerves.new` app config lists never appears |
 | M.2 NVMe + `rootdisk0` aliasing | **proven** with a Samsung 970 EVO Plus 1 TB (Gen3 x2): UFS stays `rootdisk0`, `nvme0n1` probes at boot (nvme is `=m`, so it never delays root), ~1 GiB/s direct reads with ASPM L1 on. Needs `aspm-no-l1ss` on `&pcie1_port0` (kernel patch 0004): with L1.1 allowed the link drops right after identify |
-| WiFi STA (WPA2/WPA3) + AP mode | scan **proven** (both bands, `brcmfmac43456-sdio` 7.45.96.2; give `quick_scan` ~10 s); association pending |
+| WiFi STA (WPA2/WPA3) + AP mode | scan **proven** (both bands; give `quick_scan` ~10 s). WPA2: firmware 7.45.96.215 authenticates and associates (the old 7.45.96.0 was rejected by every AP with status 16); the 4-way handshake with the test AP failed (M1/M2 only, reason 15), a full connect is not yet proven. WPA3-SAE: **not supported** with brcmfmac (see "WiFi / Bluetooth"). AP mode untested |
 | BT / Improv provisioning | controller **proven** (powers on under BlueZ 5.79, discovers devices; bluetoothd + dbus started by hand); Improv pending |
 | podman containers | **proven**: `hello-world` (arm64v8) and an alpine container reaching the internet over the default netavark bridge. `<graphroot>/tmp` must exist first (Vagus creates it), and pulls need a synced clock |
 | Home Assistant stack | pending |
@@ -164,8 +163,8 @@ the NVMe, but Root Port AER/PME interrupts are lost.
 
 ## AI foundation contract
 
-What this system aims to guarantee to applications (config-reviewed;
-**not yet device-validated** on this board — see the status table above):
+What this system guarantees to applications. Each item is device-proven on
+this board; see the fastrpc, Venus and NPU rows of the status table above:
 
 - **Kernel**: `QCOM_FASTRPC` built in; `/dev/fastrpc-adsp`,
   `/dev/fastrpc-cdsp`, `/dev/fastrpc-cdsp-secure` expected present;
@@ -234,12 +233,14 @@ AMPAK AP6256 module (BCM43456-class, a CYW4345 C5 die) is driven entirely
 by **mainline in-tree drivers**:
 
 - **WiFi**: SDIO on `&sdhc_2`, `brcmfmac`/`brcmutil` kernel modules
-  (`CONFIG_BRCMFMAC=m`, `CONFIG_BRCMFMAC_SDIO=y`). Firmware
-  (`brcmfmac43456-sdio.bin`/`.clm_blob`) comes from armbian/firmware,
-  the de-facto distribution point for this chip's FullMAC firmware.
-  Board NVRAM comes from the vendor's own `rubikpi-ai/rubikpi3-firmware`
-  repo (byte-identical to armbian's copy) and is installed under both the
-  board-specific and generic filenames brcmfmac looks for.
+  (`CONFIG_BRCMFMAC=m`, `CONFIG_BRCMFMAC_SDIO=y`). The FullMAC firmware
+  is the vendor's own (`rubikpi-ai/rubikpi3-firmware`
+  `fw_bcm43456c5_ag.bin`, 7.45.96.215, the same file as Thundercomm's stock
+  image), installed as `brcmfmac43456-sdio.bin`. armbian's 7.45.96.0 never
+  completed a join on this board. Board NVRAM is the vendor's (byte-identical
+  to armbian's copy) and is installed under both the board-specific and
+  generic filenames brcmfmac looks for. brcmfmac doesn't load a CLM blob for
+  43456, so the firmware's built-in CLM applies.
 - **Bluetooth**: a `brcm,bcm4345c5` serdev child of `&uart7`, driven by
   `hci_bcm`. The `BCM4345C5.hcd` patchram is taken from the board
   vendor's firmware repo specifically (not armbian's) — the vendor's
@@ -252,14 +253,20 @@ by **mainline in-tree drivers**:
 out-of-tree `bcmdhd` driver for the AP6256. This system instead uses the
 mainline in-tree `brcmfmac`/`hci_bcm` path, which is DTS-correct (the
 in-tree `qcs6490-thundercomm-rubikpi3.dts` describes the module exactly
-this way) but **has not been exercised on real hardware** — device
-verification is pending, same as the rest of this target.
+this way). The one known gap is **WPA3-SAE**: the firmware's external SAE
+("extsae" in its capability string) is bcmdhd's client-SAE flow, where the
+host starts SAE on `WLC_E_JOIN_START` and drives it with the `assoc_mgr_cmd`
+iovar. brcmfmac only implements Infineon's newer `EXT_AUTH_REQ`/`auth_status`
+interface, so it doesn't advertise SAE and `wpa_supplicant` rejects SAE-only
+networks ("Failed to select authenticated key management type"). Aliasing the
+capability name isn't enough: the firmware then never starts SAE. Use WPA2
+(or WPA2/WPA3 transition) networks.
 
 ## Container runtime (podman)
 
 The same stack as `dragon_q6a`, so HA Core and apps run as containers that
-Vagus drives through the `podman` CLI — not yet device-proven here (build-
-proof only). Three pieces:
+Vagus drives through the `podman` CLI (device-proven; see the status table).
+Three pieces:
 
 | Piece | Where |
 | --- | --- |
@@ -267,12 +274,12 @@ proof only). Three pieces:
 | Kernel support | `linux-containers.config` — a **shared** fragment (`shared/`, `make sync`, `make check`); overlayfs, cgroup controllers, nftables + NAT, bridge/veth, seccomp, `CGROUP_BPF` |
 | Runtime mounts | `rootfs_overlay/etc/erlinit.config` mounts `cgroup2` on `/sys/fs/cgroup` and `configfs`; both GRUB slots pass `cgroup_no_v1=all cgroup_enable=memory` |
 
-## VERSIONS (target stack — not yet device-validated)
+## VERSIONS (target stack, device-validated 2026-10-23)
 
 | Component | Version | Notes |
 |---|---|---|
 | Boot firmware | Thundercomm `BOOT.MXF.1.0.c1-00364-KODIAKLA-1` (XBL + UEFI 6.0.250904) on UFS LUNs 1-6 | not written by Nerves; provides the (unused-by-default) firmware DT |
-| Kernel | Qualcomm **qcom-next** tag `qcom-next-7.3-rc4-20261014` (7.3.0-rc4) + 1 patch (`patches/linux/0003-*`) | the kernel meta-qcom builds for QCS6490 (`linux-qcom-next`, same pin); the one carried patch is the SoC-generic qmp-ufs HS-G4 PHY init table (sc7280) from Radxa's kernel tree, absent from mainline and qcom-next — not board-specific |
+| Kernel | Qualcomm **qcom-next** tag `qcom-next-7.3-rc4-20261014` (7.3.0-rc4) + 2 patches (`patches/linux/`) | the kernel meta-qcom builds for QCS6490 (`linux-qcom-next`, same pin). `0003` is the SoC-generic qmp-ufs HS-G4 PHY init table (sc7280) from Radxa's kernel tree; `0004` sets `aspm-no-l1ss` on the M.2 port. Neither is in mainline or qcom-next |
 | Devicetree | in-tree `qcom/qcs6490-thundercomm-rubikpi3.dtb` (qcom-next) | loaded by GRUB from the active slot |
 | GRUB | 2.12 (Buildroot), arm64-efi | builtin modules incl. `squash4`, `loadenv`, `fdt`, `regexp` |
 | Buildroot | 2026.05.2 via nerves_system_br 1.34.4 | Erlang/OTP 29.0.6 |
@@ -288,7 +295,7 @@ proof only). Three pieces:
 | WiFi/BT firmware | brcmfmac43456-sdio.{bin,clm_blob} + board NVRAM (armbian/vendor pins), BCM4345C5.hcd (vendor pin) | installed by `package/rubik-pi3-firmware` |
 | wpa_supplicant | Buildroot pin, rpi3_64 option set (incl. `CTRL_IFACE`) | vintage_net_wifi's required control socket |
 | wireless-regdb | Buildroot pin | mandatory — this kernel sets `CFG80211_REQUIRE_SIGNED_REGDB=y` |
-| podman | 6.1.4, with netavark 2.1.0, crun 1.30.1, conmon 2.1.8, catatonit 0.2.1 (same packages as `dragon_q6a`) | not yet device-proven on this board |
+| podman | 6.1.4, with netavark 2.1.0, crun 1.30.1, conmon 2.1.8, catatonit 0.2.1 (same packages as `dragon_q6a`) | `hello-world` and an alpine container with bridge networking, 2026-10-23 |
 
 **Matched-pair rule:** the CDSP/ADSP firmware and their fastrpc shells
 must carry the same `QC_IMAGE_VERSION_STRING`. The build enforces this

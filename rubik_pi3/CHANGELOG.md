@@ -43,6 +43,20 @@ Ethernet, USB3, watchdog, GPU/display probe and an A → B OTA work.
 * **`DRIVER_DEFERRED_PROBE_TIMEOUT=60`**, the same value as Qualcomm's
   `qcom.config`. The 10 s default gave up on the GPU SMMU and the display
   (`-110`) before their clock modules loaded.
+* **M.2 NVMe.** pcie-qcom enables every ASPM state, L1.1/L1.2 included, on
+  devices present when the host bridge probes. On the M.2 slot (PCIe1) a
+  Samsung 970 EVO Plus dropped the link as soon as L1.1 was allowed, about
+  50 ms after identify, and nvme never appeared. A new DTS patch, `0004-*`,
+  sets `aspm-no-l1ss` on `&pcie1_port0`, which keeps L1 and Clock PM.
+  `BLK_DEV_NVME` is now `m`: built in, its 60 s admin timeout held the UFS
+  root mount until 64 s and pushed the display past the deferred-probe
+  timeout.
+* **WiFi firmware 7.45.96.215.** `brcmfmac43456-sdio.bin` is now the board
+  vendor's `fw_bcm43456c5_ag.bin` (rubikpi-ai/rubikpi3-firmware, the same
+  file as Thundercomm's stock image) instead of armbian's 7.45.96.0 from
+  2017. Every AP rejected the old firmware's join with status 16; the new one
+  authenticates and associates. WPA3-SAE still doesn't work: the firmware's
+  external SAE is bcmdhd's `assoc_mgr_cmd` flow, which brcmfmac lacks.
 * Docs: there is no SPI NOR on this board. XBL, UEFI, TZ, the hypervisor
   and the firmware DT all live on UFS LUNs 1-6, and the README, `grub.cfg`,
   `nerves_defconfig` and `fwup-common.conf` now say so. The README gains
