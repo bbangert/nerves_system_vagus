@@ -60,6 +60,7 @@ port's):
 | Thermal fan control | driver side **proven**, no fan fitted to the test board: `pwm-fan` cooling device (states 0-3 → PWM 0/64/…/255) bound to `cpu0-thermal` trips at 65/80 °C; idles at 0 at ~45 °C. Spin-up with a fan attached is untested |
 | OTA A/B update cycle | **proven** A → B → A over SSH (`fwup` subsystem); each new slot boots and reports `firmware_valid?` |
 | ADSP/CDSP fastrpc | **proven** CDSP: `fastrpc_test -a v68` 3/3 on the GRUB-loaded mainline DT. Both DSPs Online; `fastrpc-healthcheck` can't confirm modules (it expects meta-qcom's `/usr/share/qcom` build-ID layout) |
+| NPU (Hexagon v68 HTP) via QAIRT | **proven** with QAIRT 2.47.0.260601 provisioned to `/data/qairt` (not shipped): `qnn-platform-validator --backend dsp` passes (V68, unit test). A v68 HTP context binary (built on the host with `soc_model` 93) runs under `qnn-net-run --retrieve_context`: 282 µs on the accelerator, 0.82 ms including the fastrpc round trip. Output matches the CPU float reference (cosine 0.99985). Needs `ADSP_LIBRARY_PATH="/data/qairt/dsp;/usr/lib/dsp/cdsp"`; `persist`/QWES licenses are not involved |
 | Venus video codec | **proven** decode: `test_src/venus_dec_smoke` 30/30 frames |
 | GPU render node | `renderD128` present, a660 SQE/GMU firmware loads; no userspace to exercise it (Mesa not shipped) |
 
@@ -282,6 +283,7 @@ proof only). Three pieces:
 | ADSP firmware | `qcom/qcs6490/Thundercomm/RubikPi3/adsp.mbn` = **ADSP.HT.5.5.c8-00217-KODIAK-1** | board-native pair (upstream linux-firmware ships a RubikPi3 board dir) |
 | ADSP shells | hexagon-dsp-binaries `qcs6490/Thundercomm/RubikPi3/ADSP.HT.5.5.c8-00217-KODIAK-1` | → `/usr/lib/dsp/adsp` |
 | fastrpc userspace | v1.0.8 (qualcomm/fastrpc) | search path patched to `/usr/lib/dsp/{cdsp,adsp}` |
+| QAIRT | — not shipped (user-provisioned to `/data/qairt`); **2.47.0.260601 validated on this system** | `lib/aarch64-oe-linux-gcc11.2` → `/data/qairt/lib`, `lib/hexagon-v68/unsigned` → `/data/qairt/dsp`; HTP validator PASS and a context-binary graph run, 2026-10-23 |
 | Venus firmware | `qcom/vpu-2.0/venus.mbn` (= `vpu/vpu20_p1.mbn`) | |
 | WiFi/BT firmware | brcmfmac43456-sdio.{bin,clm_blob} + board NVRAM (armbian/vendor pins), BCM4345C5.hcd (vendor pin) | installed by `package/rubik-pi3-firmware` |
 | wpa_supplicant | Buildroot pin, rpi3_64 option set (incl. `CTRL_IFACE`) | vintage_net_wifi's required control socket |
