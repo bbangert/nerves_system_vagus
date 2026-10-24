@@ -57,7 +57,7 @@ port's):
 | BT / Improv provisioning | controller **proven** (powers on under BlueZ 5.79, discovers devices; bluetoothd + dbus started by hand); Improv pending |
 | podman containers | **proven**: `hello-world` (arm64v8) and an alpine container reaching the internet over the default netavark bridge. `<graphroot>/tmp` must exist first (Vagus creates it), and pulls need a synced clock |
 | Home Assistant stack | pending |
-| Thermal fan control | **proven** driver side: `pwm-fan` cooling device (states 0-3 → PWM 0/64/…/255) bound to `cpu0-thermal` trips at 65/80 °C; idles at 0 at ~45 °C |
+| Thermal fan control | driver side **proven**, no fan fitted to the test board: `pwm-fan` cooling device (states 0-3 → PWM 0/64/…/255) bound to `cpu0-thermal` trips at 65/80 °C; idles at 0 at ~45 °C. Spin-up with a fan attached is untested |
 | OTA A/B update cycle | **proven** A → B → A over SSH (`fwup` subsystem); each new slot boots and reports `firmware_valid?` |
 | ADSP/CDSP fastrpc | **proven** CDSP: `fastrpc_test -a v68` 3/3 on the GRUB-loaded mainline DT. Both DSPs Online; `fastrpc-healthcheck` can't confirm modules (it expects meta-qcom's `/usr/share/qcom` build-ID layout) |
 | Venus video codec | **proven** decode: `test_src/venus_dec_smoke` 30/30 frames |
