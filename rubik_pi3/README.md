@@ -97,7 +97,21 @@ Qualcomm EDL over the USB-C port, with [qdl](https://github.com/linux-msm/qdl)
 (2.x; built from source with `-Dnbdkit=disabled`) and
 `prog_firehose_ddr.elf` from Thundercomm's FlatBuild package. Enter EDL by
 holding the EDL button while applying power; the host sees `05c6:9008`.
-Write **LUN0 only** — LUNs 1-6 hold the boot firmware and are never touched:
+Write **LUN0 only** — LUNs 1-6 hold the boot firmware and are never touched.
+
+**Back up `persist` before the first flash.** Stock LUN0 is `efi` (512 MiB),
+`persist` (30 MiB, ext4: factory QTEE/QWES attestation and license stores)
+and `system`. The Nerves layout overwrites `persist` (it sits inside
+`rootfs-a`) and the FlatBuild never rewrites it (empty `filename` in
+`rawprogram0.xml`), so once LUN0 has been written there is no way to get it
+back. Take it while the stock layout is still there:
+
+```bash
+qdl --storage ufs prog_firehose_ddr.elf read 0/persist lun0_persist.bin
+ls -l lun0_persist.bin   # 31457280 bytes (30 MiB)
+```
+
+qdl resets the board when it finishes, so re-enter EDL before flashing:
 
 ```bash
 mix firmware
@@ -112,16 +126,6 @@ qdl --storage ufs prog_firehose_ddr.elf \
 ```
 
 qdl resets the board when it finishes; it boots straight into Nerves.
-
-**Back up `persist` first.** Stock LUN0 is `efi` (512 MiB), `persist`
-(30 MiB, ext4: factory QTEE/QWES attestation and license stores) and
-`system`. The Nerves layout overwrites `persist` (it sits inside `rootfs-a`)
-and the FlatBuild never rewrites it (empty `filename` in `rawprogram0.xml`),
-so take it while it's there:
-
-```bash
-qdl --storage ufs prog_firehose_ddr.elf read 0/persist lun0_persist.bin
-```
 
 To go back to stock: flash the FlatBuild's `rawprogram0.xml` + `patch0.xml`
 (LUN0), then `qdl --storage ufs prog_firehose_ddr.elf write 0/persist
