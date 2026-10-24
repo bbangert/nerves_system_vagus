@@ -1,5 +1,11 @@
 # rubik_pi3 kernel config (Thundercomm Rubik Pi 3, QCS6490)
 #
+# Built against Qualcomm's qcom-next integration tree
+# (github.com/qualcomm-linux/kernel, the linux-qcom-next kernel meta-qcom
+# selects for QCS6490 machines; pinned in nerves_defconfig). Migrated from
+# the v7.2.10 mainline config via olddefconfig; see the "qcom-next (7.3)"
+# section at the end for the symbols that migration changed.
+#
 # Derived from mainline arch/arm64/configs/defconfig (v7.1) with:
 #  - non-Qualcomm platform selections removed (ARCH_* and vendor-namespaced
 #    drivers; invisible once their ARCH_ symbol is off),
@@ -115,6 +121,11 @@ CONFIG_NF_CONNTRACK=m
 CONFIG_NF_CONNTRACK_EVENTS=y
 CONFIG_NETFILTER_XT_MARK=m
 CONFIG_NETFILTER_XT_TARGET_CHECKSUM=m
+# 7.3 gates the legacy x_tables backends behind these; without them every
+# IP_NF_*/IP6_NF_* symbol below silently drops to n.
+CONFIG_NETFILTER_XTABLES_LEGACY=y
+CONFIG_IP_NF_IPTABLES_LEGACY=m
+CONFIG_IP6_NF_IPTABLES_LEGACY=m
 CONFIG_NETFILTER_XT_TARGET_LOG=m
 CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=m
 CONFIG_NETFILTER_XT_MATCH_CONNTRACK=m
@@ -232,7 +243,10 @@ CONFIG_MTD_HYPERBUS=m
 CONFIG_BLK_DEV_LOOP=y
 CONFIG_BLK_DEV_NBD=m
 CONFIG_VIRTIO_BLK=y
-CONFIG_BLK_DEV_NVME=y
+# Module, not built in: the M.2 NVMe is data-only on this board (UFS is the
+# sole boot disk), and built in, its probe at ~3 s sits on the root-mount
+# path -- wait_for_device_probe() holds root until it finishes.
+CONFIG_BLK_DEV_NVME=m
 CONFIG_QCOM_COINCELL=m
 CONFIG_QCOM_FASTRPC=y
 CONFIG_SRAM=y
@@ -1123,7 +1137,6 @@ CONFIG_QCOMTEE=m
 CONFIG_MUX_GPIO=m
 CONFIG_MUX_MMIO=y
 CONFIG_SLIMBUS=m
-CONFIG_SLIM_QCOM_CTRL=m
 CONFIG_SLIM_QCOM_NGD_CTRL=m
 CONFIG_INTERCONNECT=y
 CONFIG_INTERCONNECT_QCOM=y
@@ -1183,7 +1196,6 @@ CONFIG_SQUASHFS_COMPILE_DECOMP_MULTI_PERCPU=y
 CONFIG_PSTORE_RAM=m
 CONFIG_NFS_FS=y
 CONFIG_NFS_V4=y
-CONFIG_NFS_V4_1=y
 CONFIG_NFS_V4_2=y
 CONFIG_ROOT_NFS=y
 CONFIG_9P_FS=y
@@ -1201,11 +1213,12 @@ CONFIG_CRYPTO_GHASH_ARM64_CE=y
 CONFIG_CRYPTO_AES_ARM64_CE_BLK=y
 CONFIG_CRYPTO_AES_ARM64_BS=m
 CONFIG_CRYPTO_AES_ARM64_CE_CCM=y
-CONFIG_CRYPTO_DEV_QCE=m
-CONFIG_CRYPTO_DEV_QCOM_RNG=m
+CONFIG_HW_RANDOM_QCOM=m
 CONFIG_CRYPTO_DEV_CCREE=m
 CONFIG_CRYPTO_DEV_SA2UL=m
 CONFIG_DMA_RESTRICTED_POOL=y
+CONFIG_CMA=y
+CONFIG_DMA_CMA=y
 CONFIG_CMA_SIZE_MBYTES=32
 CONFIG_PRINTK_TIME=y
 CONFIG_DEBUG_KERNEL=y
@@ -1229,9 +1242,11 @@ CONFIG_MEMTEST=y
 # ---- target additions (not present in arm64 defconfig) ----
 # PCIe QMP phy sub-drivers follow CONFIG_PHY_QCOM_QMP (=y above); listed
 # explicitly so a Kconfig default change can't silently drop them.
+# QMP_COMBO (USB-C SS + DP) `depends on DRM || DRM=n` and DRM is a module
+# here, so it can only be m.
 CONFIG_PHY_QCOM_QMP_PCIE=y
 CONFIG_PHY_QCOM_QMP_UFS=y
-CONFIG_PHY_QCOM_QMP_COMBO=y
+CONFIG_PHY_QCOM_QMP_COMBO=m
 CONFIG_PHY_QCOM_QMP_USB=y
 # Generic pwrctrl for DT-described PCIe slot supplies
 CONFIG_PCI_PWRCTRL_GENERIC=y
@@ -1243,6 +1258,29 @@ CONFIG_UDMABUF=y
 # Nerves); default follows QCOM_RPROC_COMMON but pinned here.
 CONFIG_QRTR=m
 CONFIG_QCOM_PD_MAPPER=m
+
+# ---- qcom-next (7.3) / Rubik Pi 3 bring-up ----
+# Renesas uPD720201 xHCI (1912:0014) on PCIe0: the two USB3 Type-A ports and
+# the AX88179B GbE sit behind it. It has no ROM, so without this driver the
+# generic xhci-pci claims it, times out (~25 s) and the ports stay dead. The
+# firmware (renesas_usb_fw.mem) is not redistributable here; the board keeps
+# it in its `usb_fw` UFS partition and /usr/sbin/rubik-usb-fw points the
+# firmware loader at it before Erlang starts. Must stay a module so it probes
+# after that.
+CONFIG_USB_XHCI_PCI_RENESAS=m
+# Gunyah owns the APSS watchdog on this board (qcom-wdt finds nothing);
+# qcom_scm registers a gunyah-wdt platform device, this driver backs
+# /dev/watchdog0 for nerves_heart.
+CONFIG_GUNYAH_WATCHDOG=y
+# HDMI out is DSI -> Lontium LT9611 (`lontium,lt9611` on i2c@a84000). The
+# pruned config dropped it (arm64 defconfig has =m); without the bridge the
+# msm DSI never binds, the msm DRM device never completes, and there is no
+# /dev/dri at all -- KMS and the Adreno render node both.
+CONFIG_DRM_LONTIUM_LT9611=m
+# GPU SMMU / display / dwc3 wait on clock and PHY modules that load from the
+# rootfs; the 10 s default gives up on them first (arm-smmu 3da0000 -110,
+# msm-mdss -110). Matches Qualcomm's qcom.config.
+CONFIG_DRIVER_DEFERRED_PROBE_TIMEOUT=60
 
 # ---- Rubik Pi 3 onboard AP6256 WiFi/BT (brcmfmac SDIO + hci_bcm serdev) ----
 # WiFi: the AP6256's BCM43456 WLAN half sits on SDIO behind &sdhc_2 (Qualcomm

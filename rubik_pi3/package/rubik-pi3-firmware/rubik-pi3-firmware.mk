@@ -61,18 +61,28 @@
 #
 # ---- AP6256 WiFi/BT blobs -------------------------------------------------
 #
-# WiFi (brcmfmac on SDIO behind &sdhc_2). The .bin/.clm_blob come from
-# armbian/firmware, which is the de-facto distribution point for the
-# brcmfmac43456 FullMAC firmware (the blob's own version string reads
-# "43455c5-roml ... Version: 7.45.96.0" -- BCM43456 and BCM43455 are the same
-# CYW4345 C5 die, 43456 is just the chiprev name brcmfmac derives; this is
-# the same file Radxa/RPi-400 boards use).
+# WiFi (brcmfmac on SDIO behind &sdhc_2). The FullMAC firmware comes from
+# the BOARD VENDOR: rubikpi-ai/rubikpi3-firmware lib/firmware/
+# fw_bcm43456c5_ag.bin, version "43455c5-roml ... -extsae-owe- ... Version:
+# 7.45.96.215" (2024-09-09), byte-identical to the one in Thundercomm's stock
+# image. It replaces armbian's 7.45.96.0 (2017), which never completed a join
+# on this board: every AP rejected it with status 16 (join timeout) about 3 s
+# into authentication. 7.45.96.215 authenticates and associates. Its WPA3
+# support ("extsae") is bcmdhd's client-SAE flow (WLC_E_JOIN_START plus the
+# assoc_mgr_cmd iovar), which mainline brcmfmac doesn't implement, so WPA3-SAE
+# networks are still unusable with brcmfmac. BCM43456 and BCM43455 are the
+# same CYW4345 C5 die; 43456 is just the chiprev name brcmfmac derives.
+#
+# The .clm_blob still comes from armbian/firmware (the vendor repo ships no
+# CLM), but brcmfmac never loads it for this chip: 43456 is registered with
+# BRCMF_FW_DEF, not BRCMF_FW_CLM_DEF, so the firmware's built-in CLM is what
+# applies. It is kept installed in case a later kernel starts requesting it.
 #
 # NVRAM comes from the BOARD VENDOR's own firmware package, which is the
 # authority for this module's calibration/xtal values. Note the file is
 # BYTE-IDENTICAL (sha256 588430b4...) to armbian's brcm/nvram_ap6256.txt, so
-# it is fetched from armbian for a self-describing download name and to keep
-# the WiFi blobs on one pinned commit. Vendor path for the record:
+# it is fetched from armbian for a self-describing download name (it is also
+# the NVRAM Thundercomm's stock image ships). Vendor path for the record:
 # rubikpi-ai/rubikpi3-firmware lib/firmware/nvram.txt (their bcmdhd layout).
 #
 # It is installed under BOTH names brcmfmac looks for: the board-specific
@@ -112,7 +122,7 @@ RUBIK_PI3_FIRMWARE_VENDOR_FW_SITE = \
 	https://raw.githubusercontent.com/rubikpi-ai/rubikpi3-firmware/$(RUBIK_PI3_FIRMWARE_VENDOR_FW_VERSION)/lib/firmware
 
 RUBIK_PI3_FIRMWARE_EXTRA_DOWNLOADS = \
-	$(RUBIK_PI3_FIRMWARE_ARMBIAN_FW_SITE)/brcmfmac43456-sdio.bin \
+	$(RUBIK_PI3_FIRMWARE_VENDOR_FW_SITE)/fw_bcm43456c5_ag.bin \
 	$(RUBIK_PI3_FIRMWARE_ARMBIAN_FW_SITE)/brcmfmac43456-sdio.clm_blob \
 	$(RUBIK_PI3_FIRMWARE_ARMBIAN_FW_SITE)/nvram_ap6256.txt \
 	$(RUBIK_PI3_FIRMWARE_VENDOR_FW_SITE)/brcm/BCM4345C5.hcd
@@ -192,7 +202,7 @@ define RUBIK_PI3_FIRMWARE_INSTALL_TARGET_CMDS
 	$(INSTALL) -m 0644 $(RUBIK_PI3_FIRMWARE_ADSP_LIBS)/* \
 		$(TARGET_DIR)/usr/lib/dsp/adsp/
 	# Onboard AP6256: brcmfmac WiFi firmware + CLM regulatory blob
-	$(INSTALL) -D -m 0644 $(RUBIK_PI3_FIRMWARE_DL_DIR)/brcmfmac43456-sdio.bin \
+	$(INSTALL) -D -m 0644 $(RUBIK_PI3_FIRMWARE_DL_DIR)/fw_bcm43456c5_ag.bin \
 		$(RUBIK_PI3_FIRMWARE_FW_DIR)/brcm/brcmfmac43456-sdio.bin
 	$(INSTALL) -D -m 0644 $(RUBIK_PI3_FIRMWARE_DL_DIR)/brcmfmac43456-sdio.clm_blob \
 		$(RUBIK_PI3_FIRMWARE_FW_DIR)/brcm/brcmfmac43456-sdio.clm_blob

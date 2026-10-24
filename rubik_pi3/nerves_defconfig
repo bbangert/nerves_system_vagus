@@ -28,15 +28,23 @@ BR2_ROOTFS_OVERLAY="${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/rootfs_overl
 BR2_ROOTFS_POST_BUILD_SCRIPT="${NERVES_DEFCONFIG_DIR}/post-build.sh ${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/post-build.sh"
 BR2_ROOTFS_POST_IMAGE_SCRIPT="${NERVES_DEFCONFIG_DIR}/post-createfs.sh"
 BR2_LINUX_KERNEL=y
-BR2_LINUX_KERNEL_CUSTOM_VERSION=y
-BR2_LINUX_KERNEL_CUSTOM_VERSION_VALUE="7.2.10"
+# Qualcomm's qcom-next integration tree, at the snapshot tag meta-qcom's
+# linux-qcom-next recipe pins (SRCREV 1a0586064ee1) -- the kernel Qualcomm's
+# Yocto BSP builds for QCS6490. Over v7.2.10 it carries the gunyah-wdt
+# watchdog driver and newer rubikpi3 DTS (USB-C role switch/EUD routing,
+# QMP PHY supply fix, PCIe port reset GPIOs). qcom-next is force-pushed;
+# pin the tag, never the branch.
+BR2_LINUX_KERNEL_CUSTOM_GIT=y
+BR2_LINUX_KERNEL_CUSTOM_REPO_URL="https://github.com/qualcomm-linux/kernel.git"
+BR2_LINUX_KERNEL_CUSTOM_REPO_VERSION="qcom-next-7.3-rc4-20261014"
 BR2_LINUX_KERNEL_USE_CUSTOM_CONFIG=y
-BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${NERVES_DEFCONFIG_DIR}/linux-7.2.defconfig"
+BR2_LINUX_KERNEL_CUSTOM_CONFIG_FILE="${NERVES_DEFCONFIG_DIR}/linux-7.3.defconfig"
 BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.config ${NERVES_DEFCONFIG_DIR}/linux-containers.config ${NERVES_DEFCONFIG_DIR}/linux-memory.config ${NERVES_DEFCONFIG_DIR}/linux-hwdebug.config"
 # USB3 and UFS are already enabled in the upstream rubikpi3 in-tree DTS, so
 # no board-DTS patch is carried here (unlike dragon_q6a). The one patch that
 # remains is SoC-generic, not board-specific:
-# sc7280 HS-G4 PHY init-table fix mainline lacks (see patches/linux/0003-*).
+# sc7280 HS-G4 PHY init-table fix mainline lacks (see patches/linux/0003-*;
+# still absent from, and applies cleanly to, the qcom-next tag above).
 BR2_LINUX_KERNEL_PATCH="${NERVES_DEFCONFIG_DIR}/patches/linux"
 # No BR2_LINUX_KERNEL_XZ: GRUB's arm64 `linux` loader boots the kernel via
 # its EFI stub, which requires the plain uncompressed Image. The kernel (and
@@ -69,7 +77,7 @@ BR2_PACKAGE_LIBYAML=y
 BR2_PACKAGE_LIBMD=y
 BR2_PACKAGE_LIBBSD=y
 # BR2_TARGET_ROOTFS_TAR is not set
-# GRUB2 arm64-efi: EDK2 UEFI (SPI NOR) loads \EFI\BOOT\BOOTAA64.EFI from the
+# GRUB2 arm64-efi: Thundercomm's UEFI (UFS boot LUNs) loads \EFI\BOOT\BOOTAA64.EFI from the
 # ESP; grub-mkimage output lands in images/efi-part/EFI/BOOT/bootaa64.efi
 # with prefix /EFI/BOOT (so grub.cfg + grubenv are loaded from the ESP).
 BR2_TARGET_GRUB2=y
@@ -113,7 +121,7 @@ BR2_PACKAGE_FASTRPC=y
 
 # ---- Onboard WiFi/BT: AMPAK AP6256 (BCM43456-class) ----
 # WiFi is SDIO on &sdhc_2 driven by the mainline brcmfmac (kernel modules
-# brcmfmac/brcmutil, see linux-7.2.defconfig); BT is a `brcm,bcm4345c5`
+# brcmfmac/brcmutil, see linux-7.3.defconfig); BT is a `brcm,bcm4345c5`
 # serdev child of &uart7 driven by hci_bcm. Both need firmware at runtime --
 # brcm/brcmfmac43456-sdio.{bin,clm_blob}, the board NVRAM .txt, and the
 # brcm/BCM4345C5.hcd patchram -- all installed by package/rubik-pi3-firmware.

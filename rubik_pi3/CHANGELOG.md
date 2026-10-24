@@ -1,5 +1,70 @@
 # Changelog
 
+## Unreleased
+
+First device bring-up. v0.4.0 (kernel 7.2.10) was flashed to a 128 GB UFS
+board on 2026-10-23 and boots to iex: UEFI → GRUB → mainline DTB → kernel
+under Gunyah → UFS squashfs root, `/data` formatted to full size, WiFi/BT,
+fastrpc, dma-heap and Venus nodes present. These changes fix what that boot
+found broken. All of them were then built and tested on the same board:
+Ethernet, USB3, watchdog, GPU/display probe and an A → B OTA work.
+
+* **Kernel 7.2.10 → Qualcomm qcom-next, tag `qcom-next-7.3-rc4-20261014`**
+  (7.3.0-rc4). It's the kernel meta-qcom's `linux-qcom-next` recipe builds
+  for QCS6490, at the same pin. It adds the `gunyah-wdt` driver and a newer
+  rubikpi3 DTS (USB-C role switch and EUD routing, swapped QMP PHY
+  supplies, PCIe port reset GPIOs). `linux-7.2.defconfig` is renamed
+  `linux-7.3.defconfig` and migrated with olddefconfig. The migration
+  changed these symbols:
+  * `CMA` and `DMA_CMA` are now set explicitly. 7.3 no longer turns CMA on,
+    so `CMA_SIZE_MBYTES` was silently dropped.
+  * `NETFILTER_XTABLES_LEGACY` and `IP{,6}_NF_IPTABLES_LEGACY` are added. 7.3
+    gates every `IP_NF_*`/`IP6_NF_*` symbol behind them.
+  * `CRYPTO_DEV_QCOM_RNG` is renamed `HW_RANDOM_QCOM`.
+  * `CRYPTO_DEV_QCE` is now `BROKEN`, and `SLIM_QCOM_CTRL` and `NFS_V4_1`
+    no longer exist, so all three are dropped.
+  * `PHY_QCOM_QMP_COMBO` can only be `m` now, because it depends on
+    `DRM || DRM=n`.
+  * The rest of the changes are drivers for SoC families other than
+    Qualcomm.
+  The `0003-*` UFS PHY patch is still needed and applies cleanly.
+* **USB3 Type-A ports and Ethernet.** Both sit behind a ROM-less Renesas
+  uPD720201 on PCIe0. `USB_XHCI_PCI_RENESAS=m` was missing, so generic
+  xhci-pci claimed the controller, timed out for about 25 s and delayed the
+  root mount to 36 s. The firmware is not redistributable. A new erlinit
+  `--pre-run-exec` hook, `/usr/sbin/rubik-usb-fw`, mounts the board's own
+  `usb_fw` partition read-only and puts it first on the firmware search
+  path.
+* **Watchdog.** `GUNYAH_WATCHDOG=y` is added. Gunyah owns the APSS
+  watchdog, so 7.2.10 had no `/dev/watchdog0`.
+* **`DRM_LONTIUM_LT9611=m`.** The HDMI bridge driver was pruned along with
+  other non-Qualcomm drivers. Without it the msm DRM device never
+  completes, so there was no `/dev/dri` at all.
+* **`DRIVER_DEFERRED_PROBE_TIMEOUT=60`**, the same value as Qualcomm's
+  `qcom.config`. The 10 s default gave up on the GPU SMMU and the display
+  (`-110`) before their clock modules loaded.
+* **M.2 NVMe.** pcie-qcom enables every ASPM state, L1.1/L1.2 included, on
+  devices present when the host bridge probes. On the M.2 slot (PCIe1) a
+  Samsung 970 EVO Plus dropped the link as soon as L1.1 was allowed, about
+  50 ms after identify, and nvme never appeared. A new DTS patch, `0004-*`,
+  sets `aspm-no-l1ss` on `&pcie1_port0`, which keeps L1 and Clock PM.
+  `BLK_DEV_NVME` is now `m`: built in, its 60 s admin timeout held the UFS
+  root mount until 64 s and pushed the display past the deferred-probe
+  timeout.
+* **WiFi firmware 7.45.96.215.** `brcmfmac43456-sdio.bin` is now the board
+  vendor's `fw_bcm43456c5_ag.bin` (rubikpi-ai/rubikpi3-firmware, the same
+  file as Thundercomm's stock image) instead of armbian's 7.45.96.0 from
+  2017. Every AP rejected the old firmware's join with status 16; with the
+  new one WPA2-PSK connects and passes traffic. WPA3-SAE doesn't work: the
+  firmware's external SAE is bcmdhd's `assoc_mgr_cmd` flow, and even with
+  that ported the firmware associates with an empty SSID.
+* Docs: there is no SPI NOR on this board. XBL, UEFI, TZ, the hypervisor
+  and the firmware DT all live on UFS LUNs 1-6, and the README, `grub.cfg`,
+  `nerves_defconfig` and `fwup-common.conf` now say so. The README gains
+  the EDL/qdl flashing runbook, the `persist` backup/restore steps, the
+  serial console details (CH343 bridge on the micro-USB port) and a
+  device-proven status table.
+
 ## v0.4.0
 
 Repo tag v0.6.0. Follows `dragon_q6a`: the `linux-hwdebug.config` fragment (hidraw, extra USB
