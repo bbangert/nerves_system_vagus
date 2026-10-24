@@ -24,7 +24,7 @@ pending a later phase.
 | Ethernet       | USB AX88179B gigabit (`ax88179_178a` driver), behind a UPD720201 USB3 controller |
 | WiFi/BT        | AMPAK/Broadcom AP6256 (BCM43456-class) — WiFi over SDIO (`brcmfmac`), BT over UART7 serdev (`hci_bcm`) |
 | USB            | 2x USB3-A (behind UPD720201) + USB-C                 |
-| Video          | Venus V4L2 M2M (`/dev/video0` dec, `1` enc)          |
+| Video          | Venus V4L2 M2M decoder + encoder (`/dev/video0`/`1`, order varies — match on `/sys/class/video4linux/*/name`) |
 | Display        | HDMI out via an lt9611 bridge                        |
 | Fan            | Native PWM fan with dts thermal cooling maps          |
 | Expansion      | 40-pin header                                        |
@@ -46,21 +46,22 @@ port's):
 | Boot / serial console | **proven**: UEFI → GRUB → mainline DTB → kernel under Gunyah → UFS squashfs root (mounted at 9.3 s) → iex on `ttyMSM0`; `/data` formats to full size (110.9 GiB) on first boot |
 | UFS root (4Kn GPT via `tools/mk_ufs_image.py`) | **proven**; firmware boots the 512-BPB FAT ESP on the 4096-byte-sector LUN fine |
 | WiFi interface / BT controller probe | **proven**: `wlan0` up, BCM4345C5 attaches; STA/AP association not yet tested |
-| fastrpc / dma-heap / Venus device nodes | **proven present**; no workload run yet |
+| fastrpc / dma-heap / Venus device nodes | **proven present**; workloads in the fastrpc and Venus rows below |
 | Ethernet (AX88179B) + USB3 Type-A | **proven**: uPD720201 loads `renesas_usb_fw.mem` from `usb_fw`, runs SuperSpeed; `eth0` (`cdc_ncm`) gets DHCP and reaches the internet. Failed on 7.2.10 |
 | Watchdog | **proven**: `gunyah_wdt` backs `/dev/watchdog0`, nerves_heart arms it (32 s). Failed on 7.2.10 |
+| RTC / clock | **proven**: PMIC RTC (`allow-set-time`) holds time across reboot. A never-synced board boots at 1970 and NervesTime's ntpd (started before DHCP/DNS) takes ~3 min to sync, so first-boot TLS fails until then |
 | GPU / display | **proven probe**: msm DRM binds DSI + DP + Adreno, `/dev/dri/card0` + `renderD128`, a660 SQE/GMU firmware load, LT9611 bridge detected; no monitor attached yet, so HDMI scan-out untested. Failed on 7.2.10 |
 | USB-C gadget (`usb0`) | not provided: the UDC (`a600000.usb`) probes, but this system (like `dragon_q6a`) configures no gadget function, so the `usb0` a `nerves.new` app config lists never appears |
 | Dual-disk `rootdisk0` aliasing with NVMe populated | pending |
-| WiFi STA (WPA2/WPA3) + AP mode | pending |
-| BT / Improv provisioning | pending |
-| podman containers | pending |
+| WiFi STA (WPA2/WPA3) + AP mode | scan **proven** (both bands, `brcmfmac43456-sdio` 7.45.96.2; give `quick_scan` ~10 s); association pending |
+| BT / Improv provisioning | controller **proven** (powers on under BlueZ 5.79, discovers devices; bluetoothd + dbus started by hand); Improv pending |
+| podman containers | **proven**: `hello-world` (arm64v8) and an alpine container reaching the internet over the default netavark bridge. `<graphroot>/tmp` must exist first (Vagus creates it), and pulls need a synced clock |
 | Home Assistant stack | pending |
-| Thermal fan control | pending |
-| OTA A/B update cycle | **proven** A → B over SSH (`fwup` subsystem); slot B boots and reports `firmware_valid?`. B → A not yet exercised |
-| ADSP/CDSP fastrpc | pending |
-| Venus video codec | pending |
-| GPU render node | pending |
+| Thermal fan control | **proven** driver side: `pwm-fan` cooling device (states 0-3 → PWM 0/64/…/255) bound to `cpu0-thermal` trips at 65/80 °C; idles at 0 at ~45 °C |
+| OTA A/B update cycle | **proven** A → B → A over SSH (`fwup` subsystem); each new slot boots and reports `firmware_valid?` |
+| ADSP/CDSP fastrpc | **proven** CDSP: `fastrpc_test -a v68` 3/3 on the GRUB-loaded mainline DT. Both DSPs Online; `fastrpc-healthcheck` can't confirm modules (it expects meta-qcom's `/usr/share/qcom` build-ID layout) |
+| Venus video codec | **proven** decode: `test_src/venus_dec_smoke` 30/30 frames |
+| GPU render node | `renderD128` present, a660 SQE/GMU firmware loads; no userspace to exercise it (Mesa not shipped) |
 
 ## Boot chain and A/B updates
 
@@ -155,8 +156,11 @@ What this system aims to guarantee to applications (config-reviewed;
 
 - **Kernel**: `QCOM_FASTRPC` built in; `/dev/fastrpc-adsp`,
   `/dev/fastrpc-cdsp`, `/dev/fastrpc-cdsp-secure` expected present;
-  DMA-BUF system heap at `/dev/dma_heap/system`; Venus at `/dev/video0`
-  (dec) and `/dev/video1` (enc).
+  DMA-BUF system heap at `/dev/dma_heap/system`; two Venus nodes, a decoder
+  and an encoder, at `/dev/video0` and `/dev/video1` in either order (module
+  load order; seen as video0 = encoder on this board) — identify them by
+  `/sys/class/video4linux/*/name` (`qcom-venus-decoder` /
+  `qcom-venus-encoder`).
 - **Firmware** (`/lib/firmware/qcom/...`, installed by
   `package/rubik-pi3-firmware`): a board-native ADSP pair from upstream
   linux-firmware (`qcom/qcs6490/Thundercomm/RubikPi3/adsp.mbn` =
