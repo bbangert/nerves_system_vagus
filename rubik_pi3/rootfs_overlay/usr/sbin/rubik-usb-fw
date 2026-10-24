@@ -1,0 +1,32 @@
+#!/bin/sh
+#
+# erlinit --pre-run-exec hook: expose the Renesas uPD720201 xHCI firmware
+# before Erlang (and with it module autoloading) starts.
+#
+# The board's two USB3 Type-A ports and its AX88179B GbE hang off a
+# ROM-less uPD720201 on PCIe0 that runs nothing until xhci-pci-renesas
+# uploads renesas_usb_fw.mem. That blob is not redistributable here, but
+# every board carries it in the `usb_fw` ext2 partition of the UFS boot
+# LUNs (the stock OS loads it from there too). Mount it read-only and put
+# it first on the kernel firmware search path; xhci-pci-renesas is a module,
+# so its probe (and request_firmware) happens after this runs.
+#
+# Never fail the boot over this: without the firmware the ports just stay
+# dead, as they would without the hook. (printf, not `echo -n`: the Nerves
+# busybox echo prints -n literally.)
+
+FW_DIR=/run/usb_fw
+
+dev=""
+for _ in 1 2 3; do
+    dev=$(findfs PARTLABEL=usb_fw 2>/dev/null) && break
+    sleep 1
+done
+[ -n "$dev" ] || exit 0
+
+mkdir -p "$FW_DIR" &&
+    mount -o ro,nodev,noexec,nosuid "$dev" "$FW_DIR" &&
+    [ -f "$FW_DIR/renesas_usb_fw.mem" ] &&
+    printf '%s' "$FW_DIR" > /sys/module/firmware_class/parameters/path
+
+exit 0

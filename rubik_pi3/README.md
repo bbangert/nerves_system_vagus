@@ -5,13 +5,13 @@ general-purpose aarch64 target with a first-class **on-device AI
 foundation** (Hexagon NPU via fastrpc, Venus video codec, Adreno GPU).
 
 It is a **hard fork of this repo's `dragon_q6a` target**: same SoC
-(QCS6490/Kodiak), same EDK2 UEFI + GRUB2 A/B boot chain, same AI-foundation
+(QCS6490/Kodiak), same UEFI + GRUB2 A/B boot chain, same AI-foundation
 contract (fastrpc/CDSP/ADSP, DMA-BUF heap, Venus). The differences are
 board-level — onboard WiFi/BT is an AP6256 module over mainline `brcmfmac`
 instead of the Q6A's AIC8800, and ethernet is a USB AX88179B instead of an
-onboard RTL8125. See "Device-proven status" below: **this target has not
-yet been through device bring-up** — everything is built and config-reviewed
-against the mainline kernel and datasheets, but unverified on real hardware
+onboard RTL8125. See "Device-proven status" below: **device bring-up is in
+progress** — the boot chain, UFS root, console and several peripherals are
+proven on a real board; the rest is built and config-reviewed only
 pending a later phase.
 
 | Feature        | Description                                        |
@@ -28,35 +28,48 @@ pending a later phase.
 | Display        | HDMI out via an lt9611 bridge                        |
 | Fan            | Native PWM fan with dts thermal cooling maps          |
 | Expansion      | 40-pin header                                        |
-| Serial console | `ttyMSM0` (GENI debug UART, 115200n8) — dts `serial0 = &uart5`, pending live verification |
-| Boot           | EDK2 UEFI (SPI NOR, Thundercomm build) → GRUB2 arm64-efi → A/B |
-| Watchdog       | qcom_wdt + nerves_heart                              |
+| Serial console | `ttyMSM0` (GENI debug UART, 115200n8) — board micro-USB port via an onboard WCH CH343 bridge (`1a86:55d3`, host sees `/dev/ttyACM0`) |
+| Boot           | Qualcomm UEFI (Thundercomm build, on the UFS boot LUNs — no SPI NOR on this board) → GRUB2 arm64-efi → A/B |
+| Watchdog       | gunyah_wdt (Gunyah hypervisor owns the APSS watchdog) + nerves_heart |
 | Containers     | podman 6.1.4 + netavark (nftables) + cgroup v2 — same stack as the Q6A, not yet device-proven here |
 
 ## Device-proven status
 
-None of these have been exercised on real Rubik Pi 3 hardware yet — bring-up
-is a later phase. Listed here as the gate checklist that phase will work
-through (mirroring the Q6A port's own bring-up gates):
+Brought up on hardware 2026-10-23 (128 GB UFS board, stock Thundercomm
+boot firmware `BOOT.MXF.1.0.c1-00364-KODIAKLA-1`): first on the
+mainline-7.2.10 build, then on this tree's qcom-next kernel. "proven" below
+means on qcom-next unless marked. The gate checklist (mirroring the Q6A
+port's):
 
 | Gate | Status |
 | --- | --- |
-| Boot / serial console | pending |
+| Boot / serial console | **proven**: UEFI → GRUB → mainline DTB → kernel under Gunyah → UFS squashfs root (mounted at 9.3 s) → iex on `ttyMSM0`; `/data` formats to full size (110.9 GiB) on first boot |
+| UFS root (4Kn GPT via `tools/mk_ufs_image.py`) | **proven**; firmware boots the 512-BPB FAT ESP on the 4096-byte-sector LUN fine |
+| WiFi interface / BT controller probe | **proven**: `wlan0` up, BCM4345C5 attaches; STA/AP association not yet tested |
+| fastrpc / dma-heap / Venus device nodes | **proven present**; no workload run yet |
+| Ethernet (AX88179B) + USB3 Type-A | **proven**: uPD720201 loads `renesas_usb_fw.mem` from `usb_fw`, runs SuperSpeed; `eth0` (`cdc_ncm`) gets DHCP and reaches the internet. Failed on 7.2.10 |
+| Watchdog | **proven**: `gunyah_wdt` backs `/dev/watchdog0`, nerves_heart arms it (32 s). Failed on 7.2.10 |
+| GPU / display | **proven probe**: msm DRM binds DSI + DP + Adreno, `/dev/dri/card0` + `renderD128`, a660 SQE/GMU firmware load, LT9611 bridge detected; no monitor attached yet, so HDMI scan-out untested. Failed on 7.2.10 |
+| USB-C gadget (`usb0`) | not provided: the UDC (`a600000.usb`) probes, but this system (like `dragon_q6a`) configures no gadget function, so the `usb0` a `nerves.new` app config lists never appears |
 | Dual-disk `rootdisk0` aliasing with NVMe populated | pending |
 | WiFi STA (WPA2/WPA3) + AP mode | pending |
 | BT / Improv provisioning | pending |
 | podman containers | pending |
 | Home Assistant stack | pending |
 | Thermal fan control | pending |
-| OTA A/B update cycle | pending |
+| OTA A/B update cycle | **proven** A → B over SSH (`fwup` subsystem); slot B boots and reports `firmware_valid?`. B → A not yet exercised |
 | ADSP/CDSP fastrpc | pending |
 | Venus video codec | pending |
 | GPU render node | pending |
 
 ## Boot chain and A/B updates
 
-PBL → XBL (SPI NOR) → EDK2 UEFI (SPI NOR, Thundercomm's build) loads
-`\EFI\BOOT\BOOTAA64.EFI` (GRUB2, arm64-efi) from the ESP on the UFS. GRUB
+PBL → XBL → Qualcomm UEFI (Thundercomm's build; XBL/UEFI/TZ/hyp and the
+firmware DT all live on UFS LUNs 1-6 — this board has no SPI NOR) loads
+`\EFI\BOOT\BOOTAA64.EFI` (GRUB2, arm64-efi) from the ESP on UFS LUN0, the
+only LUN Nerves writes. The firmware takes the removable-media path (stock
+ships systemd-boot there), shows no boot menu, and runs Linux under the
+Gunyah hypervisor. GRUB
 reads `grubenv` for the active slot and boots the kernel `Image` **from
 inside the active squashfs slot** (`squash4` module), so kernel,
 devicetree, firmware blobs, and rootfs update atomically per slot. fwup's
@@ -70,25 +83,52 @@ firmware DT), the firmware DT's CDSP reserved-memory layout mismatched
 the mainline board DTS's, so the CDSP booted but every fastrpc invoke
 failed. The
 same explicit-DTB fixup is carried here on the presumption that
-Thundercomm's firmware DT has an analogous mismatch — **pending
-verification on this board**. If the DTB load fails, `grub.cfg` falls back
-to the firmware DT (system still boots; DSP offload degraded).
+Thundercomm's firmware DT has an analogous mismatch (not checked; the
+explicit load is proven to boot). If the DTB load fails, `grub.cfg` falls
+back to the firmware DT (system still boots; DSP offload degraded).
 
-Expected serial console: `ttyMSM0` (GENI debug UART), matching the
-mainline dts `serial0 = &uart5`, 115200n8 — pending live-board
-verification.
+Serial console: `ttyMSM0` (GENI debug UART, mainline dts
+`serial0 = &uart5`), 115200n8, on the board's micro-USB port.
 
 ## Flashing
 
-Qualcomm EDL/QDL to the onboard UFS (LUN0): `prog_firehose_ddr.elf` plus
-rawprogram/patch XMLs from Thundercomm. EDL entry is via `adb reboot edl`
-on the stock OS, or the board's EDL button combo. The 4Kn GPT-regeneration
-playbook (`tools/mk_ufs_image.py`) is carried over from the Q6A port's UFS
-flashing flow (see `docs/dragon-q6a-flashing.md`'s UFS section for the
-runbook it originated from).
+Qualcomm EDL over the USB-C port, with [qdl](https://github.com/linux-msm/qdl)
+(2.x; built from source with `-Dnbdkit=disabled`) and
+`prog_firehose_ddr.elf` from Thundercomm's FlatBuild package. Enter EDL by
+holding the EDL button while applying power; the host sees `05c6:9008`.
+Write **LUN0 only** — LUNs 1-6 hold the boot firmware and are never touched:
 
-Detailed flash commands (EDL tool invocations, LUN provisioning XML,
-recovery paths) are **to be filled in during device bring-up**.
+```bash
+mix firmware
+fwup -a -t complete -i _build/rubik_pi3_dev/nerves/images/<app>.fw -d rubik_pi3.img
+# Exact LUN0 capacity: 29976576 sectors x 4096 on the 128 GB module (the
+# kernel's sd 0:0:0:0 line or the stock GPT's BackupLBA + 1 gives it).
+python3 rubik_pi3/tools/mk_ufs_image.py --input rubik_pi3.img \
+    --disk-bytes $((29976576 * 4096)) --out rubik_pi3_ufs
+qdl --storage ufs prog_firehose_ddr.elf \
+    write 0/0 rubik_pi3_ufs.img \
+    write 0/29976571 rubik_pi3_ufs-backup-gpt.bin   # LBA the tool prints
+```
+
+qdl resets the board when it finishes; it boots straight into Nerves.
+
+**Back up `persist` first.** Stock LUN0 is `efi` (512 MiB), `persist`
+(30 MiB, ext4: factory QTEE/QWES attestation and license stores) and
+`system`. The Nerves layout overwrites `persist` (it sits inside `rootfs-a`)
+and the FlatBuild never rewrites it (empty `filename` in `rawprogram0.xml`),
+so take it while it's there:
+
+```bash
+qdl --storage ufs prog_firehose_ddr.elf read 0/persist lun0_persist.bin
+```
+
+To go back to stock: flash the FlatBuild's `rawprogram0.xml` + `patch0.xml`
+(LUN0), then `qdl --storage ufs prog_firehose_ddr.elf write 0/persist
+lun0_persist.bin`.
+
+Do **not** run fwup's `expand-data` on this board: fwup's `gpt_write()` is
+hardwired to 512-byte LBAs and would corrupt the 4Kn GPT.
+`mk_ufs_image.py` already sizes `/data` to fill LUN0.
 
 ## Storage layout
 
@@ -214,9 +254,9 @@ proof only). Three pieces:
 
 | Component | Version | Notes |
 |---|---|---|
-| SPI-NOR firmware | EDK2, EFI, Thundercomm's SPI-NOR build | provides the (unused-by-default) firmware DT |
-| Kernel | mainline **7.2.10** + 1 patch (`patches/linux/0003-*`) | in-tree `qcs6490-thundercomm-rubikpi3` DTS; the one carried patch is the SoC-generic qmp-ufs HS-G4 PHY init table (sc7280) from Radxa's kernel tree, absent from mainline — not board-specific |
-| Devicetree | in-tree `qcom/qcs6490-thundercomm-rubikpi3.dtb` (7.2.10) | loaded by GRUB from the active slot |
+| Boot firmware | Thundercomm `BOOT.MXF.1.0.c1-00364-KODIAKLA-1` (XBL + UEFI 6.0.250904) on UFS LUNs 1-6 | not written by Nerves; provides the (unused-by-default) firmware DT |
+| Kernel | Qualcomm **qcom-next** tag `qcom-next-7.3-rc4-20261014` (7.3.0-rc4) + 1 patch (`patches/linux/0003-*`) | the kernel meta-qcom builds for QCS6490 (`linux-qcom-next`, same pin); the one carried patch is the SoC-generic qmp-ufs HS-G4 PHY init table (sc7280) from Radxa's kernel tree, absent from mainline and qcom-next — not board-specific |
+| Devicetree | in-tree `qcom/qcs6490-thundercomm-rubikpi3.dtb` (qcom-next) | loaded by GRUB from the active slot |
 | GRUB | 2.12 (Buildroot), arm64-efi | builtin modules incl. `squash4`, `loadenv`, `fdt`, `regexp` |
 | Buildroot | 2026.05.2 via nerves_system_br 1.34.4 | Erlang/OTP 29.0.6 |
 | Toolchain | `aarch64-nerves-linux-gnu` 15.3.0 (glibc) | `-march=armv8.2-a` |
