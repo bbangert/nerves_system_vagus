@@ -1,8 +1,8 @@
 # Changelog
 
-## Unreleased
+## v0.5.0
 
-First device bring-up. v0.4.0 (kernel 7.2.10) was flashed to a 128 GB UFS
+Repo tag v0.7.0. First device bring-up. v0.4.0 (kernel 7.2.10) was flashed to a 128 GB UFS
 board on 2026-10-23 and boots to iex: UEFI → GRUB → mainline DTB → kernel
 under Gunyah → UFS squashfs root, `/data` formatted to full size, WiFi/BT,
 fastrpc, dma-heap and Venus nodes present. These changes fix what that boot

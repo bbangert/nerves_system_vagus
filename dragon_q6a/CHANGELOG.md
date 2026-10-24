@@ -5,6 +5,8 @@ an entry names its repo tag where it does.
 
 ## v0.6.1
 
+Repo tag v0.7.0.
+
 Adreno GPU render node (`/dev/dri/renderD128`) on an unattended boot. No GPU
 userspace (Mesa) is shipped, so nothing renders yet.
 
