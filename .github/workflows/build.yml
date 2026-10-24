@@ -109,6 +109,9 @@ jobs:
         working-directory: ${{ matrix.target }}
         env:
           MIX_ENV: prod
+          # Anonymous GitHub release downloads of the toolchain hung for 6 h on job
+          # re-runs; the token makes the fetch authenticated.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           mix deps.get
           # Compiling a :system package runs the buildroot build via
