@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.1
+
+Repo tag v0.7.1. The kernel no longer sets the system clock from the PMIC RTC
+(`# CONFIG_RTC_HCTOSYS is not set`). The RTC has no backup battery, so after a
+power loss it reads 1970, and because `rtc-pm8xxx` is a module its hctosys ran
+after nerves_time had already floored the clock, dragging it back to
+1970-01-02; from there busybox ntpd never synced and every TLS connection
+failed, so the agent flavor could not pull its images at boot. nerves_time's
+file time now floors the next boot, ntpd corrects it, and `CONFIG_RTC_SYSTOHC`
+still keeps the RTC written (#33).
+
 ## v0.5.0
 
 Repo tag v0.7.0. First device bring-up. v0.4.0 (kernel 7.2.10) was flashed to a 128 GB UFS
