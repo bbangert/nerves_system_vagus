@@ -836,6 +836,13 @@ CONFIG_RTC_DRV_EFI=y
 CONFIG_RTC_DRV_CROS_EC=y
 CONFIG_RTC_DRV_PL031=y
 CONFIG_RTC_DRV_PM8XXX=m
+# The PMIC RTC has no backup battery, so after a power loss it reads
+# 1970 and hctosys (which runs when the module loads, after nerves_time
+# has already applied its sane floor) drags the clock back there; from
+# 1970 busybox ntpd never syncs and every TLS connection fails. The
+# kernel still writes the RTC (SYSTOHC); nerves_time's file time floors
+# the next boot instead.
+# CONFIG_RTC_HCTOSYS is not set
 CONFIG_RTC_DRV_SNVS=m
 CONFIG_RTC_DRV_BBNSM=m
 CONFIG_RTC_DRV_MT6397=m
