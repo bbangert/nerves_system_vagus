@@ -1,0 +1,10 @@
+#!/bin/sh
+# erlinit runs this before Erlang loads modules, so eth0 (a USB NIC) does not
+# exist yet and boardid's macaddr fallback would give 0000; the SoC serial does.
+serial=""
+{ read -r serial < /sys/devices/soc0/serial_number; } 2>/dev/null
+if [ -n "$serial" ]; then
+    printf '%s\n' "$serial"
+else
+    exec /usr/bin/boardid "$@"
+fi

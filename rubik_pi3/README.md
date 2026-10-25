@@ -43,6 +43,7 @@ port's):
 | Gate | Status |
 | --- | --- |
 | Boot / serial console | **proven**: UEFI → GRUB → mainline DTB → kernel under Gunyah → UFS squashfs root (mounted at 9.3 s) → iex on `ttyMSM0`; `/data` formats to full size (110.9 GiB) on first boot |
+| Hostname / board id | pending: `nerves-<last 4 of the SoC serial>` from `/sys/devices/soc0/serial_number` (`QCOM_SOCINFO=y`); was `nerves-0000` because the USB `eth0` appears after erlinit |
 | UFS root (4Kn GPT via `tools/mk_ufs_image.py`) | **proven**; firmware boots the 512-BPB FAT ESP on the 4096-byte-sector LUN fine |
 | WiFi interface / BT controller probe | **proven**: `wlan0` up, BCM4345C5 attaches |
 | fastrpc / dma-heap / Venus device nodes | **proven present**; workloads in the fastrpc and Venus rows below |

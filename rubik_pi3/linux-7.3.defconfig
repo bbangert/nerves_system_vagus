@@ -1048,7 +1048,9 @@ CONFIG_QCOM_SMEM=y
 CONFIG_QCOM_SMD_RPM=y
 CONFIG_QCOM_SMP2P=y
 CONFIG_QCOM_SMSM=y
-CONFIG_QCOM_SOCINFO=m
+# Built in so /sys/devices/soc0/serial_number exists when erlinit derives the
+# board id: eth0 is a USB NIC whose module loads only after Erlang starts.
+CONFIG_QCOM_SOCINFO=y
 CONFIG_QCOM_SPM=m
 CONFIG_QCOM_STATS=m
 CONFIG_QCOM_WCNSS_CTRL=m

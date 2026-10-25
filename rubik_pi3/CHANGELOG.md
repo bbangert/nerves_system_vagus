@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.5.2
+
+Repo tag v0.7.2. The board id (and so the hostname) now comes from the SoC
+serial, `/sys/devices/soc0/serial_number`, via `/usr/bin/rubik-boardid`, with
+`boardid` as the fallback. erlinit reads the id before Erlang starts, and the
+only `eth0` is the USB NIC, which appears ~14 s later, so every board was
+`nerves-0000`. `CONFIG_QCOM_SOCINFO` is now `=y` so the serial is there that
+early. An existing board's hostname changes from `nerves-0000` to
+`nerves-<last 4 of the SoC serial>` on its first boot of this release, and its
+Remote Control session name changes with it.
+
 ## v0.5.1
 
 Repo tag v0.7.1. The kernel no longer sets the system clock from the PMIC RTC
