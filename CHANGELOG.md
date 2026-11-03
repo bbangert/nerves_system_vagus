@@ -14,8 +14,9 @@ the AP6256 WiFi/BT firmware, `rubik-usb-fw` for the uPD720201 USB3
 controller, `rubik-boardid`, wpa_supplicant, wireless-regdb, the Realtek
 USB BT dongle firmware, and the fastrpc / Hexagon DSP firmware foundation.
 
-* The app is `:nerves_system_rubik`; artifacts are published to this
-  repo's GitHub releases.
+* The app is `:nerves_system_rubik_pi3`, named for the board and matching
+  the fwup platform `rubik_pi3`; artifacts are published to this repo's
+  GitHub releases.
 * `post-build.sh`, `post-createfs.sh` and `external.mk` find their files
   relative to themselves, so the system also works vendored under a
   product's `base/` directory. A `grub.cfg` next to the product's
