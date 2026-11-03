@@ -13,6 +13,8 @@ validation is pending.
   Erlang/OTP 29.0.6 → 29.1.2. The Buildroot move makes GCC 15 the default
   and brings glibc 2.44, go 1.26.6 and linux-firmware 20260410 → 20260810.
 * Toolchain `nerves_toolchain_aarch64_nerves_linux_gnu` 15.3.0 → 15.3.1.
+* Board support extracted to nerves_system_q6a v0.1.0 (vendored under `base/`);
+  build-identical; the artifact checksum changes.
 
 ## v0.6.1
 
