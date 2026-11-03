@@ -1,0 +1,121 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: write   # upload Release assets
+
+env:
+  # The host OTP must match the one nerves_system_br builds for the target,
+  # or Nerves aborts with a host/target OTP mismatch.
+  OTP_VERSION: "29.1.2"
+  ELIXIR_VERSION: "1.20.2-otp-29"
+  FWUP_VERSION: "1.15.0"
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ env.OTP_VERSION }}
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+
+      - name: Install Nerves bootstrap
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix archive.install hex nerves_bootstrap 1.15.0 --force
+
+      - run: mix deps.get
+
+      # Run from the linter's own project: from the root, Nerves first tries
+      # to build this system (no artifact exists yet), i.e. a full Buildroot
+      # build. MIX_ENV=test skips the linter's dev-only deps. Given just a
+      # defconfig path the task exits 0 even when checks fail, so the
+      # "Failed checks:" section is grepped instead.
+      - name: Lint nerves_defconfig
+        working-directory: deps/nerves_system_linter
+        env:
+          MIX_ENV: test
+        run: |
+          out=$(mix nerves.system.lint "$GITHUB_WORKSPACE/nerves_defconfig")
+          echo "$out"
+          failed=$(echo "$out" | sed -n '/^Failed checks:/,$p' | grep '^ensure' || true)
+          test -z "$failed"
+      - run: shellcheck post-build.sh post-createfs.sh
+
+  build:
+    # A full Buildroot build is slow; only tags and manual runs pay for it.
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    steps:
+      # Hosted runners have ~14 GB free, which a Buildroot build can exhaust.
+      - name: Free up disk space
+        run: |
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc \
+            /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/powershell \
+            /usr/share/swift 2>/dev/null || true
+          sudo docker image prune --all --force 2>/dev/null || true
+          df -h /
+
+      - uses: actions/checkout@v4
+
+      - name: Install host build deps
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential automake autoconf git squashfs-tools \
+            ssh-askpass pkg-config curl libssl-dev libncurses-dev bc m4 unzip cmake \
+            python3 cpio xz-utils
+
+      - name: Install fwup
+        run: |
+          # Pinned download: an anonymous "latest release" API lookup is
+          # rate-limited per runner IP.
+          curl -fsSL -o /tmp/fwup.deb \
+            "https://github.com/fwup-home/fwup/releases/download/v${FWUP_VERSION}/fwup_${FWUP_VERSION}_amd64.deb"
+          sudo dpkg -i /tmp/fwup.deb
+
+      - uses: erlef/setup-beam@v1
+        with:
+          otp-version: ${{ env.OTP_VERSION }}
+          elixir-version: ${{ env.ELIXIR_VERSION }}
+
+      - name: Install Nerves bootstrap
+        run: |
+          mix local.hex --force
+          mix local.rebar --force
+          mix archive.install hex nerves_bootstrap 1.15.0 --force
+
+      - name: Cache Nerves/Buildroot
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.nerves
+            ~/.cache/nerves
+          key: nerves-${{ hashFiles('nerves_defconfig', 'linux-*.config', 'linux-*.defconfig', 'package/**', 'patches/**', 'br-patches/**', 'mix.lock', 'mix.exs') }}
+          restore-keys: nerves-
+
+      - name: Build the system artifact
+        env:
+          MIX_ENV: prod
+          # Anonymous toolchain downloads have hung for hours on re-runs.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          mix deps.get
+          mix compile
+          mix nerves.artifact
+
+      - name: Upload artifact to the Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "*.tar.gz"
+          fail_on_unmatched_files: true
