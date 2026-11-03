@@ -33,7 +33,7 @@ env:
   # major or Nerves aborts with a host/target OTP mismatch. Pin the OTP
   # release nerves_system_br builds for the target, so host and target
   # match exactly.
-  OTP_VERSION: "29.0.6"
+  OTP_VERSION: "29.1.2"
   ELIXIR_VERSION: "1.20.2-otp-29"
   FWUP_VERSION: "1.15.0"
 
@@ -103,7 +103,7 @@ jobs:
           path: |
             ~/.nerves
             ~/.cache/nerves
-          key: nerves-${{ matrix.target }}-${{ hashFiles(format('{0}/nerves_defconfig', matrix.target), format('{0}/linux-*.config', matrix.target), format('{0}/linux-*.defconfig', matrix.target), format('{0}/package/**', matrix.target)) }}
+          key: nerves-${{ matrix.target }}-${{ hashFiles(format('{0}/nerves_defconfig', matrix.target), format('{0}/linux-*.config', matrix.target), format('{0}/linux-*.defconfig', matrix.target), format('{0}/package/**', matrix.target), format('{0}/mix.lock', matrix.target), format('{0}/mix.exs', matrix.target)) }}
           restore-keys: nerves-${{ matrix.target }}-
 
       - name: Build the system artifact
