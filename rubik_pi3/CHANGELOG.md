@@ -8,7 +8,9 @@ pending.
 
 * `nerves_system_br` 1.34.4 → 1.35.3: Buildroot 2026.05.2 → 2026.08.1 and
   Erlang/OTP 29.0.6 → 29.1.2. The Buildroot move makes GCC 15 the default
-  and brings glibc 2.44, go 1.26.6 and linux-firmware 20260410 → 20260810.
+  and brings go 1.26.6 and linux-firmware 20260410 → 20260810. The target
+  libc is still the toolchain's glibc 2.43: Buildroot's glibc bump applies
+  only to its internal toolchain, not to the external one these use.
 * Toolchain `nerves_toolchain_aarch64_nerves_linux_gnu` 15.3.0 → 15.3.1.
 * Board support extracted to nerves_system_rubik v0.1.0 (vendored under `base/`);
   build-identical; the artifact checksum changes.

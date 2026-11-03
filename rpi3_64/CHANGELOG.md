@@ -18,14 +18,23 @@ follows:
 
 ## v0.3.0
 
-Repo tag v0.8.0. nerves_system_br and toolchain update. No kernel or
-configuration change on this target. Build-proof only so far: hardware
-validation is pending.
+Repo tag v0.8.0. nerves_system_br, toolchain and kernel update. Build-proof
+only so far: hardware validation is pending.
 
 * `nerves_system_br` 1.34.4 → 1.35.3: Buildroot 2026.05.2 → 2026.08.1 and
   Erlang/OTP 29.0.6 → 29.1.2. The Buildroot move makes GCC 15 the default
-  and brings glibc 2.44, go 1.26.6 and linux-firmware 20260410 → 20260810.
+  and brings go 1.26.6 and linux-firmware 20260410 → 20260810. The target
+  libc is still the toolchain's glibc 2.43: Buildroot's glibc bump applies
+  only to its internal toolchain, not to the external one these use.
 * Toolchain `nerves_toolchain_aarch64_nerves_linux_gnu` 15.3.0 → 15.3.1.
+* Kernel `stable_20260527` → `stable_20260911` (6.18.33 → 6.18.50) and
+  rpi-firmware 1.20260521 → 1.20260915, the tags upstream Nerves tracks.
+  `linux-6.18.defconfig` is unchanged; the resolved config differs only in
+  new symbols at their defaults (`ARM64_ERRATUM_4118414=y`; the ST7123
+  touchscreen, EDATEC panel regulator, HiFiBerry Studio and CLK_HOG options
+  not set).
+* `BR2_TOOLCHAIN_EXTERNAL_GCC_15=y` is now stated explicitly: Buildroot
+  2026.08 defaults the external-toolchain GCC selection to 16.x.
 
 ## v0.2.0
 
