@@ -10,6 +10,8 @@ pending.
   Erlang/OTP 29.0.6 → 29.1.2. The Buildroot move makes GCC 15 the default
   and brings glibc 2.44, go 1.26.6 and linux-firmware 20260410 → 20260810.
 * Toolchain `nerves_toolchain_aarch64_nerves_linux_gnu` 15.3.0 → 15.3.1.
+* Board support extracted to nerves_system_rubik v0.1.0 (vendored under `base/`);
+  build-identical; the artifact checksum changes.
 * The board id (and so the hostname) now comes from the SoC serial,
   `/sys/devices/soc0/serial_number`, via `/usr/bin/rubik-boardid`, with
   `boardid` as the fallback. erlinit reads the id before Erlang starts, and
