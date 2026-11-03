@@ -1250,7 +1250,7 @@ CONFIG_QCOM_PD_MAPPER=m
 # loads once Erlang is up (nerves_uevent runs modprobe); the 10 s default
 # gives up first (arm-smmu 3da0000.iommu -110) and the SMMU driver refuses a
 # later rebind, so the GPU is dead for the whole boot. Same value as
-# Qualcomm's qcom.config and nerves_system_rubik.
+# Qualcomm's qcom.config and nerves_system_rubik_pi3.
 CONFIG_DRIVER_DEFERRED_PROBE_TIMEOUT=60
 
 # Mainline 7.2 defaults nearly every Qualcomm TLMM pinctrl driver to y
