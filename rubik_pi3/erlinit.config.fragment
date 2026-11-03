@@ -1,0 +1,9 @@
+-m configfs:/sys/kernel/config:configfs:nodev,noexec,nosuid:
+
+# Container engine: unified cgroup v2 hierarchy, the only one podman 6
+# supports; nothing else mounts a cgroup. erlinit's -m is a generic mount()
+# passthrough (src/fs.c), so no erlinit changes are needed. Paired with
+# `cgroup_no_v1=all cgroup_enable=memory` on the kernel cmdline
+# (base/grub.cfg, BOTH slots) and the CGROUP_* symbols in
+# linux-containers.config.
+-m cgroup2:/sys/fs/cgroup:cgroup2:nodev,noexec,nosuid:

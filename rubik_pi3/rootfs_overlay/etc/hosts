@@ -1,9 +1,0 @@
-# Replaces nerves_system_br's skeleton hosts, which has no ::1 line.
-# Host-network containers get a copy of this file, and software in them
-# expects localhost to resolve on IPv6 too, even on an IPv4-only board.
-#
-# erlinit sets the hostname at boot from the board serial, so it cannot be
-# a line here.
-
-127.0.0.1	localhost
-::1		localhost ip6-localhost ip6-loopback
