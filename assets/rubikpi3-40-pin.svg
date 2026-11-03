@@ -1,0 +1,170 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 708" font-family="Helvetica, Arial, sans-serif" font-size="13">
+  <title>Thundercomm Rubik Pi 3 40-pin header, default functions</title>
+  <rect width="760" height="708" fill="#ffffff"/>
+  <text x="20" y="26" fill="#1f2328" font-size="15" font-weight="bold">Rubik Pi 3 40-pin header: default functions (3.3 V logic)</text>
+  <rect x="330" y="40" width="100" height="568" rx="10" fill="#1f2a33"/>
+  <circle cx="360" cy="60" r="11" fill="#f4a261" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="64" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">1</text>
+  <rect x="180" y="50" width="140" height="20" rx="4" fill="#f4a261"/>
+  <text x="250" y="65" fill="#ffffff" text-anchor="middle">3V3</text>
+  <circle cx="400" cy="60" r="11" fill="#e76f51" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="64" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">2</text>
+  <rect x="440" y="50" width="140" height="20" rx="4" fill="#e76f51"/>
+  <text x="510.0" y="65" fill="#ffffff" text-anchor="middle">5V</text>
+  <circle cx="360" cy="88" r="11" fill="#2a9d8f" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="92" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">3</text>
+  <rect x="180" y="78" width="140" height="20" rx="4" fill="#2a9d8f"/>
+  <text x="250" y="93" fill="#ffffff" text-anchor="middle">I2C1_SDA</text>
+  <circle cx="400" cy="88" r="11" fill="#e76f51" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="92" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">4</text>
+  <rect x="440" y="78" width="140" height="20" rx="4" fill="#e76f51"/>
+  <text x="510.0" y="93" fill="#ffffff" text-anchor="middle">5V</text>
+  <circle cx="360" cy="116" r="11" fill="#2a9d8f" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="120" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">5</text>
+  <rect x="180" y="106" width="140" height="20" rx="4" fill="#2a9d8f"/>
+  <text x="250" y="121" fill="#ffffff" text-anchor="middle">I2C1_SCL</text>
+  <circle cx="400" cy="116" r="11" fill="#6e7781" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="120" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">6</text>
+  <rect x="440" y="106" width="140" height="20" rx="4" fill="#6e7781"/>
+  <text x="510.0" y="121" fill="#ffffff" text-anchor="middle">GND</text>
+  <circle cx="360" cy="144" r="11" fill="#d4a017" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="148" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">7</text>
+  <rect x="180" y="134" width="140" height="20" rx="4" fill="#d4a017"/>
+  <text x="250" y="149" fill="#ffffff" text-anchor="middle">I2S1_MCLK</text>
+  <circle cx="400" cy="144" r="11" fill="#8e6cc4" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="148" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">8</text>
+  <rect x="440" y="134" width="140" height="20" rx="4" fill="#8e6cc4"/>
+  <text x="510.0" y="149" fill="#ffffff" text-anchor="middle">UART2_TXD</text>
+  <circle cx="360" cy="172" r="11" fill="#6e7781" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="176" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">9</text>
+  <rect x="180" y="162" width="140" height="20" rx="4" fill="#6e7781"/>
+  <text x="250" y="177" fill="#ffffff" text-anchor="middle">GND</text>
+  <circle cx="400" cy="172" r="11" fill="#8e6cc4" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="176" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">10</text>
+  <rect x="440" y="162" width="140" height="20" rx="4" fill="#8e6cc4"/>
+  <text x="510.0" y="177" fill="#ffffff" text-anchor="middle">UART2_RXD</text>
+  <circle cx="360" cy="200" r="11" fill="#57a773" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="204" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">11</text>
+  <rect x="180" y="190" width="140" height="20" rx="4" fill="#57a773"/>
+  <text x="250" y="205" fill="#ffffff" text-anchor="middle">GPIO_8</text>
+  <circle cx="400" cy="200" r="11" fill="#d4a017" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="204" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">12</text>
+  <rect x="440" y="190" width="140" height="20" rx="4" fill="#d4a017"/>
+  <text x="510.0" y="205" fill="#ffffff" text-anchor="middle">I2S1_CLK</text>
+  <circle cx="360" cy="228" r="11" fill="#57a773" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="232" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">13</text>
+  <rect x="180" y="218" width="140" height="20" rx="4" fill="#57a773"/>
+  <text x="250" y="233" fill="#ffffff" text-anchor="middle">GPIO_24</text>
+  <circle cx="400" cy="228" r="11" fill="#6e7781" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="232" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">14</text>
+  <rect x="440" y="218" width="140" height="20" rx="4" fill="#6e7781"/>
+  <text x="510.0" y="233" fill="#ffffff" text-anchor="middle">GND</text>
+  <circle cx="360" cy="256" r="11" fill="#57a773" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="260" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">15</text>
+  <rect x="180" y="246" width="140" height="20" rx="4" fill="#57a773"/>
+  <text x="250" y="261" fill="#ffffff" text-anchor="middle">GPIO_25</text>
+  <circle cx="400" cy="256" r="11" fill="#57a773" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="260" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">16</text>
+  <rect x="440" y="246" width="140" height="20" rx="4" fill="#57a773"/>
+  <text x="510.0" y="261" fill="#ffffff" text-anchor="middle">GPIO_26</text>
+  <circle cx="360" cy="284" r="11" fill="#f4a261" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="288" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">17</text>
+  <rect x="180" y="274" width="140" height="20" rx="4" fill="#f4a261"/>
+  <text x="250" y="289" fill="#ffffff" text-anchor="middle">3V3</text>
+  <circle cx="400" cy="284" r="11" fill="#57a773" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="288" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">18</text>
+  <rect x="440" y="274" width="140" height="20" rx="4" fill="#57a773"/>
+  <text x="510.0" y="289" fill="#ffffff" text-anchor="middle">GPIO_27</text>
+  <circle cx="360" cy="312" r="11" fill="#3a86ff" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="316" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">19</text>
+  <rect x="180" y="302" width="140" height="20" rx="4" fill="#3a86ff"/>
+  <text x="250" y="317" fill="#ffffff" text-anchor="middle">SPI12_MOSI</text>
+  <circle cx="400" cy="312" r="11" fill="#6e7781" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="316" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">20</text>
+  <rect x="440" y="302" width="140" height="20" rx="4" fill="#6e7781"/>
+  <text x="510.0" y="317" fill="#ffffff" text-anchor="middle">GND</text>
+  <circle cx="360" cy="340" r="11" fill="#3a86ff" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="344" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">21</text>
+  <rect x="180" y="330" width="140" height="20" rx="4" fill="#3a86ff"/>
+  <text x="250" y="345" fill="#ffffff" text-anchor="middle">SPI12_MISO</text>
+  <circle cx="400" cy="340" r="11" fill="#57a773" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="344" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">22</text>
+  <rect x="440" y="330" width="140" height="20" rx="4" fill="#57a773"/>
+  <text x="510.0" y="345" fill="#ffffff" text-anchor="middle">GPIO_44</text>
+  <circle cx="360" cy="368" r="11" fill="#3a86ff" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="372" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">23</text>
+  <rect x="180" y="358" width="140" height="20" rx="4" fill="#3a86ff"/>
+  <text x="250" y="373" fill="#ffffff" text-anchor="middle">SPI12_SCLK</text>
+  <circle cx="400" cy="368" r="11" fill="#3a86ff" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="372" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">24</text>
+  <rect x="440" y="358" width="140" height="20" rx="4" fill="#3a86ff"/>
+  <text x="510.0" y="373" fill="#ffffff" text-anchor="middle">SPI12_CS</text>
+  <circle cx="360" cy="396" r="11" fill="#6e7781" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="400" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">25</text>
+  <rect x="180" y="386" width="140" height="20" rx="4" fill="#6e7781"/>
+  <text x="250" y="401" fill="#ffffff" text-anchor="middle">GND</text>
+  <circle cx="400" cy="396" r="11" fill="#57a773" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="400" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">26</text>
+  <rect x="440" y="386" width="140" height="20" rx="4" fill="#57a773"/>
+  <text x="510.0" y="401" fill="#ffffff" text-anchor="middle">GPIO_55</text>
+  <circle cx="360" cy="424" r="11" fill="#57a773" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="428" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">27</text>
+  <rect x="180" y="414" width="140" height="20" rx="4" fill="#57a773"/>
+  <text x="250" y="429" fill="#ffffff" text-anchor="middle">GPIO_12</text>
+  <circle cx="400" cy="424" r="11" fill="#57a773" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="428" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">28</text>
+  <rect x="440" y="414" width="140" height="20" rx="4" fill="#57a773"/>
+  <text x="510.0" y="429" fill="#ffffff" text-anchor="middle">GPIO_13</text>
+  <circle cx="360" cy="452" r="11" fill="#57a773" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="456" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">29</text>
+  <rect x="180" y="442" width="140" height="20" rx="4" fill="#57a773"/>
+  <text x="250" y="457" fill="#ffffff" text-anchor="middle">GPIO_32</text>
+  <circle cx="400" cy="452" r="11" fill="#6e7781" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="456" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">30</text>
+  <rect x="440" y="442" width="140" height="20" rx="4" fill="#6e7781"/>
+  <text x="510.0" y="457" fill="#ffffff" text-anchor="middle">GND</text>
+  <circle cx="360" cy="480" r="11" fill="#57a773" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="484" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">31</text>
+  <rect x="180" y="470" width="140" height="20" rx="4" fill="#57a773"/>
+  <text x="250" y="485" fill="#ffffff" text-anchor="middle">GPIO_33</text>
+  <circle cx="400" cy="480" r="11" fill="#cf222e" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="484" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">32</text>
+  <rect x="440" y="470" width="170" height="20" rx="4" fill="#cf222e"/>
+  <text x="525.0" y="485" fill="#ffffff" text-anchor="middle">PM_C_GPIO_09 (PWM)</text>
+  <circle cx="360" cy="508" r="11" fill="#57a773" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="512" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">33</text>
+  <rect x="180" y="498" width="140" height="20" rx="4" fill="#57a773"/>
+  <text x="250" y="513" fill="#ffffff" text-anchor="middle">GPIO_34</text>
+  <circle cx="400" cy="508" r="11" fill="#6e7781" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="512" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">34</text>
+  <rect x="440" y="498" width="140" height="20" rx="4" fill="#6e7781"/>
+  <text x="510.0" y="513" fill="#ffffff" text-anchor="middle">GND</text>
+  <circle cx="360" cy="536" r="11" fill="#d4a017" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="540" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">35</text>
+  <rect x="180" y="526" width="140" height="20" rx="4" fill="#d4a017"/>
+  <text x="250" y="541" fill="#ffffff" text-anchor="middle">I2S1_WS</text>
+  <circle cx="400" cy="536" r="11" fill="#57a773" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="540" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">36</text>
+  <rect x="440" y="526" width="140" height="20" rx="4" fill="#57a773"/>
+  <text x="510.0" y="541" fill="#ffffff" text-anchor="middle">GPIO_9</text>
+  <circle cx="360" cy="564" r="11" fill="#57a773" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="568" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">37</text>
+  <rect x="180" y="554" width="140" height="20" rx="4" fill="#57a773"/>
+  <text x="250" y="569" fill="#ffffff" text-anchor="middle">GPIO_35</text>
+  <circle cx="400" cy="564" r="11" fill="#d4a017" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="568" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">38</text>
+  <rect x="440" y="554" width="140" height="20" rx="4" fill="#d4a017"/>
+  <text x="510.0" y="569" fill="#ffffff" text-anchor="middle">I2S1_DIN</text>
+  <circle cx="360" cy="592" r="11" fill="#6e7781" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="360" y="596" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">39</text>
+  <rect x="180" y="582" width="140" height="20" rx="4" fill="#6e7781"/>
+  <text x="250" y="597" fill="#ffffff" text-anchor="middle">GND</text>
+  <circle cx="400" cy="592" r="11" fill="#d4a017" stroke="#ffffff" stroke-width="1.5"/>
+  <text x="400" y="596" fill="#ffffff" font-size="10" font-weight="bold" text-anchor="middle">40</text>
+  <rect x="440" y="582" width="140" height="20" rx="4" fill="#d4a017"/>
+  <text x="510.0" y="597" fill="#ffffff" text-anchor="middle">I2S1_DOUT</text>
+  <text x="20" y="632" fill="#57606a" font-size="12">Default functions as published by Thundercomm (Rubik Pi 3 user manual, "40-pin LS connector").</text>
+  <text x="20" y="650" fill="#57606a" font-size="12">GPIO_n is the SoC GPIO number. Most pins mux to other I2C/SPI/UART/I2S functions;</text>
+  <text x="20" y="668" fill="#57606a" font-size="12">see Thundercomm's pin table. Not verified on this system's kernel.</text>
+  <text x="20" y="686" fill="#57606a" font-size="12">Drawn for this repository; not a copy of Thundercomm's figure.</text>
+</svg>

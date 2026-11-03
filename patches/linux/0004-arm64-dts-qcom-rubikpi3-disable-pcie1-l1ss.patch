@@ -1,0 +1,26 @@
+arm64: dts: qcom: qcs6490-rubikpi3: Disable L1 substates on the M.2 slot
+
+pcie-qcom enables every ASPM state, L1.1/L1.2 included, on devices present
+when the host bridge probes. On the Rubik Pi 3 M.2 Key M slot (PCIe1), a
+Samsung 970 EVO Plus drops the link as soon as L1.1 is allowed: "Recovering
+Root Port due to Link Down" ~50 ms after identify, then a 60 s admin
+timeout, and nvme never appears. A remove+rescan worked only because
+rescanned devices don't get L1SS. Bisected on hardware: L1 and Clock PM
+are fine, L1.1 breaks the link. Forcing the PHY's endpoint refclk on
+(Thundercomm's downstream qcom,refclk-always-on) did not help.
+
+Keep L1, block the substates.
+
+diff --git a/arch/arm64/boot/dts/qcom/qcs6490-thundercomm-rubikpi3.dts b/arch/arm64/boot/dts/qcom/qcs6490-thundercomm-rubikpi3.dts
+index 195695719..68bf7d4e5 100644
+--- a/arch/arm64/boot/dts/qcom/qcs6490-thundercomm-rubikpi3.dts
++++ b/arch/arm64/boot/dts/qcom/qcs6490-thundercomm-rubikpi3.dts
+@@ -864,6 +864,8 @@ &pcie1_phy {
+ &pcie1_port0 {
+ 	reset-gpios = <&tlmm 2 GPIO_ACTIVE_LOW>;
+ 	wake-gpios = <&tlmm 3 GPIO_ACTIVE_LOW>;
++
++	aspm-no-l1ss;
+ };
+ 
+ &pm7325_gpios {

@@ -1,0 +1,21 @@
+config BR2_PACKAGE_RUBIK_PI3_FIRMWARE
+	bool "rubik-pi3-firmware"
+	select BR2_PACKAGE_LINUX_FIRMWARE
+	help
+	  Firmware set for the Thundercomm Rubik Pi 3 (QCS6490):
+
+	  - GPU (a660 GMU/SQE/zap), Venus video, and GENI QUP firmware plus
+	    the CDSP/ADSP images and their .jsn fastrpc domain descriptors,
+	    all sourced from the SAME upstream linux-firmware release
+	    Buildroot already downloads (single-source rule).
+	  - The Hexagon DSP-side shell/skel binaries (fastrpc_shell_*) from
+	    linux-msm/hexagon-dsp-binaries, pinned to a commit whose CDSP
+	    and ADSP shell version strings exactly match the shipped .mbn
+	    images (mismatches fail fastrpc with error 0x80000600).
+	  - Broadcom blobs for the onboard AMPAK AP6256 WiFi/BT module:
+	    brcmfmac43456 SDIO firmware + CLM blob and the board NVRAM for
+	    WiFi, and the BCM4345C5 patchram for hci_bcm Bluetooth.
+
+	  https://github.com/linux-msm/hexagon-dsp-binaries
+	  https://github.com/armbian/firmware
+	  https://github.com/rubikpi-ai/rubikpi3-firmware
