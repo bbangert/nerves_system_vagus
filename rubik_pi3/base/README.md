@@ -67,13 +67,13 @@ evidence for every row, with dates, is in [docs/validation.md](docs/validation.m
 | UFS boot (4Kn GPT), A/B slots | Yes | 2026-10-23; `/data` formats to full size on first boot |
 | OTA updates (`mix upload`) | Yes | A → B → A over SSH, both slots report `firmware_valid?` |
 | Serial console | Yes | iex on `ttyMSM0` over the micro-USB debug port |
-| Ethernet (USB AX88179B) | Yes | DHCP and internet; needs `rubik-usb-fw` (uPD720201 firmware from the board's `usb_fw` partition) |
+| Ethernet (USB AX88179B) | Yes | DHCP and internet, proven on the layered vagus image; the standalone image relies on `rubik-usb-fw` (uPD720201 firmware from the board's `usb_fw` partition), re-gate on the standalone image pending |
 | WiFi (AP6256, brcmfmac SDIO) | Partial | Scan on both bands, WPA2-PSK proven with firmware 7.45.96.215; WPA3-SAE not supported (firmware/brcmfmac mismatch, see [docs/wifi-bt.md](docs/wifi-bt.md)); AP mode untested |
 | Bluetooth (BCM4345C5, hci_bcm serdev) | Partial | Controller powers on and discovers under BlueZ started by hand; no BT userspace in this system |
 | HDMI display (LT9611) | Partial | msm DRM binds DSI/DP/Adreno, bridge detected; no monitor attached, scan-out untested |
 | DisplayPort over USB-C | Untested | |
 | GPU (Adreno 643L) | Partial | `renderD128` present, a660 SQE/GMU firmware loads; no userspace (Mesa not shipped) |
-| USB 3.0 Type-A | Yes | SuperSpeed via the uPD720201 |
+| USB 3.0 Type-A | Yes | SuperSpeed via the uPD720201, proven on the layered vagus image; the standalone image relies on `rubik-usb-fw`, re-gate on the standalone image pending |
 | USB 2.0 Type-A | Untested | |
 | USB-C gadget (`usb0`) | No | The UDC probes; no gadget function is configured |
 | Audio (3.5 mm jack) | Untested | No proof recorded |
@@ -110,7 +110,7 @@ package is not on Hex; depend on this repository):
 
 # in deps():
 {:nerves_system_rubik_pi3,
- github: "bbangert/nerves_system_rubik_pi3", tag: "v0.1.0",
+ github: "bbangert/nerves_system_rubik_pi3", tag: "v0.1.1",
  runtime: false, targets: :rubik_pi3}
 ```
 
