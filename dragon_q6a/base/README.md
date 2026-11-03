@@ -100,16 +100,16 @@ The result is a Nerves system artifact consumed by an application project.
 
 ### Using in an application
 
-Add the system to your app's `mix.exs` as a `:q6a` target (the package is
-not on Hex; depend on this repository):
+Add the system to your app's `mix.exs` as a `:dragon_q6a` target (the package
+is not on Hex; depend on this repository):
 
 ```elixir
-@all_targets [:q6a]
+@all_targets [:dragon_q6a]
 
 # in deps():
-{:nerves_system_q6a,
- github: "bbangert/nerves_system_q6a", tag: "v0.1.0",
- runtime: false, targets: :q6a}
+{:nerves_system_dragon_q6a,
+ github: "bbangert/nerves_system_dragon_q6a", tag: "v0.1.0",
+ runtime: false, targets: :dragon_q6a}
 ```
 
 Nerves downloads the prebuilt system artifact from this repo's GitHub
@@ -117,10 +117,10 @@ release for the tag. To build the system from source instead (requires the
 Nerves Docker/Linux build environment), add `nerves: [compile: true]` to
 the dependency.
 
-Then set `MIX_TARGET=q6a` for every mix command:
+Then set `MIX_TARGET=dragon_q6a` for every mix command:
 
 ```sh
-export MIX_TARGET=q6a
+export MIX_TARGET=dragon_q6a
 mix deps.get
 mix firmware
 ```
@@ -136,7 +136,7 @@ blacklist, EDL entry sequence, recovery paths, UFS provisioning) is
 
 ```sh
 mix firmware
-fwup -a -t complete -i _build/q6a_dev/nerves/images/<app>.fw -d q6a.img
+fwup -a -t complete -i _build/dragon_q6a_dev/nerves/images/<app>.fw -d q6a.img
 ./edl-ng --loader prog_firehose_ddr.elf --memory nvme write-sector 0 q6a.img
 ```
 

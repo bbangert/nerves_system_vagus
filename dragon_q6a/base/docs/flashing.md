@@ -1,6 +1,6 @@
 # Flashing the Radxa Dragon Q6A (EDL runbook)
 
-How to write a `nerves_system_q6a` full-disk image to the board's
+How to write a `nerves_system_dragon_q6a` full-disk image to the board's
 NVMe over EDL (Qualcomm Emergency Download mode). Distilled from the
 2026-07-23 bring-up session that flashed Armbian this way. Every step
 below was either proven in that session or is the one documented fix for
@@ -67,9 +67,9 @@ Prefer a direct root-hub USB port over hub chains.
 ## Build and flash the image
 
 ```bash
-# In the firmware project (MIX_TARGET=q6a):
+# In the firmware project (MIX_TARGET=dragon_q6a):
 mix firmware
-fwup -a -t complete -i _build/q6a_dev/nerves/images/<app>.fw -d q6a.img
+fwup -a -t complete -i _build/dragon_q6a_dev/nerves/images/<app>.fw -d q6a.img
 # (the fwup task extends the file so the backup GPT lands at the disk-tail
 # position for the *image*; Firehose writes it verbatim)
 
@@ -155,7 +155,7 @@ fitted.
 ```bash
 # Same .fw and 512-LBA image as the NVMe flow:
 mix firmware
-fwup -a -t complete -i _build/q6a_dev/nerves/images/<app>.fw -d q6a.img
+fwup -a -t complete -i _build/dragon_q6a_dev/nerves/images/<app>.fw -d q6a.img
 
 # Transform: 512-LBA GPT -> 4Kn GPT, data partition sized to the module.
 # --disk-bytes MUST be the module's exact capacity (sectors x 4096 from

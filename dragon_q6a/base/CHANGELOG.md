@@ -2,6 +2,9 @@
 
 ## v0.1.0
 
+The package is `nerves_system_dragon_q6a`, named for the board and matching
+the fwup platform `dragon_q6a`.
+
 Initial release, extracted from bbangert/nerves_system_vagus `dragon_q6a/`
 at 30129cf (its v0.7.0 line: nerves_system_br 1.35.3 / Buildroot 2026.08.1 /
 Erlang/OTP 29.1.2 / toolchain 15.3.1 / Linux 7.2.10 + 4 patches) as a
