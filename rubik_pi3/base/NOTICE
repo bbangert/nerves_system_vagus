@@ -1,0 +1,33 @@
+nerves_system_rubik_pi3
+Copyright 2026 Ben Bangert
+
+The Buildroot packages, scripts and configuration in this repository are
+licensed as described in REUSE.toml and LICENSES/.
+
+Proprietary firmware
+--------------------
+
+Firmware images built from this system contain binary blobs that are NOT
+covered by this repository's licenses and may not be redistributable. The
+package below sets RUBIK_PI3_FIRMWARE_REDISTRIBUTE = NO, so Buildroot's
+legal-info lists its license texts but does not include its sources.
+
+* package/rubik-pi3-firmware
+  - Qualcomm Hexagon CDSP/ADSP firmware and fastrpc shells/skels
+    (linux-msm/hexagon-dsp-binaries and linux-firmware; Qualcomm firmware
+    license, with MIT-licensed pieces).
+  - Adreno, Venus and QUP firmware from linux-firmware (Qualcomm firmware
+    license).
+  - AMPAK AP6256 (Broadcom/Cypress BCM43456) WiFi firmware, NVRAM and the
+    BCM4345C5 Bluetooth patchram, from rubikpi-ai/rubikpi3-firmware and
+    armbian/firmware (Broadcom bcm43xx firmware license).
+
+Not shipped: the Renesas uPD720201 USB controller firmware. Every board
+carries it in the `usb_fw` partition of its UFS boot LUNs, and
+/usr/sbin/rubik-usb-fw points the kernel firmware loader there at boot.
+
+Not shipped: the Qualcomm AI Runtime (QAIRT). Applications provision it
+themselves.
+
+Before distributing firmware built from this system, review the license
+files that `mix nerves.artifact` / Buildroot `legal-info` collects.

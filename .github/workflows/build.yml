@@ -38,12 +38,14 @@ env:
   FWUP_VERSION: "1.15.0"
 
 jobs:
-  # Fast feedback: shared fragments are in sync and deps resolve. No buildroot.
+  # Fast feedback: shared fragments and layered files are in sync. No buildroot.
   check:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - run: make check
+      # Fails if a vendored <target>/base/ differs from its base repo's tag.
+      - run: make check-base-pristine
 
   build:
     # Full buildroot builds are slow/expensive — only on tags or manual run.
@@ -103,7 +105,7 @@ jobs:
           path: |
             ~/.nerves
             ~/.cache/nerves
-          key: nerves-${{ matrix.target }}-${{ hashFiles(format('{0}/nerves_defconfig', matrix.target), format('{0}/linux-*.config', matrix.target), format('{0}/linux-*.defconfig', matrix.target), format('{0}/package/**', matrix.target), format('{0}/mix.lock', matrix.target), format('{0}/mix.exs', matrix.target)) }}
+          key: nerves-${{ matrix.target }}-${{ hashFiles(format('{0}/nerves_defconfig', matrix.target), format('{0}/linux-*.config', matrix.target), format('{0}/linux-*.defconfig', matrix.target), format('{0}/package/**', matrix.target), format('{0}/base/**', matrix.target), format('{0}/mix.lock', matrix.target), format('{0}/mix.exs', matrix.target)) }}
           restore-keys: nerves-${{ matrix.target }}-
 
       - name: Build the system artifact
