@@ -45,10 +45,7 @@ jobs:
       - uses: actions/checkout@v4
       - run: make check
       # Fails if a vendored <target>/base/ differs from its base repo's tag.
-      # continue-on-error until nerves_system_q6a and nerves_system_rubik are
-      # published with their v0.1.0 tags; drop it then.
       - run: make check-base-pristine
-        continue-on-error: true
 
   build:
     # Full buildroot builds are slow/expensive — only on tags or manual run.
