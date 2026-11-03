@@ -3,6 +3,17 @@
 Headings are this target's `VERSION`. Git tags are repo-wide and can differ;
 an entry names its repo tag where it does.
 
+## v0.7.0
+
+Repo tag v0.8.0. nerves_system_br and toolchain update. No kernel or
+configuration change on this target. Build-proof only so far: hardware
+validation is pending.
+
+* `nerves_system_br` 1.34.4 → 1.35.3: Buildroot 2026.05.2 → 2026.08.1 and
+  Erlang/OTP 29.0.6 → 29.1.2. The Buildroot move makes GCC 15 the default
+  and brings glibc 2.44, go 1.26.6 and linux-firmware 20260410 → 20260810.
+* Toolchain `nerves_toolchain_aarch64_nerves_linux_gnu` 15.3.0 → 15.3.1.
+
 ## v0.6.1
 
 Repo tag v0.7.0.
