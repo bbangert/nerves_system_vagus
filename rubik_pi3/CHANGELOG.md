@@ -12,7 +12,7 @@ pending.
   libc is still the toolchain's glibc 2.43: Buildroot's glibc bump applies
   only to its internal toolchain, not to the external one these use.
 * Toolchain `nerves_toolchain_aarch64_nerves_linux_gnu` 15.3.0 → 15.3.1.
-* Board support extracted to nerves_system_rubik_pi3 v0.1.0 (vendored under
+* Board support extracted to nerves_system_rubik_pi3 v0.1.1 (vendored under
   `base/`); build-identical; the artifact checksum changes.
 * The board id (and so the hostname) now comes from the SoC serial,
   `/sys/devices/soc0/serial_number`, via `/usr/bin/rubik-boardid`, with
