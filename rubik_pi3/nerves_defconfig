@@ -85,6 +85,7 @@ BR2_TARGET_GRUB2=y
 BR2_TARGET_GRUB2_ARM64_EFI=y
 BR2_TARGET_GRUB2_BUILTIN_MODULES_EFI="boot linux squash4 fat part_gpt normal loadenv echo true test fdt regexp"
 BR2_PACKAGE_HOST_DOSFSTOOLS=y
+BR2_NERVES_SYSTEM_NAME="nerves_system_rubik_pi3"
 BR2_NERVES_ADDITIONAL_IMAGE_FILES="${NERVES_DEFCONFIG_DIR}/base/fwup.conf"
 BR2_PACKAGE_NBTTY=y
 BR2_PACKAGE_NERVES_CONFIG=y
@@ -125,7 +126,6 @@ BR2_PACKAGE_WPA_SUPPLICANT_WPA3=y
 BR2_PACKAGE_WPA_SUPPLICANT_CTRL_IFACE=y
 
 # ---- product layer: nerves_defconfig.fragment ----
-BR2_NERVES_SYSTEM_NAME="nerves_system_rubik_pi3"
 # Lists: scripts/sync-base.sh appends these to base/nerves_defconfig's values.
 
 # Universal Proxy: BlueZ host stack + D-Bus (userspace). USB BT + USB-audio
