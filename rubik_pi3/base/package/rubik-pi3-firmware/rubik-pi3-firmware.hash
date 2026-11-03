@@ -2,7 +2,7 @@
 # sha256'd directly (2026-08-05, Rubik Pi 3 WiFi/BT bring-up session).
 #
 # linux-msm/hexagon-dsp-binaries @ 2113cae2 (main download; same commit and
-# therefore the same bytes as nerves_system_q6a's firmware package).
+# therefore the same bytes as nerves_system_dragon_q6a's firmware package).
 sha256  63740295ed7c6c872e225fc5209b2c974a8f1e26bc30153282a77d0b6ec23ed9  rubik-pi3-firmware-2113cae26e994948ffc871d29f6206631ee2fc81.tar.gz
 sha256  eeaa182d413a4bc36efd503f8f3285cc96d63a51624ea1b24ebcf305c2c3403e  LICENSE.qcom
 sha256  8401a2253b19272c59537567194d0b264e7ef466379334ff6cea0beec7b8165d  LICENSE.qcom-2
