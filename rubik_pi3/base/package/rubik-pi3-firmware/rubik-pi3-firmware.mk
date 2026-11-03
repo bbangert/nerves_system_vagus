@@ -223,8 +223,9 @@ endef
 # guarantees linux-firmware is extracted by legal-info time. (The blobs
 # themselves come from the vendor repos above; this is Broadcom's own
 # redistribution notice for exactly these bcm43xx files.)
+# linux-firmware 20260810 moved its per-vendor license files under LICENSES/.
 define RUBIK_PI3_FIRMWARE_ADD_LINUX_FIRMWARE_LICENSES
-	$(INSTALL) -D -m 0644 $(RUBIK_PI3_FIRMWARE_LF_DIR)/LICENCE.broadcom_bcm43xx \
+	$(INSTALL) -D -m 0644 $(RUBIK_PI3_FIRMWARE_LF_DIR)/LICENSES/LICENCE.broadcom_bcm43xx \
 		$(LEGAL_INFO_DIR)/licenses/$(RUBIK_PI3_FIRMWARE_BASENAME_RAW)/LICENCE.broadcom_bcm43xx
 endef
 RUBIK_PI3_FIRMWARE_POST_LEGAL_INFO_HOOKS += RUBIK_PI3_FIRMWARE_ADD_LINUX_FIRMWARE_LICENSES
