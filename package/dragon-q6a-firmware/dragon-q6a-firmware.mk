@@ -126,10 +126,11 @@ endef
 # (it only copies from this package's own source dir). Copy them into our
 # legal-info output directly; the supported build flow ("source all
 # legal-info") guarantees linux-firmware is extracted by legal-info time.
+# linux-firmware 20260810 moved its per-vendor license files under LICENSES/.
 define DRAGON_Q6A_FIRMWARE_ADD_LINUX_FIRMWARE_LICENSES
-	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/LICENSE.r8169 \
+	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/LICENSES/LICENSE.r8169 \
 		$(LEGAL_INFO_DIR)/licenses/$(DRAGON_Q6A_FIRMWARE_BASENAME_RAW)/LICENSE.r8169
-	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/LICENCE.linaro \
+	$(INSTALL) -D -m 0644 $(DRAGON_Q6A_FIRMWARE_LF_DIR)/LICENSES/LICENCE.linaro \
 		$(LEGAL_INFO_DIR)/licenses/$(DRAGON_Q6A_FIRMWARE_BASENAME_RAW)/LICENCE.linaro
 endef
 DRAGON_Q6A_FIRMWARE_POST_LEGAL_INFO_HOOKS += DRAGON_Q6A_FIRMWARE_ADD_LINUX_FIRMWARE_LICENSES
