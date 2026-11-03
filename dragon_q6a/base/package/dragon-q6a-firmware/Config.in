@@ -1,0 +1,16 @@
+config BR2_PACKAGE_DRAGON_Q6A_FIRMWARE
+	bool "dragon-q6a-firmware"
+	select BR2_PACKAGE_LINUX_FIRMWARE
+	help
+	  Firmware set for the Radxa Dragon Q6A (QCS6490) AI foundation:
+
+	  - GPU (a660 GMU/SQE/zap), Venus video, and GENI QUP firmware plus
+	    the board-matched CDSP/ADSP images and their .jsn fastrpc domain
+	    descriptors, all sourced from the SAME upstream linux-firmware
+	    release Buildroot already downloads (single-source rule).
+	  - The Hexagon DSP-side shell/skel binaries (fastrpc_shell_*) from
+	    linux-msm/hexagon-dsp-binaries, pinned to a commit whose CDSP
+	    shell version string exactly matches the shipped cdsp.mbn
+	    (mismatches fail fastrpc with error 0x80000600).
+
+	  https://github.com/linux-msm/hexagon-dsp-binaries
