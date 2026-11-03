@@ -1,6 +1,6 @@
 # Radxa Dragon Q6A (QCS6490): Vagus product layer
 
-This target is [nerves_system_q6a](https://github.com/bbangert/nerves_system_q6a),
+This target is [nerves_system_dragon_q6a](https://github.com/bbangert/nerves_system_dragon_q6a),
 the board support for the Radxa Dragon Q6A, plus the layer that Vagus needs
 on top of it. The board system is vendored under `base/` and holds
 everything about the board itself: boot chain and A/B updates, flashing,
@@ -22,7 +22,7 @@ are synced from the repo's `shared/` by `make sync`.
 
 ## How the layers fit
 
-`base/` is a `git subtree --squash` of a tagged nerves_system_q6a release
+`base/` is a `git subtree --squash` of a tagged nerves_system_dragon_q6a release
 (`base/VERSION`). Never edit it here; fix the base repo, tag it, then:
 
 ```sh

@@ -28,8 +28,8 @@ TARGETS := dragon_q6a rpi rpi0 rpi0_2 rpi2 rpi3 rpi3_64 rpi4 rpi5 rubik_pi3 x86_
 PKG_TARGETS := dragon_q6a rpi3_64 rubik_pi3
 
 BASE_TARGETS := dragon_q6a rubik_pi3
-BASE_REPO_dragon_q6a := https://github.com/bbangert/nerves_system_q6a.git
-BASE_REPO_rubik_pi3 := https://github.com/bbangert/nerves_system_rubik.git
+BASE_REPO_dragon_q6a := https://github.com/bbangert/nerves_system_dragon_q6a.git
+BASE_REPO_rubik_pi3 := https://github.com/bbangert/nerves_system_rubik_pi3.git
 
 PKGS := $(wildcard shared/package/*)
 CFG := $(wildcard shared/*.config)

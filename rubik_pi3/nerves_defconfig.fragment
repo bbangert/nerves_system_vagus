@@ -1,4 +1,3 @@
-BR2_NERVES_SYSTEM_NAME="nerves_system_rubik_pi3"
 # Lists: scripts/sync-base.sh appends these to base/nerves_defconfig's values.
 BR2_ROOTFS_OVERLAY="${NERVES_DEFCONFIG_DIR}/rootfs_overlay"
 BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.config ${NERVES_DEFCONFIG_DIR}/linux-containers.config ${NERVES_DEFCONFIG_DIR}/linux-memory.config"

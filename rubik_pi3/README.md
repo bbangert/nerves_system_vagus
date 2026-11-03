@@ -1,6 +1,6 @@
 # Thundercomm Rubik Pi 3 (QCS6490): Vagus product layer
 
-This target is [nerves_system_rubik](https://github.com/bbangert/nerves_system_rubik),
+This target is [nerves_system_rubik_pi3](https://github.com/bbangert/nerves_system_rubik_pi3),
 the board support for the Thundercomm Rubik Pi 3, plus the layer that Vagus
 needs on top of it. The board system is vendored under `base/` and holds
 everything about the board itself: boot chain and A/B updates, UFS
@@ -22,7 +22,7 @@ are synced from the repo's `shared/` by `make sync`.
 
 ## How the layers fit
 
-`base/` is a `git subtree --squash` of a tagged nerves_system_rubik release
+`base/` is a `git subtree --squash` of a tagged nerves_system_rubik_pi3 release
 (`base/VERSION`). Never edit it here; fix the base repo, tag it, then:
 
 ```sh

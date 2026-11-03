@@ -15,8 +15,8 @@ validation is pending.
   libc is still the toolchain's glibc 2.43: Buildroot's glibc bump applies
   only to its internal toolchain, not to the external one these use.
 * Toolchain `nerves_toolchain_aarch64_nerves_linux_gnu` 15.3.0 → 15.3.1.
-* Board support extracted to nerves_system_q6a v0.1.0 (vendored under `base/`);
-  build-identical; the artifact checksum changes.
+* Board support extracted to nerves_system_dragon_q6a v0.1.0 (vendored under
+  `base/`); build-identical; the artifact checksum changes.
 
 ## v0.6.1
 
