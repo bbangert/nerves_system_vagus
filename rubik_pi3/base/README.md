@@ -102,26 +102,26 @@ The result is a Nerves system artifact consumed by an application project.
 
 ### Using in an application
 
-Add the system to your app's `mix.exs` as a `:rubik` target (the package
-is not on Hex; depend on this repository):
+Add the system to your app's `mix.exs` as a `:rubik_pi3` target (the
+package is not on Hex; depend on this repository):
 
 ```elixir
-@all_targets [:rubik]
+@all_targets [:rubik_pi3]
 
 # in deps():
-{:nerves_system_rubik,
- github: "bbangert/nerves_system_rubik", tag: "v0.1.0",
- runtime: false, targets: :rubik}
+{:nerves_system_rubik_pi3,
+ github: "bbangert/nerves_system_rubik_pi3", tag: "v0.1.0",
+ runtime: false, targets: :rubik_pi3}
 ```
 
 Nerves downloads the prebuilt system artifact from this repo's GitHub
 release for the tag. To build the system from source instead, add
 `nerves: [compile: true]` to the dependency.
 
-Then set `MIX_TARGET=rubik` for every mix command:
+Then set `MIX_TARGET=rubik_pi3` for every mix command:
 
 ```sh
-export MIX_TARGET=rubik
+export MIX_TARGET=rubik_pi3
 mix deps.get
 mix firmware
 ```
@@ -154,7 +154,7 @@ The UFS uses 4096-byte logical blocks and fwup writes 512-byte GPTs, so
 
 ```sh
 mix firmware
-fwup -a -t complete -i _build/rubik_dev/nerves/images/<app>.fw -d rubik.img
+fwup -a -t complete -i _build/rubik_pi3_dev/nerves/images/<app>.fw -d rubik.img
 # Exact LUN0 capacity: 29976576 sectors x 4096 on the 128 GB module (the
 # kernel's sd 0:0:0:0 line or the stock GPT's BackupLBA + 1 gives it).
 python3 tools/mk_ufs_image.py --input rubik.img \
