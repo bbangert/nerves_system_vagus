@@ -1,0 +1,10 @@
+config BR2_PACKAGE_AIC8800_FIRMWARE
+	bool "aic8800-firmware"
+	help
+	  Firmware blobs for the AIC8800D80 USB WiFi 6 + Bluetooth 5.4
+	  combo chip (the Q6A's onboard Quectel FCU760K), installed to
+	  /lib/firmware/aic8800D80/ where the aic8800 driver's loader
+	  module requests them. Proprietary Aicsemi binaries,
+	  redistributed by Radxa; not part of linux-firmware.
+
+	  https://github.com/radxa-pkg/aic8800

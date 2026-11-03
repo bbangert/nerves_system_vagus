@@ -1,0 +1,24 @@
+nerves_system_q6a
+Copyright 2026 Ben Bangert
+
+This repository contains Buildroot recipes and configuration, licensed as
+described in REUSE.toml and LICENSES/. Building it downloads, and the
+resulting system image contains, third-party software under its own
+licenses; `make legal-info` in the Buildroot output lists them.
+
+The following packages install proprietary firmware that is NOT licensed
+for redistribution by this project. Their recipes set
+<PKG>_REDISTRIBUTE = NO, so their sources are left out of legal-info
+source dumps. Whoever distributes a system image or firmware built from
+this repository is responsible for having the right to do so.
+
+* aic8800-firmware (package/aic8800-firmware): Aicsemi AIC8800D80 WiFi/BT
+  firmware blobs, published by Radxa in radxa-pkg/aic8800 without a
+  standalone license grant. package/aic8800 downloads the same tarball and
+  is marked the same way.
+
+* dragon-q6a-firmware (package/dragon-q6a-firmware): Qualcomm Hexagon
+  CDSP/ADSP DSP-side shell and skel binaries from
+  linux-msm/hexagon-dsp-binaries, plus Qualcomm (CDSP/ADSP, Adreno, Venus,
+  QUP) and Realtek NIC firmware copied from linux-firmware, under the
+  Qualcomm, Linaro and r8169 firmware licenses.

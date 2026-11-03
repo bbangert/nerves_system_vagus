@@ -1,0 +1,23 @@
+config BR2_PACKAGE_AIC8800
+	bool "aic8800"
+	depends on BR2_LINUX_KERNEL
+	# Not optional: the D80 is firmware-upload-driven -- aic_load_fw
+	# pushes the blobs and the chip re-enumerates, so without them the
+	# modules load and then the device never works. Select rather than
+	# depend, so the pair can never be half-enabled.
+	select BR2_PACKAGE_AIC8800_FIRMWARE
+	help
+	  Out-of-tree kernel modules for the AIC8800D80 USB WiFi 6 +
+	  Bluetooth 5.4 combo chip (the Q6A's onboard Quectel FCU760K,
+	  USB a69c:8d80): aic_load_fw (firmware loader), aic8800_fdrv
+	  (cfg80211 fullmac WiFi, presents wlan0) and aic_btusb (BT,
+	  patched from the vendor's Android-Bluedroid default to
+	  register a standard BlueZ hci0).
+
+	  Needs the firmware blobs from BR2_PACKAGE_AIC8800_FIRMWARE
+	  at runtime (kept in lockstep with this package).
+
+	  https://github.com/radxa-pkg/aic8800
+
+comment "aic8800 needs a Linux kernel to be built"
+	depends on !BR2_LINUX_KERNEL
