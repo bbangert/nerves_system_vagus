@@ -16,17 +16,47 @@
 # busybox echo prints -n literally.)
 
 FW_DIR=/run/usb_fw
+# Overridable so the resolver can be tested against a fake sysfs tree.
+SYSFS=${RUBIK_USB_FW_SYSFS:-/sys}
+
+# The base BusyBox has no findfs (and its findfs takes no PARTLABEL=); only
+# util-linux from a product layer provides it. The kernel exports each GPT
+# partition's name as PARTNAME= in its uevent, so fall back to that.
+find_usb_fw() {
+    if command -v findfs >/dev/null 2>&1; then
+        findfs PARTLABEL=usb_fw 2>/dev/null && return 0
+    fi
+    for uevent in "$SYSFS"/class/block/*/uevent; do
+        [ -r "$uevent" ] || continue
+        while IFS= read -r line; do
+            if [ "$line" = PARTNAME=usb_fw ]; then
+                blk=${uevent%/uevent}
+                printf '/dev/%s\n' "${blk##*/}"
+                return 0
+            fi
+        done < "$uevent"
+    done
+    return 1
+}
 
 dev=""
 for _ in 1 2 3; do
-    dev=$(findfs PARTLABEL=usb_fw 2>/dev/null) && break
+    dev=$(find_usb_fw) && break
     sleep 1
 done
-[ -n "$dev" ] || exit 0
+if [ -z "$dev" ]; then
+    echo "rubik-usb-fw: no usb_fw partition found; USB3 firmware not loaded" >&2
+    exit 0
+fi
 
 mkdir -p "$FW_DIR" &&
-    mount -o ro,nodev,noexec,nosuid "$dev" "$FW_DIR" &&
-    [ -f "$FW_DIR/renesas_usb_fw.mem" ] &&
+    mount -o ro,nodev,noexec,nosuid "$dev" "$FW_DIR" || exit 0
+
+if [ -f "$FW_DIR/renesas_usb_fw.mem" ]; then
     printf '%s' "$FW_DIR" > /sys/module/firmware_class/parameters/path
+else
+    echo "rubik-usb-fw: $dev has no renesas_usb_fw.mem; USB3 firmware not loaded" >&2
+    umount "$FW_DIR"
+fi
 
 exit 0

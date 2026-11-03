@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.1.1
+
+* `rubik-usb-fw` found the `usb_fw` partition only via `findfs`, which the
+  base image lacks (only util-linux from a product layer provides it), so on
+  the standalone image the uPD720201 firmware never loaded and USB3 and
+  Ethernet stayed dead. It now falls back to the kernel's `PARTNAME=` in
+  `/sys/class/block/*/uevent`, and logs to the console when the partition
+  or `renesas_usb_fw.mem` is missing.
+
 ## v0.1.0
 
 Initial release, extracted from bbangert/nerves_system_vagus `rubik_pi3/`
