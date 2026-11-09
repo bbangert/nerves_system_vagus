@@ -1,0 +1,18 @@
+config BR2_PACKAGE_AIC8800
+	bool "aic8800"
+	depends on BR2_LINUX_KERNEL
+	help
+	  Out-of-tree driver + firmware for the AICSemi AIC8800D80
+	  (WiFi 6 + BT 5.4) as found in the ROCK 4D's onboard Quectel
+	  FCU760K module, USB-attached. Radxa's packaging of the vendor
+	  driver, pinned by commit, with Radxa's debian/patches applied
+	  (the stock source does not build on kernel 6.1).
+
+	  Builds aic_load_fw.ko (firmware uploader; binds the cold
+	  a69c:8d80 device, uploads firmware, chip re-enumerates as
+	  a69c:8d81), aic8800_fdrv.ko (cfg80211 fullmac WiFi -> wlan0)
+	  and aic_btusb.ko (BlueZ hci0). All three autoload via USB
+	  modalias; firmware is read from
+	  /lib/firmware/aic8800_fw/USB/aic8800D80 via filp_open.
+
+	  https://github.com/radxa-pkg/aic8800

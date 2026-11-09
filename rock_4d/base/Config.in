@@ -1,0 +1,5 @@
+# Add project-specific packages for Buildroot here
+
+source "$NERVES_DEFCONFIG_DIR/package/aic8800/Config.in"
+source "$NERVES_DEFCONFIG_DIR/package/libmali/Config.in"
+source "$NERVES_DEFCONFIG_DIR/package/librknnrt/Config.in"

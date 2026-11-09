@@ -1,0 +1,20 @@
+From: Ben Bangert <ben@groovie.org>
+Subject: [PATCH] dts: rk3576-rock-4d: set the HDMI DDC SDA falling delay
+
+Without rockchip,sda-falling-delay-ns the RK3576 HDMI glue never enables
+the GRF output-SDA delay (VO0_GRF_SOC_CON12), and EDID reads on the
+ROCK 4D corrupt partway ("ddc read failed", "EDID block 0 checksum is
+invalid"), leaving only fallback modes up to 1080p. 360 ns is the value
+Rockchip's rk3576-evb1 and most other RK3576 boards use. With it the
+full 256-byte EDID reads and a 4K TV comes up at 3840x2160p60.
+
+--- a/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
+@@ -390,6 +390,7 @@
+ 	status = "okay";
+ 	cec-enable;
+ 	enable-gpios = <&gpio2 RK_PB0 GPIO_ACTIVE_HIGH>;
++	rockchip,sda-falling-delay-ns = <360>;
+ };
+ 
+ &hdmi_in_vp0 {
