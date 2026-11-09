@@ -83,6 +83,13 @@ reads the serial number.
 
 ## Flashing the SPI NOR (one-time provisioning, via maskrom)
 
+> **Remove the UFS module first** (or leave it in the USB reader). The
+> maskrom loader (`rk3576_spl_loader_v1.09.108.bin` with `cs 9`) also
+> re-provisions a seated UFS module and erases it: on a 128 GB module LUN0
+> grew by 48 MiB, the boot LUNs folded into it, with an empty GPT and zeroed
+> env and data. Reflash the module with `scripts/flash-ufs.sh` if that
+> happened.
+
 Flashing is done over USB from the host, with no OS on the board involved.
 Hold the MASKROM button while applying power. The maskrom USB device
 appears on the upper USB 3.0 Type-A OTG port (top-left, nearest the
