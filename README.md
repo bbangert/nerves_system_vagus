@@ -37,7 +37,8 @@ expect. This system builds mainline U-Boot (v2027.01-rc1) in Buildroot
 with UFS/SCSI support, and ships a flashing path that writes a 4096-byte
 GPT (see "Flashing and upgrades"). Flash U-Boot to the NOR once over USB
 maskrom (a host-side `rkdeveloptool` step, see
-[uboot/README.md](uboot/README.md)); after that, firmware updates are
+[uboot/README.md](uboot/README.md)), **with the UFS module removed**: the
+maskrom loader erases a seated module. After that, firmware updates are
 normal Nerves A/B upgrades on the module and the bootloader doesn't need
 to be touched again. About 14.4 MiB of the NOR stays free.
 
@@ -163,7 +164,10 @@ environment and an extlinux boot without revert on that boot. If the
 nerves boot path or the environment is broken, `bootflow scan` boots
 `extlinux/extlinux.conf` from the FAT partition instead; that scan only
 finds it because bootfs is the only partition marked bootable (GPT
-legacy-BIOS-bootable attribute). U-Boot build
+legacy-BIOS-bootable attribute). `extlinux.conf` always names the last
+validated slot: `complete` and validation write it, as does a manual
+revert, and upgrades leave it alone. So a fallback boot never lands in an
+unvalidated or rolled-back slot. U-Boot build
 details and provenance: `uboot/README.md`.
 
 Linux never mounts the bootfs: it is a 512-byte-BPB FAT (all fwup can
@@ -216,7 +220,7 @@ the vendor code this system carries.
 | Peripheral | Device | Notes |
 | --- | --- | --- |
 | SoC | Rockchip RK3576 (RK3576J on industrial SKUs), 4×Cortex-A72 @ 2.2 GHz + 4×Cortex-A53 @ 2.0 GHz | RK806 PMIC (i2c 0x23) |
-| RAM | LPDDR5, 2/4/8/16 GB SKUs | DDR init blob handles LP4/LP5 |
+| RAM | LPDDR5, 2/4/6/8/16 GB SKUs | DDR init blob v1.13 handles LP4/LP5 and the 6 GB (3/4-row) parts |
 | Boot flash | 16 MB SPI NOR on sfc0 (XMC XM25QU128C on the tested board) | mtd `loader`; holds U-Boot |
 | microSD | sdmmc, UHS-I SDR104 | Unused by this fork |
 | eMMC/UFS connector | UFS modules 64 GB–1 TB | The Nerves system disk (4096-byte sectors); eMMC modules unsupported on SPI-NOR (standard) SKUs |

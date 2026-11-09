@@ -89,7 +89,7 @@ BR2_TARGET_UBOOT_FORMAT_CUSTOM_NAME="u-boot-rockchip-spi.bin"
 # Committed rkbin blobs (see uboot/rkbin/README.md), not Buildroot's
 # rockchip-rkbin package: that pins an older rkbin than the DDR/BL31 pair
 # this board was proven with.
-BR2_TARGET_UBOOT_CUSTOM_MAKEOPTS="ROCKCHIP_TPL=${NERVES_DEFCONFIG_DIR}/uboot/rkbin/rk3576_ddr_lp4_2112MHz_lp5_2736MHz_v1.12.bin BL31=${NERVES_DEFCONFIG_DIR}/uboot/rkbin/rk3576_bl31_v1.24.elf"
+BR2_TARGET_UBOOT_CUSTOM_MAKEOPTS="ROCKCHIP_TPL=${NERVES_DEFCONFIG_DIR}/uboot/rkbin/rk3576_ddr_lp4_2112MHz_lp5_2736MHz_v1.13.bin BL31=${NERVES_DEFCONFIG_DIR}/uboot/rkbin/rk3576_bl31_v1.24.elf"
 # uboot-env.bin from uboot/uboot.env. The size must equal CONFIG_ENV_SIZE in
 # uboot/ufs.fragment: both CRCs cover size - 4 bytes.
 BR2_PACKAGE_HOST_UBOOT_TOOLS=y
