@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.2.4
+
+- The application data partition (p5) is now ext4 mounted at `/data`,
+  matching the other Vagus boards, instead of f2fs at `/root`. The image
+  carries e2fsprogs with `resize2fs` in place of f2fs-tools, and the kernel
+  drops f2fs.
+- Upgrading an existing board reformats p5: the new firmware's f2fs-less
+  mount fails on the old filesystem, so nerves_runtime formats the
+  partition as ext4 on first boot and its data is lost.
+
+## v0.2.3
+
+- Tagged releases attach `u-boot-rockchip-spi.bin`,
+  `rk3576_spl_loader_v1.09.108.bin` and their `SHA256SUMS` next to the
+  system artifact, for maskrom flashing.
+- The rootfs carries its release's SPI image (`/usr/share/rock4d/`, with a
+  sha256) and `rock4d-bootloader`: `status` compares the NOR against it
+  (sha256 and DDR `fwver`), `update --yes` writes it with `flashcp` and
+  verifies by read-back. Opt-in only; nothing runs it. busybox gains
+  `cmp`, `stat` (with `-c` formats) and `strings` for it. `status` and the
+  refusal without `--yes` are verified on hardware; the `update --yes` write
+  path has not been run on hardware.
+
 ## v0.2.2
 
 - U-Boot's fallback boot path (`extlinux/extlinux.conf`) now always names
