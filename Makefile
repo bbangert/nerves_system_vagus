@@ -9,7 +9,7 @@
 # rootfs_overlay/etc/. shared/package/<name>/ holds Buildroot packages, synced
 # as whole directories into <target>/package/<name>/ for PKG_TARGETS.
 #
-# The Qualcomm boards (BASE_TARGETS) are a product layer over a vendored board
+# The base boards (BASE_TARGETS) are a product layer over a vendored board
 # system: <target>/base/ is a `git subtree --squash` of BASE_REPO_<target>,
 # never edited here (`make base-pull` moves it). scripts/sync-base.sh
 # generates the target's nerves_defconfig, Config.in and erlinit.config from
@@ -22,13 +22,14 @@
 # Every target fork. rpi/rpi2 (no onboard BT) and x86_64 are included for USB
 # Bluetooth adapters + USB audio; the onboard-BT kernel symbols in the shared
 # fragment are inert there but harmless.
-TARGETS := dragon_q6a rpi rpi0 rpi0_2 rpi2 rpi3 rpi3_64 rpi4 rpi5 rubik_pi3 x86_64
+TARGETS := dragon_q6a rock_4d rpi rpi0 rpi0_2 rpi2 rpi3 rpi3_64 rpi4 rpi5 rubik_pi3 x86_64
 
 # Only the boards that ship a container engine carry its Buildroot package.
-PKG_TARGETS := dragon_q6a rpi3_64 rubik_pi3
+PKG_TARGETS := dragon_q6a rock_4d rpi3_64 rubik_pi3
 
-BASE_TARGETS := dragon_q6a rubik_pi3
+BASE_TARGETS := dragon_q6a rock_4d rubik_pi3
 BASE_REPO_dragon_q6a := https://github.com/bbangert/nerves_system_dragon_q6a.git
+BASE_REPO_rock_4d := https://github.com/bbangert/nerves_system_rock_4d.git
 BASE_REPO_rubik_pi3 := https://github.com/bbangert/nerves_system_rubik_pi3.git
 
 PKGS := $(wildcard shared/package/*)
