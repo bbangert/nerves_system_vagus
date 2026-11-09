@@ -1,0 +1,35 @@
+config BR2_PACKAGE_LIBMALI
+	bool "libmali"
+	depends on BR2_INSTALL_LIBSTDCPP
+	depends on BR2_TOOLCHAIN_USES_GLIBC
+	depends on BR2_aarch64
+	depends on BR2_TOOLCHAIN_HAS_THREADS
+	select BR2_PACKAGE_HAS_LIBEGL
+	select BR2_PACKAGE_HAS_LIBGLES
+	select BR2_PACKAGE_HAS_LIBGBM
+	select BR2_PACKAGE_LIBGBM_HAS_FEATURE_DMA_BUF
+	select BR2_PACKAGE_LIBGBM_HAS_FEATURE_FORMAT_MODIFIER_PLANE_COUNT
+	select BR2_PACKAGE_LIBDRM
+	help
+	  Proprietary ARM Mali userspace (EGL/GLESv2/GBM) for the
+	  Rockchip RK3576 Mali-G52, DDK g29p1, GLES+GBM variant. Pairs
+	  with the in-kernel Mali Bifrost module (CONFIG_MALI_BIFROST)
+	  that creates /dev/mali0.
+
+	  Forked from Buildroot's rockchip-mali (which is hardcoded to
+	  G31). The blob is downloaded from Rockchip's public libmali
+	  distribution (JeffyCN/mirrors, pinned by commit, hash-checked);
+	  headers and pkgconfig ship in this package.
+
+if BR2_PACKAGE_LIBMALI
+
+config BR2_PACKAGE_PROVIDES_LIBEGL
+	default "libmali"
+
+config BR2_PACKAGE_PROVIDES_LIBGLES
+	default "libmali"
+
+config BR2_PACKAGE_PROVIDES_LIBGBM
+	default "libmali"
+
+endif

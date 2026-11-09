@@ -1,0 +1,132 @@
+BR2_aarch64=y
+BR2_cortex_a72=y
+BR2_TOOLCHAIN_EXTERNAL=y
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM=y
+BR2_TOOLCHAIN_EXTERNAL_DOWNLOAD=y
+BR2_TOOLCHAIN_EXTERNAL_URL="https://github.com/nerves-project/toolchains/releases/download/v15.3.1/nerves_toolchain_aarch64_nerves_linux_gnu-linux_${shell uname -m}-15.3.1-C0D130A.tar.xz"
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM_PREFIX="aarch64-nerves-linux-gnu"
+BR2_TOOLCHAIN_EXTERNAL_GCC_15=y
+BR2_TOOLCHAIN_EXTERNAL_HEADERS_6_0=y
+BR2_TOOLCHAIN_EXTERNAL_CUSTOM_GLIBC=y
+# BR2_TOOLCHAIN_EXTERNAL_INET_RPC is not set
+BR2_TOOLCHAIN_EXTERNAL_CXX=y
+BR2_TOOLCHAIN_EXTERNAL_FORTRAN=y
+BR2_TOOLCHAIN_EXTERNAL_OPENMP=y
+BR2_TAR_OPTIONS="--no-same-owner"
+BR2_BACKUP_SITE="https://dl.nerves-project.org"
+BR2_ENABLE_DEBUG=y
+BR2_GLOBAL_PATCH_DIR="${BR2_EXTERNAL_NERVES_PATH}/patches"
+BR2_REPRODUCIBLE=y
+BR2_ROOTFS_SKELETON_CUSTOM=y
+BR2_ROOTFS_SKELETON_CUSTOM_PATH="${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/skeleton"
+BR2_INIT_NONE=y
+BR2_ROOTFS_DEVICE_TABLE="${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/device_table.txt"
+BR2_ENABLE_LOCALE_WHITELIST="locale-archive"
+BR2_GENERATE_LOCALE="en_US.UTF-8"
+BR2_ROOTFS_OVERLAY="${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/rootfs_overlay ${NERVES_DEFCONFIG_DIR}/rootfs_overlay"
+BR2_ROOTFS_POST_BUILD_SCRIPT="${NERVES_DEFCONFIG_DIR}/post-build.sh ${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/post-build.sh"
+BR2_ROOTFS_POST_IMAGE_SCRIPT="${NERVES_DEFCONFIG_DIR}/post-createfs.sh"
+BR2_LINUX_KERNEL=y
+BR2_LINUX_KERNEL_CUSTOM_TARBALL=y
+# armbian/linux-rockchip branch rk-6.1-rkr7.2 (Rockchip BSP 6.1 + stable
+# merges + Armbian fixes; kernel 6.1.172), pinned to the 2026-11-04 tip.
+# The ROCK 4D's device tree (rk3576-rock-4d-spi) is already in this tree;
+# the only board patch is linux/0001 (watchdog enable + mmc0 alias). The
+# watchdog half is required for nerves_heart; the mmc0 alias half is legacy
+# from SD boot and harmless on UFS. Both are still missing upstream, and the
+# patch applies cleanly here.
+BR2_LINUX_KERNEL_CUSTOM_TARBALL_LOCATION="https://github.com/armbian/linux-rockchip/archive/858550966271b1f59897a106bc3f92842ea0e750.tar.gz"
+BR2_LINUX_KERNEL_PATCH="${NERVES_DEFCONFIG_DIR}/linux"
+# Same config Radxa's vendor build uses (rockchip_linux_defconfig + rk3576
+# Mali fragment) plus Nerves requirements.
+BR2_LINUX_KERNEL_USE_DEFCONFIG=y
+BR2_LINUX_KERNEL_DEFCONFIG="rockchip_linux"
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux/rk3576.config ${NERVES_DEFCONFIG_DIR}/linux/nerves.config"
+BR2_LINUX_KERNEL_DTS_SUPPORT=y
+# The -spi variant of the ROCK 4D dts matches boards as sold (all standard
+# SKUs have the boot SPI NOR): it exposes the NOR as the "loader" mtd for
+# bootloader updates and disables the unusable eMMC. The .dtb basename must
+# match the devicetree.dtb resource in fwup.conf.
+BR2_LINUX_KERNEL_INTREE_DTS_NAME="rockchip/rk3576-rock-4d-spi"
+BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
+BR2_PACKAGE_BUSYBOX_CONFIG="${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/busybox.config"
+BR2_PACKAGE_BUSYBOX_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/busybox.fragment"
+BR2_PACKAGE_F2FS_TOOLS=y
+BR2_PACKAGE_CA_CERTIFICATES=y
+BR2_PACKAGE_DTC=y
+BR2_PACKAGE_LIBMNL=y
+BR2_PACKAGE_WIRELESS_REGDB=y
+BR2_PACKAGE_WPA_SUPPLICANT=y
+BR2_PACKAGE_WPA_SUPPLICANT_WIRED=y
+BR2_PACKAGE_WPA_SUPPLICANT_AP_SUPPORT=y
+BR2_PACKAGE_WPA_SUPPLICANT_AUTOSCAN=y
+BR2_PACKAGE_WPA_SUPPLICANT_HOTSPOT=y
+BR2_PACKAGE_WPA_SUPPLICANT_DEBUG_SYSLOG=y
+BR2_PACKAGE_WPA_SUPPLICANT_WPS=y
+BR2_PACKAGE_WPA_SUPPLICANT_WPA3=y
+BR2_PACKAGE_WPA_SUPPLICANT_CTRL_IFACE=y
+# BR2_TARGET_ROOTFS_TAR is not set
+BR2_PACKAGE_HOST_KMOD_XZ=y
+# Mainline U-Boot for the onboard SPI NOR (flashed once over maskrom, see
+# uboot/README.md). v2027.01-rc1 rather than v2026.10: it is the first tag
+# whose rock-4d defconfig enables SPI_FLASH_XMC (V1.12 boards ship an XMC
+# NOR; without it SPL cannot load U-Boot proper), and the tag the UFS env
+# config was proven against.
+BR2_TARGET_UBOOT=y
+BR2_TARGET_UBOOT_BUILD_SYSTEM_KCONFIG=y
+BR2_TARGET_UBOOT_CUSTOM_TARBALL=y
+BR2_TARGET_UBOOT_CUSTOM_TARBALL_LOCATION="https://github.com/u-boot/u-boot/archive/refs/tags/v2027.01-rc1.tar.gz"
+BR2_TARGET_UBOOT_BOARD_DEFCONFIG="rock-4d-rk3576"
+BR2_TARGET_UBOOT_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/uboot/ufs.fragment"
+BR2_TARGET_UBOOT_NEEDS_DTC=y
+BR2_TARGET_UBOOT_NEEDS_PYLIBFDT=y
+BR2_TARGET_UBOOT_NEEDS_PYELFTOOLS=y
+BR2_TARGET_UBOOT_NEEDS_OPENSSL=y
+BR2_TARGET_UBOOT_USE_BINMAN=y
+# BR2_TARGET_UBOOT_FORMAT_BIN is not set
+BR2_TARGET_UBOOT_FORMAT_CUSTOM=y
+BR2_TARGET_UBOOT_FORMAT_CUSTOM_NAME="u-boot-rockchip-spi.bin"
+# Committed rkbin blobs (see uboot/rkbin/README.md), not Buildroot's
+# rockchip-rkbin package: that pins an older rkbin than the DDR/BL31 pair
+# this board was proven with.
+BR2_TARGET_UBOOT_CUSTOM_MAKEOPTS="ROCKCHIP_TPL=${NERVES_DEFCONFIG_DIR}/uboot/rkbin/rk3576_ddr_lp4_2112MHz_lp5_2736MHz_v1.13.bin BL31=${NERVES_DEFCONFIG_DIR}/uboot/rkbin/rk3576_bl31_v1.24.elf"
+# uboot-env.bin from uboot/uboot.env. The size must equal CONFIG_ENV_SIZE in
+# uboot/ufs.fragment: both CRCs cover size - 4 bytes.
+BR2_PACKAGE_HOST_UBOOT_TOOLS=y
+BR2_PACKAGE_HOST_UBOOT_TOOLS_ENVIMAGE=y
+BR2_PACKAGE_HOST_UBOOT_TOOLS_ENVIMAGE_SOURCE="${NERVES_DEFCONFIG_DIR}/uboot/uboot.env"
+BR2_PACKAGE_HOST_UBOOT_TOOLS_ENVIMAGE_SIZE="131072"
+BR2_NERVES_SYSTEM_NAME="nerves_system_rock_4d"
+BR2_NERVES_ADDITIONAL_IMAGE_FILES="${NERVES_DEFCONFIG_DIR}/fwup.conf ${NERVES_DEFCONFIG_DIR}/extlinux-a.conf ${NERVES_DEFCONFIG_DIR}/extlinux-b.conf"
+BR2_PACKAGE_NBTTY=y
+# Onboard WiFi/BT: Quectel FCU760K (AIC8800D80, USB). Out-of-tree driver +
+# firmware; all three modules autoload via USB modalias (eudev), the dts
+# powers the module. See package/aic8800.
+BR2_PACKAGE_AIC8800=y
+BR2_PACKAGE_NERVES_CONFIG=y
+BR2_PACKAGE_NERVES_CONFIG_ACCEPT_RNG_NOTICE=y
+# GPU: proprietary Mali userspace (RK3576 = Mali G52 MC3) + a KMS GL smoke
+# test
+BR2_PACKAGE_LIBMALI=y
+BR2_PACKAGE_KMSCUBE=y
+# NPU: RKNN runtime for the in-kernel RKNPU driver. Applications link
+# against rknn_api.h/rknn_matmul_api.h (staging) and load models built
+# with rknn-toolkit2 on the host.
+BR2_PACKAGE_LIBRKNNRT=y
+# Input: eudev (dynamic /dev) and libinput, the input layer DRM/KMS UI
+# stacks read USB keyboards/mice/touchscreens through. No UI toolkit ships
+# in the system — bring your own (a Flutter embedder, LVGL, Slint, Qt, ...)
+# from the application side; kmscube verifies the DRM/KMS + GPU path.
+BR2_ROOTFS_DEVICE_CREATION_DYNAMIC_EUDEV=y
+BR2_PACKAGE_LIBINPUT=y
+# Audio: ES8388 codec (headphone jack) + HDMI audio. ALSA userspace:
+# aplay/arecord/amixer/alsactl + speaker-test.
+BR2_PACKAGE_ALSA_LIB=y
+BR2_PACKAGE_ALSA_UTILS=y
+BR2_PACKAGE_ALSA_UTILS_APLAY=y
+BR2_PACKAGE_ALSA_UTILS_AMIXER=y
+BR2_PACKAGE_ALSA_UTILS_ALSACTL=y
+BR2_PACKAGE_ALSA_UTILS_SPEAKER_TEST=y
+# mtd-utils (flashcp) so a running system can update the SPI NOR bootloader
+BR2_PACKAGE_MTD=y
+BR2_PACKAGE_MTD_FLASHCP=y

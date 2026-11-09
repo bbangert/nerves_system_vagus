@@ -1,0 +1,17 @@
+config BR2_PACKAGE_LIBRKNNRT
+	bool "librknnrt"
+	depends on BR2_aarch64
+	depends on BR2_TOOLCHAIN_USES_GLIBC
+	depends on BR2_INSTALL_LIBSTDCPP
+	help
+	  Rockchip RKNN runtime (librknnrt.so) for the RK3576 NPU,
+	  v2.3.2, matching the in-kernel RKNPU driver (0.9.8). Provides
+	  the rknn_api/rknn_matmul_api C interface that application-side
+	  NIFs or ports link against; models are built on a host with the
+	  rknn-toolkit2 Python tools.
+
+	  Proprietary Rockchip blob, fetched at build time from the
+	  public airockchip/rknn-toolkit2 repository, pinned by tag and
+	  hash-checked.
+
+	  https://github.com/airockchip/rknn-toolkit2

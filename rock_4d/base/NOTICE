@@ -1,0 +1,23 @@
+# Licensing map
+
+This repository combines content under several licenses. The full license
+texts are in LICENSES/.
+
+| Content | License |
+| --- | --- |
+| Build configuration, fwup configs, scripts, docs (this project's own files) | GPL-2.0-or-later |
+| `linux/0001-*.patch` (Linux kernel device-tree patch) | GPL-2.0-only (kernel license) |
+| `package/aic8800/*.patch` (from radxa-pkg/aic8800 debian/patches) | GPL (see upstream; the driver modules they patch are GPL-2.0-or-later) |
+| `assets/*.webp` (board diagrams from the Radxa documentation) | CC-BY-4.0, © Radxa Computer (Shenzhen) Co., Ltd., unmodified |
+| `uboot/rkbin/*.bin`, `uboot/rkbin/*.elf` (committed binaries: RK3576 DDR init, BL31; packed into the Buildroot-built SPI image) | Rockchip proprietary (rockchip-linux/rkbin — `uboot/rkbin/LICENSE` = LICENSES/LICENSE.rockchip-rkbin) |
+| `uboot/rk3576_spl_loader_v1.09.108.bin` (committed binary) | Rockchip proprietary (rkbin components — LICENSES/LICENSE.rockchip-rkbin) |
+| `package/libmali/include/*` (Khronos headers) | Khronos/MIT-style, see file headers |
+
+Downloaded at build time (not in this repository): the ARM Mali libmali
+userspace blob (Rockchip's public libmali distribution, proprietary), the
+AIC8800 WiFi/BT firmware (via radxa-pkg/aic8800, proprietary), the
+Rockchip RKNN NPU runtime (librknnrt via airockchip/rknn-toolkit2,
+proprietary), the Linux kernel (GPL-2.0-only), U-Boot (GPL-2.0-or-later),
+Buildroot packages (various). Built firmware images
+therefore contain proprietary firmware alongside GPL components, as is
+usual for embedded Linux board support.

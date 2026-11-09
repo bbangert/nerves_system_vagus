@@ -1,0 +1,22 @@
+Fork-local patch, not part of radxa-pkg's debian/patches series.
+
+get_fw_path() copies a non-empty aic_fw_path override with memcpy of
+strlen() bytes, so the result is never NUL-terminated. The callers added
+by fix-sdio-per-chip-firmware-path pass uninitialised FW_PATH_MAX stack
+buffers and then format them with %s, reading past the copied path.
+Bound and terminate the copy the same way the default branch already does.
+
+This system builds only the USB driver, not the SDIO tree; the fix keeps
+the applied series correct anyway.
+
+--- a/src/SDIO/driver_fw/driver/aic8800/aic8800_bsp/aicsdio.c
++++ b/src/SDIO/driver_fw/driver/aic8800/aic8800_bsp/aicsdio.c
+@@ -2091,7 +2091,7 @@
+ 
+ void get_fw_path(char* fw_path){
+ 	if (strlen(aic_fw_path) > 0) {
+-		memcpy(fw_path, aic_fw_path, strlen(aic_fw_path));
++		snprintf(fw_path, FW_PATH_MAX, "%s", aic_fw_path);
+ 	}else{
+ 		snprintf(fw_path, FW_PATH_MAX, "%s%s", aic_default_fw_path, aicbsp_chip_fw_subdir());
+ 	}
