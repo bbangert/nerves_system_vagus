@@ -52,7 +52,11 @@ BR2_LINUX_KERNEL_INTREE_DTS_NAME="rockchip/rk3576-rock-4d-spi"
 BR2_LINUX_KERNEL_NEEDS_HOST_OPENSSL=y
 BR2_PACKAGE_BUSYBOX_CONFIG="${BR2_EXTERNAL_NERVES_PATH}/board/nerves-common/busybox.config"
 BR2_PACKAGE_BUSYBOX_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/base/busybox.fragment"
-BR2_PACKAGE_F2FS_TOOLS=y
+BR2_PACKAGE_E2FSPROGS=y
+# BR2_PACKAGE_E2FSPROGS_FSCK is not set
+# resize2fs: a no-op safety pass for the product's provisioner; the image
+# tool already grows p5 to the end of the disk.
+BR2_PACKAGE_E2FSPROGS_RESIZE2FS=y
 BR2_PACKAGE_CA_CERTIFICATES=y
 BR2_PACKAGE_DTC=y
 BR2_PACKAGE_LIBMNL=y

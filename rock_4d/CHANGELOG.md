@@ -3,6 +3,17 @@
 Headings are this target's `VERSION`. Git tags are repo-wide and can differ;
 an entry names its repo tag where it does.
 
+## v0.1.1
+
+Repo tag v0.9.1. Moves base to nerves_system_rock_4d v0.2.4: the
+application data partition (p5) is ext4 mounted at `/data`, matching the
+other Vagus boards, instead of f2fs at `/root`. On f2fs the podman
+swapfile could not be enabled and the provisioner's `resize2fs` failed.
+
+Upgrading a board from v0.1.0 reformats p5 on the first boot: the ext4
+mount fails on the old f2fs partition and nerves_runtime formats it, so
+everything on it (Core's config, apps, SSH host keys) is lost.
+
 ## v0.1.0
 
 First release of this target. The board support is nerves_system_rock_4d
