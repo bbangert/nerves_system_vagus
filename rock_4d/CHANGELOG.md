@@ -6,7 +6,7 @@ an entry names its repo tag where it does.
 ## v0.1.0
 
 First release of this target. The board support is nerves_system_rock_4d
-v0.2.1 (vendored under `base/`): UFS boot with mainline U-Boot in SPI NOR,
+v0.2.2 (vendored under `base/`): UFS boot with mainline U-Boot in SPI NOR,
 the Rockchip vendor kernel 6.1.172, A/B updates with automatic revert. Its
 hardware validation record is `base/README.md`.
 
