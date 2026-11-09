@@ -125,9 +125,22 @@ jobs:
           mix compile
           mix nerves.artifact
 
+      # Flashing the SPI NOR over maskrom needs these next to the system:
+      # the SPI image this build made and the maskrom loader.
+      - name: Collect the bootloader files
+        run: |
+          cp .nerves/artifacts/*/images/u-boot-rockchip-spi.bin .
+          cp uboot/rk3576_spl_loader_v1.09.108.bin .
+          sha256sum u-boot-rockchip-spi.bin rk3576_spl_loader_v1.09.108.bin >SHA256SUMS
+          cat SHA256SUMS
+
       - name: Upload artifact to the Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: "*.tar.gz"
+          files: |
+            *.tar.gz
+            u-boot-rockchip-spi.bin
+            rk3576_spl_loader_v1.09.108.bin
+            SHA256SUMS
           fail_on_unmatched_files: true

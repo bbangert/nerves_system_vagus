@@ -1,0 +1,81 @@
+#!/bin/sh
+# Opt-in check and update of the U-Boot image in SPI NOR. Never run by the
+# system: the NOR has no A/B copy, so a power loss during `update` leaves a
+# board that only maskrom can recover.
+
+IMG=/usr/share/rock4d/u-boot-rockchip-spi.bin
+
+usage() {
+    echo "usage: rock4d-bootloader status | update --yes" >&2
+    exit 2
+}
+
+die() {
+    echo "rock4d-bootloader: $*" >&2
+    exit 2
+}
+
+fwver() {
+    strings "$1" | grep -o 'fwver: v[0-9.]*' | sed -n 1p
+}
+
+[ -f "$IMG" ] || die "no shipped image at $IMG"
+mtd=$(grep '"loader"' /proc/mtd | cut -d: -f1)
+[ -n "$mtd" ] || die "no \"loader\" partition in /proc/mtd"
+size=$(stat -c %s "$IMG") || die "can't stat $IMG"
+if [ "${size:-0}" -le 0 ] || [ $((size % 512)) -ne 0 ]; then
+    die "image size '$size' is not a positive multiple of 512"
+fi
+
+read_nor() {
+    dd if="/dev/$mtd" of="$1" bs=512 count=$((size / 512)) 2>/dev/null || die "can't read /dev/$mtd"
+}
+
+# mkdir fails on any existing path, so a planted /tmp symlink can't
+# redirect the root-run dd, and concurrent runs don't share files.
+tmp=/tmp/rock4d-bootloader.$$
+mkdir -m 700 "$tmp" || die "can't create $tmp"
+trap 'rm -rf "$tmp"' EXIT
+nor=$tmp/nor.bin
+
+# Two concurrent updates would interleave erases and writes on the only
+# bootloader copy. mkdir is the atomic test-and-set (no flock here). A lock
+# left by a crashed update is only reported: clearing it automatically
+# races another run doing the same. /run is emptied at every boot.
+lock=/run/rock4d-bootloader.lock
+take_lock() {
+    if ! mkdir "$lock" 2>/dev/null; then
+        owner=$(cat "$lock/pid" 2>/dev/null)
+        if [ -n "$owner" ] && kill -0 "$owner" 2>/dev/null; then
+            die "another update (pid $owner) is running"
+        fi
+        die "stale lock $lock (pid ${owner:-unknown} is gone); if no update is running, rm -rf $lock and retry"
+    fi
+    echo $$ >"$lock/pid"
+    trap 'rm -rf "$tmp" "$lock"' EXIT
+}
+
+case "$1" in
+status)
+    read_nor "$nor"
+    echo "shipped: $(sha256sum "$IMG" | cut -d' ' -f1) $(fwver "$IMG")"
+    echo "nor:     $(sha256sum "$nor" | cut -d' ' -f1) $(fwver "$nor")"
+    if cmp -s "$IMG" "$nor"; then
+        echo "match"
+    else
+        echo "differ"
+        exit 1
+    fi
+    ;;
+update)
+    [ "$2" = "--yes" ] || die "refusing without --yes: an interrupted write needs a maskrom recovery"
+    take_lock
+    flashcp -v "$IMG" "/dev/$mtd" || die "flashcp failed; the NOR may need a maskrom recovery"
+    read_nor "$nor"
+    cmp -s "$IMG" "$nor" || die "read-back differs from the shipped image; reflash before rebooting"
+    echo "updated and verified: $(fwver "$IMG")"
+    ;;
+*)
+    usage
+    ;;
+esac

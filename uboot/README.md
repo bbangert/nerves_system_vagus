@@ -93,11 +93,14 @@ reads the serial number.
 Flashing is done over USB from the host, with no OS on the board involved.
 Hold the MASKROM button while applying power. The maskrom USB device
 appears on the upper USB 3.0 Type-A OTG port (top-left, nearest the
-corner); use a USB-A↔A or USB-A↔C data cable to the host. Then, with
-`u-boot-rockchip-spi.bin` from the system's `images/` directory:
+corner); use a USB-A↔A or USB-A↔C data cable to the host. Every tagged
+[release](https://github.com/bbangert/nerves_system_rock_4d/releases)
+attaches `u-boot-rockchip-spi.bin`, `rk3576_spl_loader_v1.09.108.bin` and a
+`SHA256SUMS` for both; a local build has the SPI image in its `images/`
+directory. Check the hashes, then:
 
 ```sh
-rkdeveloptool db uboot/rk3576_spl_loader_v1.09.108.bin  # bootstrap the loader
+rkdeveloptool db rk3576_spl_loader_v1.09.108.bin        # bootstrap the loader (uboot/ in a checkout)
 rkdeveloptool cs 9                                      # select the SPI NOR
 rkdeveloptool wl 0 u-boot-rockchip-spi.bin              # write at offset 0
 rkdeveloptool rd                                        # reboot
@@ -118,13 +121,45 @@ BootROM always runs first, so the board is not brickable this way.
 
 ## Reflashing from a running system
 
-The `-spi` device tree exposes the NOR as the `loader` MTD partition, and
-the system ships `flashcp`:
+Firmware upgrades never touch the NOR. Each rootfs carries the SPI image
+its system release built, at `/usr/share/rock4d/u-boot-rockchip-spi.bin`
+(with a `.sha256` beside it), and `rock4d-bootloader` checks or writes it.
+Nothing runs it automatically: the NOR has no A/B copy, and a power loss
+mid-write leaves a board only maskrom can recover.
 
 ```sh
-grep loader /proc/mtd          # e.g. mtd0: 01000000 00001000 "loader"
-flashcp -v u-boot-rockchip-spi.bin /dev/mtd0
+rock4d-bootloader status        # sha256 + DDR "fwver" of the shipped image and the NOR;
+                                # prints match (exit 0) or differ (exit 1)
+rock4d-bootloader update --yes  # flashcp the shipped image, then verify by read-back
 ```
+
+`status` and the `--yes` refusal are verified on hardware. **The write
+path (`update --yes`: `flashcp` plus the read-back `cmp`) has not been run
+on hardware yet.** `flashcp -v` itself erases, writes and verifies, so the
+risk is in the surrounding script, not the flash write.
+
+From Elixir, `System.cmd("rock4d-bootloader", ["status"])`. Under the hood
+the NOR is the `loader` MTD partition of the `-spi` device tree, and
+`flashcp -v <image> /dev/mtd0` is the manual equivalent.
+
+A 6 GB board still on the v1.12 DDR blob boots Linux only with its RAM
+capped. To move it to v1.13 without maskrom:
+
+1. Put its UFS module in a USB reader on a Linux host. The plain
+   `fw_setenv` uses this system's `/etc/fw_env.config` (`/dev/rootdisk0`),
+   so point it at the module explicitly; the env is 128 KiB at byte offset
+   1 MiB of the whole disk:
+
+   ```sh
+   echo "/dev/sdX 0x100000 0x20000" > reader-fw_env.config
+   fw_setenv -c reader-fw_env.config cmdline mem=2816M
+   ```
+
+2. Put the module back and boot the board. It must be running firmware
+   built on nerves_system_rock_4d v0.2.3 or later, which carries
+   `rock4d-bootloader` and the v1.13 image; if it is older, upgrade it
+   first (`fwup` over SSH). Then run `rock4d-bootloader update --yes`.
+3. On the board, `fw_setenv cmdline ""` and reboot into the full 6 GB.
 
 Serial console for watching the boot: UART0 on the 40-pin header, pin 8
 (TX), pin 10 (RX), pin 6 (GND), 1500000 8N1, no flow control.
