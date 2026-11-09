@@ -1,0 +1,20 @@
+# Env lives at the start of GPT p1 on the UFS LUN. env/scsi.c finds it by the
+# partition's UNIQUE GUID (not its type or name), so ENV_SCSI_PART_UUID must
+# equal UBOOT_ENV_PART_GUID in fwup_include/fwup-common.conf;
+# scripts/check-env-config.sh fails the build if they drift. Without a UUID it
+# falls back to "scsi 0", which can resolve to the whole disk and put the env
+# over the GPT.
+CONFIG_ENV_IS_IN_SCSI=y
+CONFIG_ENV_SCSI_PART_UUID="a8319de8-8a9f-4eba-968c-fde1f93ec6b5"
+# Must equal UBOOT_ENV_COUNT x 512 (fwup) and the uboot-env.bin size.
+CONFIG_ENV_SIZE=0x20000
+# CONFIG_ENV_REDUNDANT is not set
+# fwup can only make 512-byte-BPB FAT; U-Boot otherwise rejects it on a
+# 4096-byte-sector LUN.
+CONFIG_FS_FAT_HANDLE_SECTOR_SIZE_MISMATCH=y
+# NOR vendors seen across board revisions (Radxa's vendor U-Boot enables
+# all four).
+CONFIG_SPI_FLASH_XMC=y
+CONFIG_SPI_FLASH_MACRONIX=y
+CONFIG_SPI_FLASH_GIGADEVICE=y
+CONFIG_SPI_FLASH_WINBOND=y

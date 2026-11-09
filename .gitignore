@@ -1,0 +1,8 @@
+# Mix/Nerves artifacts
+/_build/
+/deps/
+/.nerves/
+*.fw
+build.log
+/log/
+/archive.log

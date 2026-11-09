@@ -1,0 +1,9 @@
+prefix=/usr
+libdir=${prefix}/lib
+includedir=${prefix}/include
+
+Name: glesv2
+Description: ARM Mali (libmali) providing glesv2
+Version: 3.2
+Libs: -L${libdir} -lGLESv2
+Cflags: -I${includedir}

@@ -1,0 +1,42 @@
+From: Isaiah <isaiahdw@gmail.com>
+Subject: [PATCH] dts: rk3576-rock-4d: Nerves fixups (SD as mmcblk0, watchdog)
+
+Two board-dts changes needed by the Nerves system:
+
+1. rk3576-linux.dtsi pins mmc0 = &sdhci and mmc1 = &sdmmc, and the
+   vendor kernel derives the mmcblk index from these aliases — so the
+   SD card is /dev/mmcblk1 even though the sdhci/eMMC is disabled on
+   this board (unusable on SPI-NOR SKUs). Every Nerves reference
+   (fw_env.config, erlinit mounts, fwup devpaths) expects the system
+   disk at /dev/mmcblk0. Re-point mmc0 at sdmmc and delete the mmc1
+   alias; verified on hardware where the mismatch broke the env read,
+   the /mnt/boot and /root mounts, and firmware validation.
+
+2. The wdt node is status = "disabled" in rk3576.dtsi and nothing
+   enables it. Nerves arms the hardware watchdog through Erlang's
+   heart (nerves_heart on /dev/watchdog0 with WATCHDOG_NOWAYOUT).
+
+With UFS boot only the watchdog change (2) is needed; the mmc0 alias
+change (1) is legacy from SD boot and harmless.
+
+Applies to both rk3576-rock-4d and rk3576-rock-4d-spi (the -spi dts
+includes this file).
+
+diff --git a/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts b/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
+--- a/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
+@@ -745,3 +745,14 @@
+ 		"", "", "", "";
+ };
+
++
++/ {
++	aliases {
++		mmc0 = &sdmmc;
++		/delete-property/ mmc1;
++	};
++};
++
++&wdt {
++	status = "okay";
++};
