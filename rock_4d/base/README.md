@@ -37,8 +37,9 @@ expect. This system builds mainline U-Boot (v2027.01-rc1) in Buildroot
 with UFS/SCSI support, and ships a flashing path that writes a 4096-byte
 GPT (see "Flashing and upgrades"). Flash U-Boot to the NOR once over USB
 maskrom (a host-side `rkdeveloptool` step, see
-[uboot/README.md](uboot/README.md)), **with the UFS module removed**: the
-maskrom loader erases a seated module. After that, firmware updates are
+[uboot/README.md](uboot/README.md); each release attaches the SPI image,
+the maskrom loader and their `SHA256SUMS`), **with the UFS module
+removed**: the maskrom loader erases a seated module. After that, firmware updates are
 normal Nerves A/B upgrades on the module and the bootloader doesn't need
 to be touched again. About 14.4 MiB of the NOR stays free.
 
@@ -66,7 +67,7 @@ with this fork's UFS boot chain on 2026-11-08.
 | GPIO/I2C/SPI/PWM/UART/CAN header | Yes *(upstream)* | Via [Circuits.*](https://elixir-circuits.github.io/); see the 40-pin summary below |
 | SPI NOR access | Yes | XMC XM25QU128C on the tested board. `loader` mtd + `flashcp` are included; copy the build's `images/u-boot-rockchip-spi.bin` over to reflash the bootloader from Linux (maskrom is the documented path) |
 | PCIe / NVMe (FPC) | Untested | Enabled in the device tree; needs the M.2 HAT to verify |
-| UFS modules | Yes | System disk: boot, A/B slots and f2fs data via mainline U-Boot in SPI NOR. Tested with a 128 GB YMTC YMUS8A1TE2D1C1 module (4096-byte sectors; LUN0 is `sda`, plus two 16 MiB LUNs). Power-on to SSH takes 20-30 s. Booting with no module fitted has not been tested |
+| UFS modules | Yes | System disk: boot, A/B slots and ext4 data via mainline U-Boot in SPI NOR. Tested with a 128 GB YMTC YMUS8A1TE2D1C1 module (4096-byte sectors; LUN0 is `sda`, plus two 16 MiB LUNs). Power-on to SSH takes 20-30 s. Booting with no module fitted has not been tested |
 | NPU (6 TOPS) | Yes | RKNPU driver 0.9.8 + librknnrt 2.3.2 runtime and headers (`package/librknnrt`). Inference verified with the rknn-toolkit2 v2.3.2 examples: MobileNetV1 ~3 ms, YOLOv5s-640 ~31 ms. Build models on the host with rknn-toolkit2 |
 | MIPI DSI / CSI | No | Connectors unused; needs panel/camera bring-up |
 | Onboard WiFi in AP mode | Yes *(upstream)* | VintageNetWiFi `mode: :ap` |
@@ -185,7 +186,7 @@ LBA 2-5); the backup GPT sits at the end of the module.
 | p2 `bootfs` (FAT) | 4096      | 16 MiB      | 256 MiB    | Image.a/b, dtb, extlinux         |
 | p3 `rootfs-a`     | 69632     | 272 MiB     | 512 MiB    | squashfs                         |
 | p4 `rootfs-b`     | 200704    | 784 MiB     | 512 MiB    | squashfs                         |
-| p5 `data` (f2fs)  | 331776    | 1296 MiB    | to the end | Application data (`/root`); sized by the image tool |
+| p5 `data` (ext4)  | 331776    | 1296 MiB    | to the end | Application data (`/data`); sized by the image tool |
 
 ## Kernel
 

@@ -19,3 +19,9 @@ ln -sf ops.fw "$TARGET_DIR"/usr/share/fwup/revert.fw
 
 # Copy the fwup includes to the images dir
 cp -rf "$BOARD_DIR"/fwup_include "$BINARIES_DIR"
+
+# The bootloader image rock4d-bootloader compares the SPI NOR against and
+# writes on request; U-Boot has been built by the time post-build runs.
+mkdir -p "$TARGET_DIR"/usr/share/rock4d
+cp "$BINARIES_DIR"/u-boot-rockchip-spi.bin "$TARGET_DIR"/usr/share/rock4d/
+(cd "$TARGET_DIR"/usr/share/rock4d && sha256sum u-boot-rockchip-spi.bin >u-boot-rockchip-spi.bin.sha256)
