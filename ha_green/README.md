@@ -16,12 +16,16 @@ Assistant OS are in [docs/ha-green-install.md](../docs/ha-green-install.md).
 | Containers | podman 6.1.4 + netavark (nftables) + cgroup v2 |
 | Memory tuning | `linux-memory.config` (swap/reclaim, `PANIC_TIMEOUT=10`) and `/etc/sysctl.conf` |
 | USB audio | The USB audio class driver, from `linux-bluetooth.config` |
+| D-Bus + BlueZ | `dbus-daemon`, `bluetoothd`, `bluetoothctl`, `btmon`, bluez-alsa (SBC). Vagus starts the daemons itself |
+| USB Bluetooth | `btusb` (built in, with Realtek, Intel, Broadcom and MediaTek support) and the Realtek, Intel, MediaTek, Atheros AR3012 and Qualcomm 6174A dongle firmware from linux-firmware |
 
-The Green has no onboard WiFi or Bluetooth, so unlike the other boards there
-is no BlueZ, D-Bus, bluez-alsa or controller firmware, and no
-`/etc/bluetooth/main.conf`. `linux-bluetooth.config` is still in the kernel
-fragment list because it is also where the USB audio class driver comes from;
-its Bluetooth symbols are inert without userspace.
+The Green has no onboard WiFi or Bluetooth. D-Bus ships because Home
+Assistant installs apps by default that need the host system bus (Matter
+Server mounts `/run/dbus`), and BlueZ plus the dongle firmware ship so a USB
+Bluetooth dongle works. No USB dongle has been tested on the board. There is
+no `/etc/bluetooth/main.conf`: the other boards' one tunes an onboard
+AIC8800 radio. Broadcom USB dongles whose firmware is a `.hcd` file are not
+covered, because linux-firmware does not carry those.
 
 `linux-*.config`, `rootfs_overlay/etc/sysctl.conf` and `package/vagus-*`
 are synced from the repo's `shared/` by `make sync`.

@@ -3,6 +3,18 @@
 Headings are this target's `VERSION`. Git tags are repo-wide and can differ;
 an entry names its repo tag where it does.
 
+## v0.1.2
+
+* Ships D-Bus and BlueZ. Home Assistant installs apps by default that need
+  the host system bus (Matter Server fails with `statfs /run/dbus: no such
+  file or directory`), and users plug in USB Bluetooth dongles. `dbus-daemon`
+  and `bluetoothd` are at the paths Vagus probes; Vagus starts them, so there
+  are no init scripts.
+* Adds the dongle firmware btusb loads: Realtek `rtl_bt`, Intel `ibt-*`,
+  MediaTek MT7920/21/22/25, Atheros AR3012 and Qualcomm 6174A. The kernel
+  side was already in `linux-bluetooth.config`.
+* No USB dongle has been tested on the board.
+
 ## v0.1.1
 
 * Builds libnl. `nerves_pack` pulls `vintage_net_wifi` into every target's
