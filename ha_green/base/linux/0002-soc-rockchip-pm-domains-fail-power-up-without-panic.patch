@@ -1,0 +1,192 @@
+From 6368c52d9ca55c35418656fe69e2386016471323 Mon Sep 17 00:00:00 2001
+From: Ben Bangert <100193+bbangert@users.noreply.github.com>
+Date: Sat, 14 Nov 2026 00:00:00 +0000
+Subject: [PATCH 2/2] soc: rockchip: power-domain: fail a first power-up
+ instead of panicking
+
+A power domain whose bus never acks the de-idle request, or whose status
+never reads on, panics the kernel unless pm_domains.always_on is set. On
+a board whose rail is still off when the first consumer attaches (an NPU
+whose supply the boot loader leaves off), that is a reset loop that only
+a serial console could explain.
+
+When genpd powers up a domain that has never been on, a failure now
+returns its error, which genpd turns into -EPROBE_DEFER for the
+attaching device, and the domain is switched back off with its supply
+released. Without that undo, rockchip_pd_power() would skip the sequence
+on the next attempt because the status bit already reads on, and hand the
+consumer an idle bus whose first access hangs.
+
+Every other path keeps the panic: power-down, runtime power-up of a
+domain whose consumers have already probed, rockchip_pmu_pd_on() and
+rockchip_pmu_idle_request(), whose callers ignore the result and would
+otherwise touch an idle or unpowered bus.
+
+pm_domains.always_on is not used instead: it keeps every domain on for
+good and silences all of these panics, leaving the retry and the
+exported callers free to hang the bus.
+---
+ drivers/soc/rockchip/pm_domains.c | 57 +++++++++++++++++++++++++------
+ 1 file changed, 46 insertions(+), 11 deletions(-)
+
+diff --git a/drivers/soc/rockchip/pm_domains.c b/drivers/soc/rockchip/pm_domains.c
+index fee0db1..67373d7 100644
+--- a/drivers/soc/rockchip/pm_domains.c
++++ b/drivers/soc/rockchip/pm_domains.c
+@@ -140,6 +140,7 @@ struct rockchip_pm_domain {
+ 	bool is_qos_need_init;
+ 	bool is_shaping_need_init;
+ 	bool is_perf_need_init;
++	bool has_been_on;
+ 	struct regulator *supply;
+ 	struct rockchip_domain_perf *perf;
+ };
+@@ -631,7 +632,7 @@ static int rockchip_pmu_mem_shut_down(struct rockchip_pm_domain *pd, bool sd)
+ }
+ 
+ static int rockchip_pmu_set_idle_request(struct rockchip_pm_domain *pd,
+-					 bool idle)
++					 bool idle, bool may_fail)
+ {
+ 	const struct rockchip_domain_info *pd_info = pd->info;
+ 	struct generic_pm_domain *genpd = &pd->genpd;
+@@ -677,7 +678,7 @@ static int rockchip_pmu_set_idle_request(struct rockchip_pm_domain *pd,
+ 
+ 	return ret;
+ error:
+-	if (!pm_domain_always_on)
++	if (!may_fail && !pm_domain_always_on)
+ 		panic("panic_on_set_idle set ...\n");
+ 	return ret;
+ }
+@@ -698,7 +699,7 @@ int rockchip_pmu_idle_request(struct device *dev, bool idle)
+ 	pd = to_rockchip_pd(genpd);
+ 
+ 	rockchip_pmu_lock(pd);
+-	ret = rockchip_pmu_set_idle_request(pd, idle);
++	ret = rockchip_pmu_set_idle_request(pd, idle, false);
+ 	rockchip_pmu_unlock(pd);
+ 
+ 	return ret;
+@@ -1054,7 +1055,7 @@ static bool rockchip_pmu_domain_is_on(struct rockchip_pm_domain *pd)
+ }
+ 
+ static int rockchip_do_pmu_set_power_domain(struct rockchip_pm_domain *pd,
+-					    bool on)
++					    bool on, bool may_fail)
+ {
+ 	struct rockchip_pmu *pmu = pd->pmu;
+ 	struct generic_pm_domain *genpd = &pd->genpd;
+@@ -1095,12 +1096,30 @@ static int rockchip_do_pmu_set_power_domain(struct rockchip_pm_domain *pd,
+ 	return ret;
+ 
+ error:
+-	if (!pm_domain_always_on)
++	if (!may_fail && !pm_domain_always_on)
+ 		panic("panic_on_set_domain set ...\n");
+ 	return ret;
+ }
+ 
+-static int rockchip_pd_power(struct rockchip_pm_domain *pd, bool power_on)
++/*
++ * Switches a failed power-up back off. Left on, the status bit would make
++ * the next attempt skip the sequence and hand the consumer an idle bus,
++ * whose first access hangs.
++ */
++static void rockchip_pd_undo_power_up(struct rockchip_pm_domain *pd,
++				      bool deidled)
++{
++	if (deidled) {
++		rockchip_pmu_set_idle_request(pd, true, false);
++		rockchip_pmu_mem_shut_down(pd, true);
++	}
++	rockchip_do_pmu_set_power_domain(pd, false, false);
++	if (!IS_ERR(pd->supply))
++		regulator_disable(pd->supply);
++}
++
++static int __rockchip_pd_power(struct rockchip_pm_domain *pd, bool power_on,
++			       bool may_fail)
+ {
+ 	struct rockchip_pmu *pmu = pd->pmu;
+ 	int ret = 0;
+@@ -1145,7 +1164,7 @@ static int rockchip_pd_power(struct rockchip_pm_domain *pd, bool power_on)
+ 			pd->is_qos_saved = true;
+ 
+ 			/* if powering down, idle request to NIU first */
+-			ret = rockchip_pmu_set_idle_request(pd, true);
++			ret = rockchip_pmu_set_idle_request(pd, true, false);
+ 			if (ret) {
+ 				dev_err(pd->pmu->dev, "failed to set idle request '%s',\n",
+ 					genpd->name);
+@@ -1154,20 +1173,24 @@ static int rockchip_pd_power(struct rockchip_pm_domain *pd, bool power_on)
+ 			rockchip_pmu_mem_shut_down(pd, true);
+ 		}
+ 
+-		ret = rockchip_do_pmu_set_power_domain(pd, power_on);
++		ret = rockchip_do_pmu_set_power_domain(pd, power_on, may_fail);
+ 		if (ret) {
+ 			dev_err(pd->pmu->dev, "failed to set power '%s' = %d,\n",
+ 				genpd->name, power_on);
++			if (may_fail)
++				rockchip_pd_undo_power_up(pd, false);
+ 			goto out;
+ 		}
+ 
+ 		if (power_on) {
+ 			rockchip_pmu_mem_shut_down(pd, false);
+ 			/* if powering up, leave idle mode */
+-			ret = rockchip_pmu_set_idle_request(pd, false);
++			ret = rockchip_pmu_set_idle_request(pd, false, may_fail);
+ 			if (ret) {
+ 				dev_err(pd->pmu->dev, "failed to set deidle request '%s',\n",
+ 					genpd->name);
++				if (may_fail)
++					rockchip_pd_undo_power_up(pd, true);
+ 				goto out;
+ 			}
+ 
+@@ -1178,6 +1201,7 @@ static int rockchip_pd_power(struct rockchip_pm_domain *pd, bool power_on)
+ 			if (pd->is_qos_need_init || pd->is_shaping_need_init ||
+ 			    pd->is_perf_need_init)
+ 				rockchip_pmu_init_qos(pd);
++			pd->has_been_on = true;
+ 		}
+ 
+ out:
+@@ -1192,6 +1216,11 @@ out:
+ 	return ret;
+ }
+ 
++static int rockchip_pd_power(struct rockchip_pm_domain *pd, bool power_on)
++{
++	return __rockchip_pd_power(pd, power_on, false);
++}
++
+ static int rockchip_pd_power_on(struct generic_pm_domain *domain)
+ {
+ 	struct rockchip_pm_domain *pd = to_rockchip_pd(domain);
+@@ -1199,7 +1228,12 @@ static int rockchip_pd_power_on(struct generic_pm_domain *domain)
+ 	if (pd->is_ignore_pwr)
+ 		return 0;
+ 
+-	return rockchip_pd_power(pd, true);
++	/*
++	 * A domain that has never come up has no probed consumer to hang, so
++	 * its failure only fails the attaching device's probe (genpd defers
++	 * it). Every other power-up failure keeps the vendor panic.
++	 */
++	return __rockchip_pd_power(pd, true, !pd->has_been_on);
+ }
+ 
+ static int rockchip_pd_power_off(struct generic_pm_domain *domain)
+@@ -1742,7 +1776,8 @@ static int rockchip_pm_add_one_domain(struct rockchip_pmu *pmu,
+ 	}
+ 	rockchip_pd_qos_init(pd);
+ 
+-	pm_genpd_init(&pd->genpd, NULL, !rockchip_pmu_domain_is_on(pd));
++	pd->has_been_on = rockchip_pmu_domain_is_on(pd);
++	pm_genpd_init(&pd->genpd, NULL, !pd->has_been_on);
+ 
+ 	pmu->genpd_data.domains[id] = &pd->genpd;
+ 	return 0;

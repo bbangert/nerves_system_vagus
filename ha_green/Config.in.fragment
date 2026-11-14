@@ -1,0 +1,3 @@
+source "$NERVES_DEFCONFIG_DIR/package/vagus-crun/Config.in"
+source "$NERVES_DEFCONFIG_DIR/package/vagus-netavark/Config.in"
+source "$NERVES_DEFCONFIG_DIR/package/vagus-podman/Config.in"

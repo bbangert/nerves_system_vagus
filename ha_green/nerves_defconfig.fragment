@@ -1,0 +1,36 @@
+# Lists: scripts/sync-base.sh appends these to base/nerves_defconfig's values.
+BR2_ROOTFS_OVERLAY="${NERVES_DEFCONFIG_DIR}/rootfs_overlay"
+BR2_LINUX_KERNEL_CONFIG_FRAGMENT_FILES="${NERVES_DEFCONFIG_DIR}/linux-bluetooth.config ${NERVES_DEFCONFIG_DIR}/linux-containers.config ${NERVES_DEFCONFIG_DIR}/linux-memory.config"
+
+# The board has no radio, so there is no BlueZ, D-Bus or controller firmware.
+# linux-bluetooth.config stays in the kernel list for its USB audio class
+# driver (USB DACs); its Bluetooth symbols are inert without userspace.
+
+# ---- Custom: container engine ----
+# podman, driven per operation by Vagus through its CLI. The vagus-* recipes
+# are synced from shared/package/ by `make sync`; the kernel side is
+# shared/linux-containers.config. cgroup v2 is mounted by erlinit.config.
+BR2_PACKAGE_VAGUS_CRUN=y
+BR2_PACKAGE_VAGUS_NETAVARK=y
+BR2_PACKAGE_VAGUS_PODMAN=y
+# Buildroot's 2.1.8. At the size cap it renames a fresh file over the log,
+# the same rotation as the 2.2.1 Vagus's log follower was tested against.
+BR2_PACKAGE_CONMON=y
+# The init process podman runs for --init.
+BR2_PACKAGE_CATATONIT=y
+# policy.json, and registries.conf with docker.io as the only unqualified
+# search registry, as Docker resolved short names.
+BR2_PACKAGE_CONTAINERS_IMAGE_CONFIG=y
+# netavark's firewall driver, and Vagus programs its own NAT table with nft.
+BR2_PACKAGE_NFTABLES=y
+BR2_PACKAGE_NFTABLES_JSON=y
+# This BusyBox has no swapon, mkswap, nsenter, mountpoint or pivot_root,
+# and Vagus's swapon, mkswap and mount calls were proven against util-linux.
+# nsenter is how to look into a container's namespaces from the board's
+# shell.
+BR2_PACKAGE_UTIL_LINUX=y
+BR2_PACKAGE_UTIL_LINUX_BINARIES=y
+BR2_PACKAGE_UTIL_LINUX_MOUNT=y
+BR2_PACKAGE_UTIL_LINUX_MOUNTPOINT=y
+BR2_PACKAGE_UTIL_LINUX_PIVOT_ROOT=y
+BR2_PACKAGE_UTIL_LINUX_NSENTER=y

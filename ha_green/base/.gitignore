@@ -1,0 +1,11 @@
+# Mix/Nerves artifacts
+/_build/
+/deps/
+/.nerves/
+*.fw
+build.log
+/log/
+/archive.log
+/.cache/
+__pycache__/
+*.tar.gz

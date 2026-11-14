@@ -1,0 +1,901 @@
+From 556a3d24056f96cc9d6255ed2f035f3ad06cce73 Mon Sep 17 00:00:00 2001
+From: Ben Bangert <100193+bbangert@users.noreply.github.com>
+Date: Fri, 13 Nov 2026 05:03:50 +0000
+Subject: [PATCH 1/2] arm64: dts: rockchip: add Home Assistant Green
+
+Port of the Home Assistant Green (RK3566) board DTS to the Rockchip
+vendor 6.1 kernel. Source: home-assistant/operating-system 18.4 (4a7dab478abc),
+buildroot-external/board/nabucasa/green/patches/linux/ 0001 (Seeed,
+GPL-2.0+ OR MIT) with 0003/0005/0006 folded in.
+
+Binding changes for the vendor tree:
+- HDMI: the VOP/HDMI endpoint graph is pre-wired in rk356x.dtsi, so the
+  hdmi-con node and the hdmi_in/hdmi_out/vp0 endpoints are replaced by
+  enabling hdmi_in_vp0.
+- USB: the dwc3 controllers are glue + child pairs (usbdrd30/usbdrd_dwc3,
+  usbhost30/usbhost_dwc3); usbhost_dwc3 keeps HAOS's USB2-only phys so
+  combphy1_usq stays off. PHY ports use the vendor u2phy* labels.
+- vdd_cpu: rockchip,rk8600 binds rk860x-regulator here, which reads
+  rockchip,suspend-voltage-selector, not fcs,suspend-voltage-selector.
+- RK809: the vendor codec driver needs a codec child carrying the mclk
+  clock and pinctrl.
+
+Additions:
+- GPU, NPU (+IOMMU, bus_npu), MPP service, rkvdec/rkvenc/vdpu/vepu, RGA,
+  IEP and JPEG decoder enabled, with their IOMMUs.
+- The mainline hantro vpu node, which shares vdpu's resources, disabled.
+- Watchdog enabled for Erlang heart.
+- ramoops at 0x110000 (vendor rk3568-linux.dtsi layout) without the rest
+  of that include (FIQ debugger, PARTUUID bootargs).
+- rtc0 pinned to the battery-backed PCF8563.
+- vdd_npu always-on, as on the vendor RK356x boards this NPU driver is
+  used with; HAOS never powered the NPU. Mainline U-Boot leaves it off at
+  500 mV and this kernel ignores regulator-init-microvolt, so its minimum
+  is 900 mV (vendor U-Boot's boot value), which the regulator core applies
+  before enabling it.
+- rknpu_mmu carries a vdd-supply that its driver never reads, so fw_devlink
+  defers its probe until the RK809 has switched vdd_npu on. rk_iommu
+  registers before the I2C and PMIC drivers, and attaching it powers up
+  PD_NPU, whose bus never leaves idle on an unpowered rail.
+- Activity LED on mmc0 host activity instead of CPU activity.
+- All RAM above 4 GiB reserved no-map: RGA2 has no IOMMU and reaches only
+  the first 4 GiB, so every buffer from every allocator stays addressable
+  (256 MiB less RAM on a 4 GiB unit).
+
+Changes that keep the SD card bootable by the factory first-stage loader
+after a restart. A restart resets the SoC but not the RK809, and that
+loader neither programs the PMIC nor switches signalling voltage:
+- sdmmc0 drops sd-uhs-sdr104 (HAOS's DTS enables it), so the card never
+  leaves 3.3 V signalling: only a power cycle would bring it back.
+- vcc3v3_sd and vccio_sd are always on, as on the vendor RK356x boards,
+  and vccio_sd is fixed at 3.3 V. The SD card's shutdown switched both off
+  before a reboot, and they stayed off for the loader.
+- The card-detect pin is muxed as a plain GPIO (still pulled up) instead of
+  the sdmmc0_det function, since cd-gpios reads it as a GPIO; the function
+  mux made the GPIO request warn at boot.
+
+The SPI NOR controller (sfc) is deliberately left disabled: the NOR holds
+the factory boot loader and Linux must not expose it.
+---
+ arch/arm64/boot/dts/rockchip/Makefile         |   1 +
+ .../boot/dts/rockchip/rk3566-ha-green.dts     | 819 ++++++++++++++++++
+ 2 files changed, 820 insertions(+)
+ create mode 100644 arch/arm64/boot/dts/rockchip/rk3566-ha-green.dts
+
+diff --git a/arch/arm64/boot/dts/rockchip/Makefile b/arch/arm64/boot/dts/rockchip/Makefile
+index 997c4ab..5f72135 100644
+--- a/arch/arm64/boot/dts/rockchip/Makefile
++++ b/arch/arm64/boot/dts/rockchip/Makefile
+@@ -490,6 +490,7 @@ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-box-X88PRO-npu.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-eltay-rm66.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-eltay-rm66-bb-cm4.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-h96max-v56.dtb
++dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-ha-green.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-lckfb-tspi.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-luckfox-core3566.dtb
+ dtb-$(CONFIG_ARCH_ROCKCHIP) += rk3566-nanopi-r3-rev01.dtb
+diff --git a/arch/arm64/boot/dts/rockchip/rk3566-ha-green.dts b/arch/arm64/boot/dts/rockchip/rk3566-ha-green.dts
+new file mode 100644
+index 0000000..93656e8
+--- /dev/null
++++ b/arch/arm64/boot/dts/rockchip/rk3566-ha-green.dts
+@@ -0,0 +1,819 @@
++// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
++/*
++ * Copyright (c) 2023 Seeed Co., Ltd.
++ *
++ * Ported to the Rockchip vendor 6.1 kernel from Home Assistant OS's
++ * mainline-binding rk3566-ha-green.dts.
++ */
++
++/dts-v1/;
++#include <dt-bindings/gpio/gpio.h>
++#include <dt-bindings/leds/common.h>
++#include <dt-bindings/pinctrl/rockchip.h>
++/*
++ * rk3568-linux.dtsi is deliberately not included: it enables the FIQ
++ * debugger on uart2 and sets PARTUUID bootargs. Its ramoops node is copied
++ * below instead.
++ */
++#include "rk3566.dtsi"
++
++/ {
++	model = "Home Assistant Green";
++	/* MPP userland identifies the SoC by the rockchip,rk3566 entry. */
++	compatible = "rockchip,rk3566-ha-green", "rockchip,rk3566";
++
++	aliases {
++		/* U-Boot writes ethaddr (from the EEPROM) into ethernet0's node. */
++		ethernet0 = &gmac1;
++		/* The boot script derives root=/dev/mmcblkN from these. */
++		mmc0 = &sdhci;
++		mmc1 = &sdmmc0;
++		/*
++		 * The PCF8563 is the battery-backed clock; pin it to rtc0 so
++		 * hctosys reads it rather than the RK809's unbacked RTC.
++		 */
++		rtc0 = &rtc;
++		rtc1 = &rk809;
++	};
++
++	chosen {
++		stdout-path = "serial2:1500000n8";
++	};
++
++	dc_12v: dc-12v-regulator {
++		compatible = "regulator-fixed";
++		regulator-name = "dc_12v";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <12000000>;
++		regulator-max-microvolt = <12000000>;
++	};
++
++	leds {
++		compatible = "gpio-leds";
++
++		led_power: led-power {
++			label = "power";
++			gpios = <&gpio0 RK_PB6 GPIO_ACTIVE_HIGH>;
++			function = LED_FUNCTION_POWER;
++			color = <LED_COLOR_ID_WHITE>;
++			default-state = "keep";
++			linux,default-trigger = "default-on";
++			pinctrl-names = "default";
++			pinctrl-0 = <&led_power_pin>;
++		};
++
++		/*
++		 * MMC host triggers are named after the host (mmc0 = eMMC,
++		 * mmc1 = SD); the disk-activity trigger only fires for ATA.
++		 */
++		led_activity: led-activity {
++			label = "activity";
++			gpios = <&gpio0 RK_PB7 GPIO_ACTIVE_HIGH>;
++			function = LED_FUNCTION_ACTIVITY;
++			color = <LED_COLOR_ID_GREEN>;
++			linux,default-trigger = "mmc0";
++			pinctrl-names = "default";
++			pinctrl-0 = <&led_act_pin>;
++		};
++
++		/* Heartbeat is the "our kernel is running" signal. */
++		led_user: led-user {
++			label = "user";
++			gpios = <&gpio0 RK_PC5 GPIO_ACTIVE_HIGH>;
++			function = LED_FUNCTION_HEARTBEAT;
++			color = <LED_COLOR_ID_YELLOW>;
++			linux,default-trigger = "heartbeat";
++			pinctrl-names = "default";
++			pinctrl-0 = <&led_usr_pin>;
++		};
++	};
++
++	rk809-sound {
++		compatible = "simple-audio-card";
++		simple-audio-card,name = "Analog RK817";
++		simple-audio-card,format = "i2s";
++		simple-audio-card,mclk-fs = <256>;
++		simple-audio-card,widgets =
++			"Headphone", "Headphones",
++			"Speaker", "Speaker";
++		simple-audio-card,routing =
++			"Headphones", "HPOL",
++			"Headphones", "HPOR",
++			"Speaker", "SPKO";
++
++		simple-audio-card,cpu {
++			sound-dai = <&i2s1_8ch>;
++		};
++
++		simple-audio-card,codec {
++			sound-dai = <&rk809_codec 0>;
++		};
++	};
++
++	vcc3v3_sys: vcc3v3-sys-regulator {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc3v3_sys";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <3300000>;
++		regulator-max-microvolt = <3300000>;
++		vin-supply = <&dc_12v>;
++	};
++
++	vcc5v0_sys: vcc5v0-sys-regulator {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc5v0_sys";
++		regulator-always-on;
++		regulator-boot-on;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&dc_12v>;
++	};
++
++	vcc5v0_usb_host: vcc5v0-usb-host-regulator {
++		compatible = "regulator-fixed";
++		regulator-name = "vcc5v0_usb_host";
++		enable-active-high;
++		gpio = <&gpio0 RK_PA6 GPIO_ACTIVE_HIGH>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&vcc5v0_usb_host_en_pin>;
++		regulator-min-microvolt = <5000000>;
++		regulator-max-microvolt = <5000000>;
++		vin-supply = <&vcc5v0_sys>;
++	};
++};
++
++&bus_npu {
++	bus-supply = <&vdd_logic>;
++	pvtm-supply = <&vdd_cpu>;
++	status = "okay";
++};
++
++&cpu0 {
++	cpu-supply = <&vdd_cpu>;
++};
++
++&cpu1 {
++	cpu-supply = <&vdd_cpu>;
++};
++
++&cpu2 {
++	cpu-supply = <&vdd_cpu>;
++};
++
++&cpu3 {
++	cpu-supply = <&vdd_cpu>;
++};
++
++&gmac1 {
++	assigned-clocks = <&cru SCLK_GMAC1_RX_TX>, <&cru SCLK_GMAC1>;
++	assigned-clock-parents = <&cru SCLK_GMAC1_RGMII_SPEED>;
++	assigned-clock-rates = <0>, <125000000>;
++	clock_in_out = "output";
++
++	snps,reset-gpio = <&gpio4 RK_PC2 GPIO_ACTIVE_LOW>;
++	snps,reset-active-low;
++	/* Reset time is 20ms, 100ms for rtl8211f */
++	snps,reset-delays-us = <0 20000 100000>;
++
++	phy-handle = <&rgmii_phy1>;
++	phy-mode = "rgmii";
++
++	pinctrl-names = "default";
++	pinctrl-0 = <&gmac1m0_miim
++		     &gmac1m0_tx_bus2
++		     &gmac1m0_rx_bus2
++		     &gmac1m0_rgmii_clk
++		     &gmac1m0_rgmii_bus>;
++	status = "okay";
++
++	tx_delay = <0x47>;
++	rx_delay = <0x27>;
++};
++
++&gpu {
++	mali-supply = <&vdd_gpu>;
++	status = "okay";
++};
++
++&hdmi {
++	avdd-0v9-supply = <&vdda0v9_image>;
++	avdd-1v8-supply = <&vcca1v8_image>;
++	status = "okay";
++};
++
++/* The vendor dtsi pre-wires the whole VOP/HDMI graph; only enable the link. */
++&hdmi_in_vp0 {
++	status = "okay";
++};
++
++&hdmi_sound {
++	status = "okay";
++};
++
++&i2c0 {
++	status = "okay";
++
++	/* The vendor kernel binds rk8600 to rk860x-regulator, not fan53555. */
++	vdd_cpu: regulator@41 {
++		compatible = "rockchip,rk8600";
++		reg = <0x41>;
++		vin-supply = <&vcc5v0_sys>;
++		regulator-name = "vdd_cpu";
++		regulator-min-microvolt = <712500>;
++		regulator-max-microvolt = <1500000>;
++		regulator-ramp-delay = <2300>;
++		/*
++		 * rk860x reads the rockchip, prefix; without it the driver runs
++		 * the rail from VSEL1 instead of the VSEL0 HAOS selects.
++		 */
++		rockchip,suspend-voltage-selector = <1>;
++		regulator-boot-on;
++		regulator-always-on;
++		regulator-state-mem {
++			regulator-off-in-suspend;
++		};
++	};
++
++	rk809: pmic@20 {
++		compatible = "rockchip,rk809";
++		reg = <0x20>;
++		interrupt-parent = <&gpio0>;
++		interrupts = <RK_PA3 IRQ_TYPE_LEVEL_LOW>;
++		#clock-cells = <1>;
++		pinctrl-names = "default";
++		pinctrl-0 = <&pmic_int_l>;
++
++		rockchip,system-power-controller;
++		wakeup-source;
++
++		vcc1-supply = <&vcc3v3_sys>;
++		vcc2-supply = <&vcc3v3_sys>;
++		vcc3-supply = <&vcc3v3_sys>;
++		vcc4-supply = <&vcc3v3_sys>;
++		vcc5-supply = <&vcc3v3_sys>;
++		vcc6-supply = <&vcc3v3_sys>;
++		vcc7-supply = <&vcc3v3_sys>;
++		vcc8-supply = <&vcc3v3_sys>;
++		vcc9-supply = <&vcc3v3_sys>;
++
++		regulators {
++			vdd_logic: DCDC_REG1 {
++				regulator-name = "vdd_logic";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-init-microvolt = <900000>;
++				regulator-initial-mode = <0x2>;
++				regulator-min-microvolt = <500000>;
++				regulator-max-microvolt = <1350000>;
++				regulator-ramp-delay = <6001>;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vdd_gpu: DCDC_REG2 {
++				regulator-name = "vdd_gpu";
++				regulator-always-on;
++				regulator-init-microvolt = <900000>;
++				regulator-initial-mode = <0x2>;
++				regulator-min-microvolt = <500000>;
++				regulator-max-microvolt = <1350000>;
++				regulator-ramp-delay = <6001>;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vcc_ddr: DCDC_REG3 {
++				regulator-name = "vcc_ddr";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-initial-mode = <0x2>;
++
++				regulator-state-mem {
++					regulator-on-in-suspend;
++				};
++			};
++
++			/*
++			 * Kept on as on every vendor RK356x board: HAOS never
++			 * powered the NPU, so switching this rail is untested.
++			 * The boot loader leaves it off at 500 mV and this
++			 * kernel ignores regulator-init-microvolt, so the
++			 * minimum is what raises it before it is enabled:
++			 * 900 mV is vendor U-Boot's boot value and below
++			 * every NPU OPP's maximum.
++			 */
++			vdd_npu: DCDC_REG4 {
++				regulator-name = "vdd_npu";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-initial-mode = <0x2>;
++				regulator-min-microvolt = <900000>;
++				regulator-max-microvolt = <1350000>;
++				regulator-ramp-delay = <6001>;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vcc_1v8: DCDC_REG5 {
++				regulator-name = "vcc_1v8";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vdda0v9_image: LDO_REG1 {
++				regulator-name = "vdda0v9_image";
++				regulator-always-on;
++				regulator-min-microvolt = <900000>;
++				regulator-max-microvolt = <900000>;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vdda_0v9: LDO_REG2 {
++				regulator-name = "vdda_0v9";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <900000>;
++				regulator-max-microvolt = <900000>;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vdda0v9_pmu: LDO_REG3 {
++				regulator-name = "vdda0v9_pmu";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <900000>;
++				regulator-max-microvolt = <900000>;
++
++				regulator-state-mem {
++					regulator-on-in-suspend;
++					regulator-suspend-microvolt = <900000>;
++				};
++			};
++
++			vccio_acodec: LDO_REG4 {
++				regulator-name = "vccio_acodec";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			/*
++			 * vccio_sd and vcc3v3_sd stay on: a restart resets only
++			 * the SoC, not the RK809, so a rail the SD card's shutdown
++			 * switched off would still be off for the first-stage
++			 * loader, which then skips the card. 3.3 V is the only
++			 * signalling level that loader can use.
++			 */
++			vccio_sd: LDO_REG5 {
++				regulator-name = "vccio_sd";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vcc3v3_pmu: LDO_REG6 {
++				regulator-name = "vcc3v3_pmu";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <3300000>;
++				regulator-max-microvolt = <3300000>;
++
++				regulator-state-mem {
++					regulator-on-in-suspend;
++					regulator-suspend-microvolt = <3300000>;
++				};
++			};
++
++			vcca_1v8: LDO_REG7 {
++				regulator-name = "vcca_1v8";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vcca1v8_pmu: LDO_REG8 {
++				regulator-name = "vcca1v8_pmu";
++				regulator-always-on;
++				regulator-boot-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++
++				regulator-state-mem {
++					regulator-on-in-suspend;
++					regulator-suspend-microvolt = <1800000>;
++				};
++			};
++
++			vcca1v8_image: LDO_REG9 {
++				regulator-name = "vcca1v8_image";
++				regulator-always-on;
++				regulator-min-microvolt = <1800000>;
++				regulator-max-microvolt = <1800000>;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vcc_3v3: SWITCH_REG1 {
++				regulator-name = "vcc_3v3";
++				regulator-always-on;
++				regulator-boot-on;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++
++			vcc3v3_sd: SWITCH_REG2 {
++				regulator-name = "vcc3v3_sd";
++				regulator-always-on;
++				regulator-boot-on;
++
++				regulator-state-mem {
++					regulator-off-in-suspend;
++				};
++			};
++		};
++
++		/*
++		 * The vendor rk817 codec driver only probes from this child
++		 * (mainline reads the same clock/pinctrl from the PMIC node).
++		 */
++		rk809_codec: codec {
++			compatible = "rockchip,rk809-codec", "rockchip,rk817-codec";
++			#sound-dai-cells = <1>;
++			assigned-clocks = <&cru I2S1_MCLKOUT_TX>;
++			assigned-clock-parents = <&cru CLK_I2S1_8CH_TX>;
++			clocks = <&cru I2S1_MCLKOUT_TX>;
++			clock-names = "mclk";
++			pinctrl-names = "default";
++			pinctrl-0 = <&i2s1m0_mclk>;
++		};
++	};
++};
++
++&i2c1 {
++	clock-frequency = <400000>;
++	status = "okay";
++
++	rtc: rtc@51 {
++		compatible = "nxp,pcf8563";
++		reg = <0x51>;
++		#clock-cells = <0>;
++	};
++};
++
++&i2s0_8ch {
++	status = "okay";
++};
++
++&i2s1_8ch {
++	rockchip,trcm-sync-tx-only;
++	status = "okay";
++};
++
++&iep {
++	status = "okay";
++};
++
++&iep_mmu {
++	status = "okay";
++};
++
++&jpegd {
++	status = "okay";
++};
++
++&jpegd_mmu {
++	status = "okay";
++};
++
++&mdio1 {
++	rgmii_phy1: ethernet-phy@0 {
++		compatible = "ethernet-phy-ieee802.3-c22";
++		reg = <0x0>;
++	};
++};
++
++&mpp_srv {
++	status = "okay";
++};
++
++&pinctrl {
++	ethernet {
++		eth_phy_rst: eth_phy_rst {
++			rockchip,pins = <4 RK_PC2 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++
++	leds {
++		led_power_pin: led-power-pin {
++			rockchip,pins = <0 RK_PB6 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++		led_act_pin: led-act-pin {
++			rockchip,pins = <0 RK_PB7 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++		led_usr_pin: led-user-pin {
++			rockchip,pins = <0 RK_PC5 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++
++	pmic {
++		pmic_int_l: pmic-int-l {
++			rockchip,pins = <0 RK_PA3 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
++	};
++
++	/*
++	 * The card-detect pin is read through cd-gpios. Muxing it to the
++	 * sdmmc0_det function as well made the GPIO request warn that the
++	 * controller already owned the pin.
++	 */
++	sdmmc0 {
++		sdmmc0_det_gpio: sdmmc0-det-gpio {
++			rockchip,pins = <0 RK_PA4 RK_FUNC_GPIO &pcfg_pull_up>;
++		};
++	};
++
++	usb {
++		vcc5v0_usb_host_en_pin: vcc5v0-usb-host-en-pin {
++			rockchip,pins = <0 RK_PA6 RK_FUNC_GPIO &pcfg_pull_none>;
++		};
++	};
++};
++
++&pmu_io_domains {
++	pmuio1-supply = <&vcc3v3_pmu>;
++	pmuio2-supply = <&vcc3v3_pmu>;
++	vccio1-supply = <&vccio_acodec>;
++	vccio2-supply = <&vcc_1v8>;
++	vccio3-supply = <&vccio_sd>;
++	vccio4-supply = <&vcc_1v8>; /* float */
++	vccio5-supply = <&vcc_1v8>;
++	vccio6-supply = <&vcc_1v8>;
++	vccio7-supply = <&vcc_3v3>;
++	status = "okay";
++};
++
++/*
++ * Same region, record sizes and address as the vendor rk3568-linux.dtsi.
++ * U-Boot copies the whole 0xf0000 bytes to the SD card on the next boot, so
++ * the address is shared with the boot script and must not move.
++ */
++&reserved_memory {
++	ramoops: ramoops@110000 {
++		compatible = "ramoops";
++		reg = <0x0 0x110000 0x0 0xf0000>;
++		record-size = <0x20000>;
++		console-size = <0x80000>;
++		ftrace-size = <0x00000>;
++		pmsg-size = <0x50000>;
++	};
++
++	/*
++	 * RGA2 has no IOMMU and addresses only the first 4 GiB, but with this
++	 * RAM in use dma-bufs land there first. Spans the whole range above
++	 * 4 GiB rather than this unit's 256 MiB at 0x1f0000000, so another
++	 * loader's memory map is covered too; parts that are not RAM are
++	 * ignored.
++	 */
++	highmem_unused: highmem@100000000 {
++		reg = <0x1 0x00000000 0x1 0x00000000>;
++		no-map;
++	};
++};
++
++&rk_rga {
++	status = "okay";
++};
++
++&rknpu {
++	rknpu-supply = <&vdd_npu>;
++	status = "okay";
++};
++
++/*
++ * Without the IOMMU the NPU is limited to DMA32 buffers on a 4 GiB board.
++ * rk_iommu probes before the I2C and RK809 drivers register, and attaching
++ * powers up PD_NPU, which never leaves idle while vdd_npu is off. The driver
++ * reads no supply: the property only makes fw_devlink defer the probe until
++ * the RK809 has bound and switched the rail on.
++ */
++&rknpu_mmu {
++	vdd-supply = <&vdd_npu>;
++	status = "okay";
++};
++
++&rkvdec {
++	status = "okay";
++};
++
++&rkvdec_mmu {
++	status = "okay";
++};
++
++&rkvenc {
++	venc-supply = <&vdd_logic>;
++	status = "okay";
++};
++
++&rkvenc_mmu {
++	status = "okay";
++};
++
++&rng {
++	status = "okay";
++};
++
++&saradc {
++	vref-supply = <&vcca_1v8>;
++	status = "okay";
++};
++
++&sdhci {
++	bus-width = <8>;
++	mmc-hs200-1_8v;
++	max-frequency = <200000000>;
++	non-removable;
++	pinctrl-names = "default";
++	pinctrl-0 = <&emmc_bus8 &emmc_clk &emmc_cmd &emmc_datastrobe &emmc_rstnout>;
++	vmmc-supply = <&vcc_3v3>;
++	vqmmc-supply = <&vcc_1v8>;
++	status = "okay";
++};
++
++/*
++ * No UHS modes: a card switched to 1.8 V signalling returns to 3.3 V only
++ * when its power is cut, which a panic or watchdog reset never does, and the
++ * first-stage loader neither switches voltage nor expects a 1.8 V card.
++ */
++&sdmmc0 {
++	bus-width = <4>;
++	cap-sd-highspeed;
++	cd-gpios = <&gpio0 RK_PA4 GPIO_ACTIVE_LOW>;
++	disable-wp;
++	pinctrl-names = "default";
++	pinctrl-0 = <&sdmmc0_bus4 &sdmmc0_clk &sdmmc0_cmd &sdmmc0_det_gpio>;
++	vmmc-supply = <&vcc3v3_sd>;
++	vqmmc-supply = <&vccio_sd>;
++	status = "okay";
++};
++
++/*
++ * No &sfc override: the SPI NOR holds the factory boot loader and must stay
++ * invisible to Linux, so the controller keeps the dtsi's "disabled".
++ */
++
++&tsadc {
++	rockchip,hw-tshut-mode = <1>;
++	rockchip,hw-tshut-polarity = <0>;
++	status = "okay";
++};
++
++&u2phy0_host {
++	phy-supply = <&vcc5v0_usb_host>;
++	status = "okay";
++};
++
++&u2phy0_otg {
++	phy-supply = <&vcc5v0_usb_host>;
++	status = "okay";
++};
++
++&u2phy1_host {
++	phy-supply = <&vcc5v0_usb_host>;
++	status = "okay";
++};
++
++&u2phy1_otg {
++	phy-supply = <&vcc5v0_usb_host>;
++	status = "okay";
++};
++
++/* No fiq-debugger node claims it, so this is a plain 8250 ttyS2. */
++&uart2 {
++	status = "okay";
++};
++
++&usb_host0_ehci {
++	status = "okay";
++};
++
++&usb_host0_ohci {
++	status = "okay";
++};
++
++&usb_host1_ehci {
++	status = "okay";
++};
++
++&usb_host1_ohci {
++	status = "okay";
++};
++
++&usb2phy0 {
++	status = "okay";
++};
++
++&usb2phy1 {
++	status = "okay";
++};
++
++/* rk3566.dtsi already limits this controller to USB2 on u2phy0_otg. */
++&usbdrd_dwc3 {
++	dr_mode = "host";
++	status = "okay";
++};
++
++&usbdrd30 {
++	status = "okay";
++};
++
++/* USB2-only, so combphy1_usq (USB3/SATA lane) can stay disabled. */
++&usbhost_dwc3 {
++	phys = <&u2phy0_host>;
++	phy-names = "usb2-phy";
++	snps,dis_u2_susphy_quirk;
++	extcon = <&usb2phy0>;
++	maximum-speed = "high-speed";
++	status = "okay";
++};
++
++&usbhost30 {
++	status = "okay";
++};
++
++&vdpu {
++	status = "okay";
++};
++
++&vdpu_mmu {
++	status = "okay";
++};
++
++&vepu {
++	status = "okay";
++};
++
++&vepu_mmu {
++	status = "okay";
++};
++
++&vop {
++	assigned-clocks = <&cru DCLK_VOP0>, <&cru DCLK_VOP1>;
++	assigned-clock-parents = <&pmucru PLL_HPLL>, <&cru PLL_VPLL>;
++	status = "okay";
++};
++
++&vop_mmu {
++	status = "okay";
++};
++
++/*
++ * The mainline hantro node shares vdpu's registers, IRQ and IOMMU; the
++ * vendor MPP driver owns the block.
++ */
++&vpu {
++	status = "disabled";
++};
++
++/* Erlang heart arms this through /dev/watchdog0. */
++&wdt {
++	status = "okay";
++};

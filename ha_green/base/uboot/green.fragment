@@ -1,0 +1,44 @@
+# Merged onto the HAOS-patched green_defconfig. The first block is Home
+# Assistant OS's own fragments for the Green (common uboot.config + board
+# uboot.config, minus CMD_FILEENV, which needs a C patch we do not carry, and
+# the cosmetic SYS_PROMPT), so the resolved config starts as the one HAOS
+# ships to every Green. The default environment file comes from
+# BR2_TARGET_UBOOT_DEFAULT_ENV_FILE in nerves_defconfig, which also sets
+# ENV_USE_DEFAULT_ENV_TEXT_FILE.
+# CONFIG_LOCALVERSION_AUTO is not set
+CONFIG_DISTRO_DEFAULTS=y
+# CONFIG_EXPERT is not set
+# CONFIG_DISPLAY_CPUINFO is not set
+# CONFIG_DISPLAY_BOARDINFO is not set
+# -2: autoboot at once and never poll for a key; nobody can type here.
+CONFIG_BOOTDELAY=-2
+# CONFIG_ISO_PARTITION is not set
+CONFIG_EFI_PARTITION=y
+CONFIG_FS_EXT4=y
+CONFIG_FS_FAT=y
+CONFIG_FS_SQUASHFS=y
+# CONFIG_ENV_IS_IN_FAT is not set
+# CONFIG_ENV_IS_IN_EXT4 is not set
+# The boot script loads and saves the Nerves state itself.
+CONFIG_ENV_IS_NOWHERE=y
+# CONFIG_EFI_LOADER is not set
+# The script uses `setexpr gsub` to make the version cmdline-safe.
+CONFIG_CMD_SETEXPR=y
+CONFIG_CMD_SQUASHFS=y
+CONFIG_LZO=y
+# CONFIG_DFU is not set
+# CONFIG_CMD_DFU is not set
+# CONFIG_TOOLS_MKEFICAPSULE is not set
+# The script's LED stage code (`led user on|off`).
+CONFIG_LED=y
+CONFIG_LED_GPIO=y
+CONFIG_CMD_LED=y
+
+# Ours. The state block is 128 KiB like fwup's and fw_env.config's; both
+# sides CRC size - 4 bytes, so the sizes must match exactly.
+CONFIG_ENV_SIZE=0x20000
+# Sets `ver`, which the script puts on the kernel cmdline and in the
+# breadcrumbs.
+CONFIG_VERSION_VARIABLE=y
+# The SPI NOR holds the factory loader and must never be written.
+# CONFIG_CMD_SF is not set
