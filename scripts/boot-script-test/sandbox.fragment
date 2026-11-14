@@ -1,0 +1,21 @@
+# Merged onto sandbox_defconfig: what makes the sandbox run the boot script
+# the way the Green does, and drops what needs host libraries the script
+# never uses. test-boot-script.sh appends the default env path.
+CONFIG_ENV_SIZE=0x20000
+# The Green's state block is single-copy: CRC + data, no flags byte.
+# CONFIG_ENV_REDUNDANT is not set
+CONFIG_ENV_IS_NOWHERE=y
+# CONFIG_ENV_IS_IN_FAT is not set
+# CONFIG_ENV_IS_IN_EXT4 is not set
+# CONFIG_ENV_IS_IN_SPI_FLASH is not set
+CONFIG_ENV_USE_DEFAULT_ENV_TEXT_FILE=y
+CONFIG_BOOTDELAY=-2
+CONFIG_VERSION_VARIABLE=y
+CONFIG_CMD_SETEXPR=y
+CONFIG_REGEX=y
+CONFIG_CMD_POWEROFF=y
+# Room for the Green's load addresses (the dtb sits at 0x12000000).
+CONFIG_SANDBOX_RAM_SIZE_MB=512
+# Both need host tools (gnutls, efitools) the script has no use for.
+# CONFIG_TOOLS_MKEFICAPSULE is not set
+# CONFIG_EFI_CAPSULE_AUTHENTICATE is not set

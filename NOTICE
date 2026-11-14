@@ -1,0 +1,19 @@
+# Licensing map
+
+Seeded from nerves_system_rock_4d v0.2.4 (https://github.com/bbangert/nerves_system_rock_4d),
+itself a Nerves system for an RK3576 board; the build scaffolding, fwup
+configs and some scripts derive from it.
+
+This repository combines content under several licenses. The full license
+texts are in LICENSES/.
+
+| Content | License |
+| --- | --- |
+| Build configuration, fwup configs, scripts, docs (this project's own files) | GPL-2.0-or-later |
+| `linux/0001-arm64-dts-rockchip-add-ha-green.patch`: adds `rk3566-ha-green.dts` (Copyright (c) 2023 Seeed Co., Ltd.), ported from the Green device tree in Home Assistant OS 18.4 (home-assistant/operating-system) and adapted to the vendor kernel | `rk3566-ha-green.dts`: GPL-2.0-or-later OR MIT (its SPDX header); the patch's one-line Makefile change: GPL-2.0-only (kernel license) |
+| `linux/0002-soc-rockchip-pm-domains-fail-power-up-without-panic.patch`: changes `drivers/soc/rockchip/pm_domains.c` | GPL-2.0-only (kernel license) |
+| `uboot/patches/*.patch` (Home Assistant OS's U-Boot patches for the Green, unmodified; see `uboot/patches/README.md`) | GPL-2.0-or-later (U-Boot's license); the added board file `ha-green.c` is GPL-2.0-only and one device tree is GPL-2.0-or-later OR MIT, as their SPDX headers say |
+| `uboot/rkbin/*.bin`, `uboot/rkbin/*.elf` (committed binaries: RK3566 DDR init, BL31; consumed by U-Boot's binman) | Rockchip proprietary (rockchip-linux/rkbin, `uboot/rkbin/LICENSE` = LICENSES/LICENSE.rockchip-rkbin) |
+
+Downloaded at build time (not in this repository): the Linux kernel
+(GPL-2.0-only), U-Boot (GPL-2.0-or-later), Buildroot packages (various).

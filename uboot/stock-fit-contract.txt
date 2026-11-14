@@ -1,0 +1,19 @@
+# Structure of the FIT (u-boot.itb) that the board's stock SPLs load at LBA
+# 16384: node names, per-image type/os/arch, load and entry addresses, and the
+# default configuration's firmware/loadables/fdt lists. Sizes, hashes,
+# timestamps and the board DTB's contents are not part of it.
+#
+# Derived from the Green FIT in Home Assistant OS 18.4 (U-Boot 2026.04). The
+# SPL generations in the field (2023.07.02 up to 2026.04) are expected to
+# accept this shape. Regenerate for review with:
+#   scripts/check-fit.sh --print-contract <u-boot.itb>
+default config-1
+config config-1 firmware=atf-1 loadables=u-boot,atf-2,atf-3,atf-4,atf-5,atf-6 fdt=fdt-1
+image atf-1 type=firmware os=arm-trusted-firmware arch=arm64 load=0x00040000 entry=0x00040000
+image atf-2 type=firmware os=arm-trusted-firmware arch=arm64 load=0x00069000 entry=-
+image atf-3 type=firmware os=arm-trusted-firmware arch=arm64 load=0x0006b000 entry=-
+image atf-4 type=firmware os=arm-trusted-firmware arch=arm64 load=0xfdcc1000 entry=-
+image atf-5 type=firmware os=arm-trusted-firmware arch=arm64 load=0xfdcce000 entry=-
+image atf-6 type=firmware os=arm-trusted-firmware arch=arm64 load=0xfdcd0000 entry=-
+image fdt-1 type=flat_dt os=- arch=- load=- entry=-
+image u-boot type=standalone os=u-boot arch=arm64 load=0x00800000 entry=0x00800000
