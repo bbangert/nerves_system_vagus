@@ -32,8 +32,9 @@ Targets covered: **rpi0** (Zero W), **rpi0_2** (Zero 2 W), **rpi3** (3A+/3B/3B+/
 **rpi3_64** (3A+/3B/3B+, 64-bit), **rpi4** (4B/400/CM4), **rpi5**. `rpi`/`rpi2` have
 no onboard Bluetooth. **dragon_q6a** and **rubik_pi3** are the Qualcomm
 QCS6490 boards, **rock_4d** is the Radxa ROCK 4D (Rockchip RK3576), and
-**ha_green** is the Home Assistant Green (Rockchip RK3566; no radios, so no
-BlueZ; see [docs/ha-green-install.md](docs/ha-green-install.md)).
+**ha_green** is the Home Assistant Green (Rockchip RK3566; no onboard
+radios, BlueZ and D-Bus are for USB Bluetooth dongles and apps; see
+[docs/ha-green-install.md](docs/ha-green-install.md)).
 
 Each target subdir is a **self-contained Nerves system** (its own
 `nerves_defconfig`, `fwup.conf`, overlay, and a local copy of any shared
