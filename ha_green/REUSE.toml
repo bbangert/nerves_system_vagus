@@ -1,0 +1,64 @@
+version = 1
+
+# base/ is the vendored board system and is covered by base/REUSE.toml.
+
+[[annotations]]
+path = [
+ ".formatter.exs",
+ ".github/CODEOWNERS",
+ ".gitignore",
+ "CHANGELOG.md",
+ "nerves_defconfig",
+ "nerves_defconfig.fragment",
+ "NOTICE",
+ "REUSE.toml",
+ "mix.exs",
+ "mix.lock",
+ "VERSION"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "None"
+SPDX-License-Identifier = "CC0-1.0"
+
+[[annotations]]
+path = [
+ "README.md"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2016 Frank Hunleth"
+SPDX-License-Identifier = "CC-BY-4.0"
+
+# Buildroot derived or related files
+# NOTE: packages here proactively have copyright assigned to the Buildroot
+# developers to avoid worrying about copyright assignment when upstreaming.
+[[annotations]]
+path = [
+ "Config.in",
+ "Config.in.fragment",
+ "package/**",
+ "external.mk"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "The Buildroot developers <buildroot@buildroot.org>"
+SPDX-License-Identifier = "GPL-2.0-or-later"
+
+# Linux kernel config fragments, synced from shared/
+[[annotations]]
+path = [
+ "linux-bluetooth.config",
+ "linux-containers.config",
+ "linux-memory.config"
+]
+precedence = "override"
+SPDX-FileCopyrightText = "Various"
+SPDX-License-Identifier = "GPL-2.0-only"
+
+# Various config files
+[[annotations]]
+path = [
+ "erlinit.config.fragment",
+ "rootfs_overlay/**"
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "None"
+SPDX-License-Identifier = "CC0-1.0"

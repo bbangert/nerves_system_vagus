@@ -1,0 +1,35 @@
+config BR2_PACKAGE_VAGUS_PODMAN
+	bool "vagus-podman"
+	depends on BR2_USE_MMU # fork()
+	depends on BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS
+	depends on BR2_PACKAGE_HOST_GO_TARGET_CGO_LINKING_SUPPORTS
+	depends on BR2_PACKAGE_LIBSECCOMP_ARCH_SUPPORTS # libseccomp
+	depends on BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_17 # libseccomp
+	depends on BR2_TOOLCHAIN_HAS_THREADS # conmon
+	depends on BR2_USE_WCHAR # conmon
+	select BR2_PACKAGE_HOST_GO
+	select BR2_PACKAGE_CA_CERTIFICATES # runtime
+	select BR2_PACKAGE_CATATONIT # runtime
+	select BR2_PACKAGE_CONMON # runtime
+	select BR2_PACKAGE_CONTAINERS_IMAGE_CONFIG # runtime
+	select BR2_PACKAGE_LIBSECCOMP
+	help
+	  Podman 6 for rootful use on an image without systemd, with
+	  its containers.conf and storage.conf.
+
+	  Not selected from here, but required at run time: an OCI
+	  runtime at /usr/bin/crun (BR2_PACKAGE_VAGUS_CRUN, or stock
+	  BR2_PACKAGE_CRUN), netavark >= 2 (BR2_PACKAGE_VAGUS_NETAVARK)
+	  and nft with JSON support (BR2_PACKAGE_NFTABLES_JSON).
+
+	  Rootless use, user namespaces, journald and container DNS
+	  (aardvark-dns) are not supported by this build.
+
+	  https://podman.io/
+
+comment "vagus-podman needs a toolchain w/ threads, wchar, headers >= 3.17"
+	depends on BR2_USE_MMU
+	depends on BR2_PACKAGE_HOST_GO_TARGET_ARCH_SUPPORTS
+	depends on BR2_PACKAGE_LIBSECCOMP_ARCH_SUPPORTS
+	depends on !BR2_TOOLCHAIN_HAS_THREADS || !BR2_USE_WCHAR \
+		|| !BR2_TOOLCHAIN_HEADERS_AT_LEAST_3_17

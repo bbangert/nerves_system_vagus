@@ -1,0 +1,7 @@
+# Locally computed, after crun-1.30.1.tar.gz.asc (upstream's only release
+# check; no checksum file is published) verified as a good signature from
+# Giuseppe Scrivano, primary key AC40 4C1C 0BF7 35C6 3FF4 D562 263D 6DF2
+# E163 E1EA.
+sha256  99d036d95113552b6df66c7c879432835504bf0e525fc0372745071df129527b  crun-1.30.1.tar.gz
+sha256  8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643  COPYING
+sha256  dc626520dcd53a22f727af3ee42c770e56c97a64fe3adb063799d8ab032fe551  COPYING.libcrun
