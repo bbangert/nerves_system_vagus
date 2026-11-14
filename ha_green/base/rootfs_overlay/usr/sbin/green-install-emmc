@@ -1,0 +1,404 @@
+#!/bin/sh
+#
+# Usage: green-install-emmc <path-to.fw>
+#
+# The only supported way to write the eMMC. The unit's stock first-stage
+# loader lives in eMMC LBA 64-16383 and we have no way to restore it, so this
+# refuses unless every precondition holds, and proves afterwards that the
+# loader area is byte-identical and that our FIT landed.
+#
+# fwup never writes the eMMC's GPT: its 128 KiB cache segments would turn the
+# 34 GPT sectors into a rewrite of LBA 0-255, the first 96 KiB of the loader
+# included. fwup renders the table into a sparse scratch file the size of the
+# eMMC instead, and this copies exactly LBA 0-33 and the last 33 sectors.
+#
+# Device paths and the fwup command are plain variables below, and main only
+# runs when the file is executed under its own name. The test harness sources
+# the file and reassigns them; nothing in the environment can redirect it.
+
+ROOTDISK=/dev/rootdisk0
+SD_DISK=/dev/mmcblk1
+EMMC_DISK=/dev/mmcblk0
+EMMC_SYSFS=/sys/block/mmcblk0
+MOUNTINFO=/proc/self/mountinfo
+SWAPS=/proc/swaps
+TMPBASE=/tmp
+FWUP=fwup
+PLATFORM=ha_green
+
+# LBA 64 holds the stock loader's RKNS header; LBA 16384-32767 is the window
+# the stock SPL loads our FIT from.
+LOADER_LBA=64
+LOADER_COUNT=16320
+FIT_LBA=16384
+FIT_COUNT=16384
+# Protective MBR, header and 128 entries of 128 bytes; the backup is the same
+# entries followed by its header in the last sector.
+GPT_FRONT_COUNT=34
+GPT_BACK_COUNT=33
+# The layout's end (p5 at LBA 2656256, 512 MiB minimum) plus the backup GPT.
+MIN_EMMC_SECTORS=3704866
+
+refuse() {
+    echo "green-install-emmc: REFUSED: $1; nothing was written to the eMMC." >&2
+    exit 1
+}
+
+is_blockdev() {
+    [ -b "$1" ]
+}
+
+# -ef follows symlinks, so rootdisk0 -> mmcblk1 matches; the major:minor
+# fallback covers a rootdisk0 that is its own device node.
+same_dev() {
+    # busybox ash has -ef, POSIX sh does not; the stat comparison below covers the rest.
+    # shellcheck disable=SC3013
+    [ "$1" -ef "$2" ] && return 0
+    [ -b "$1" ] && [ -b "$2" ] || return 1
+    [ "$(stat -L -c '%t:%T' "$1")" = "$(stat -L -c '%t:%T' "$2")" ]
+}
+
+# hash_range <file> <lba> <count>. A short read must not look like a stable
+# hash, so the dd record count is checked as well; sh has no pipefail. Disks
+# are read with O_DIRECT so the hash is of the media, not of the page cache;
+# the scratch file is on tmpfs, which need not support O_DIRECT. 32 KiB
+# blocks where the range allows: 512-byte O_DIRECT reads are slow on eMMC.
+hash_range() {
+    bs=512 skip=$2 n=$3
+    if [ $(($2 % 64)) -eq 0 ] && [ $(($3 % 64)) -eq 0 ]; then
+        bs=32768 skip=$(($2 / 64)) n=$(($3 / 64))
+    fi
+    case $1 in
+        "$TMPD"/*) H=$(dd if="$1" bs="$bs" skip="$skip" count="$n" 2>"$TMPD/dd.err" | sha256sum) ;;
+        *) H=$(dd if="$1" bs="$bs" skip="$skip" count="$n" iflag=direct 2>"$TMPD/dd.err" | sha256sum) ;;
+    esac
+    H=${H%% *}
+    grep -q "^$n+0 records in" "$TMPD/dd.err" && [ "${#H}" -eq 64 ]
+}
+
+# copy_sectors <lba> <count>: scratch file to the same LBA of the eMMC,
+# synced. O_DIRECT, so the kernel writes these sectors and not the rest of
+# the 4 KiB page cache pages around them.
+copy_sectors() {
+    dd if="$GPT_IMG" of="$EMMC_DISK" bs=512 skip="$1" seek="$1" count="$2" \
+        conv=notrunc,fsync oflag=direct 2>"$TMPD/dd.err" &&
+        grep -q "^$2+0 records out" "$TMPD/dd.err"
+}
+
+sysfs_value() {
+    [ -r "$1" ] || return 1
+    read -r SYSFS_VALUE < "$1"
+    [ -n "$SYSFS_VALUE" ]
+}
+
+# le_bytes <value> <length>: the integer as little-endian bytes.
+le_bytes() {
+    v=$1 n=$2 fmt=
+    while [ "$n" -gt 0 ]; do
+        fmt="$fmt\\$(printf %03o $((v & 255)))"
+        v=$((v >> 8))
+        n=$((n - 1))
+    done
+    # shellcheck disable=SC2059
+    printf "$fmt"
+}
+
+# field_is <sector file> <offset> <length> <value>
+field_is() {
+    dd if="$1" bs=1 skip="$2" count="$3" 2>/dev/null > "$TMPD/field.got"
+    le_bytes "$4" "$3" > "$TMPD/field.want"
+    cmp -s "$TMPD/field.got" "$TMPD/field.want"
+}
+
+# header_is <sector file> <own LBA> <other header's LBA> <entries LBA>
+header_is() {
+    dd if="$1" bs=1 count=8 2>/dev/null > "$TMPD/field.got"
+    printf 'EFI PART' > "$TMPD/field.want"
+    cmp -s "$TMPD/field.got" "$TMPD/field.want" &&
+        field_is "$1" 24 8 "$2" &&
+        field_is "$1" 32 8 "$3" &&
+        field_is "$1" 72 8 "$4" &&
+        field_is "$1" 80 4 128 &&
+        field_is "$1" 84 4 128
+}
+
+check_sd_booted() {
+    [ -e "$ROOTDISK" ] && same_dev "$ROOTDISK" "$SD_DISK"
+}
+
+check_emmc_present() {
+    is_blockdev "$EMMC_DISK"
+}
+
+check_emmc_nonremovable() {
+    sysfs_value "$EMMC_SYSFS/removable" && [ "$SYSFS_VALUE" = 0 ]
+}
+
+check_emmc_is_mmc() {
+    sysfs_value "$EMMC_SYSFS/device/type" && [ "$SYSFS_VALUE" = MMC ]
+}
+
+check_emmc_not_boot_disk() {
+    ! same_dev "$ROOTDISK" "$EMMC_DISK"
+}
+
+# fwup's gpt_write lays the table out in 512-byte sectors.
+check_emmc_512() {
+    sysfs_value "$EMMC_SYSFS/queue/logical_block_size" && [ "$SYSFS_VALUE" = 512 ]
+}
+
+# sysfs counts 512-byte sectors whatever the block size.
+check_emmc_size() {
+    sysfs_value "$EMMC_SYSFS/size" || return 1
+    case $SYSFS_VALUE in *[!0-9]*) return 1 ;; esac
+    EMMC_SECTORS=$SYSFS_VALUE
+    [ "$EMMC_SECTORS" -ge "$MIN_EMMC_SECTORS" ]
+}
+
+# We never write a loader, so an eMMC without one could not boot afterwards.
+check_loader_present() {
+    # The group keeps a shell's "ignored null byte" warning off stderr.
+    { magic=$(dd if="$EMMC_DISK" bs=4 skip=$((LOADER_LBA * 512 / 4)) count=1 2>/dev/null); } 2>/dev/null
+    [ "$magic" = RKNS ]
+}
+
+check_fw_platform() {
+    [ "$("$FWUP" -m -i "$FW" 2>/dev/null |
+        sed -n 's/^meta-platform="\{0,1\}\([^"]*\)"\{0,1\}$/\1/p')" = "$PLATFORM" ]
+}
+
+# Users of the eMMC are matched by major:minor, the kernel's own identity for
+# a block device: by-id links and extra device nodes make names useless. A
+# filesystem spanning several devices (btrfs) shows only an anonymous 0:N in
+# mountinfo, so one on the eMMC would not be seen.
+is_devnum() {
+    case $1 in
+        ""|*[!0-9:]*|:*|*:|*:*:*) return 1 ;;
+        *:*) return 0 ;;
+    esac
+    return 1
+}
+
+add_emmc_number() {
+    sysfs_value "$1" && is_devnum "$SYSFS_VALUE" || return 1
+    EMMC_NUMS="$EMMC_NUMS$SYSFS_VALUE "
+}
+
+# The disk and every partition sysfs lists under it.
+emmc_numbers() {
+    EMMC_NUMS=" "
+    add_emmc_number "$EMMC_SYSFS/dev" || return 1
+    for f in "$EMMC_SYSFS"/*/dev; do
+        [ -e "$f" ] || continue
+        add_emmc_number "$f" || return 1
+    done
+}
+
+# node_numbers <path>: NODE_NUMS as decimal major:minor, to compare with
+# sysfs. stat prints hex.
+node_numbers() {
+    [ -n "$1" ] || return 1
+    hex=$(stat -L -c '%t:%T' "$1" 2>/dev/null) || return 1
+    case $hex in
+        *[!0-9a-fA-F:]*|:*|*:|*:*:*|"") return 1 ;;
+        *:*) ;;
+        *) return 1 ;;
+    esac
+    NODE_NUMS=$((0x${hex%%:*})):$((0x${hex#*:}))
+}
+
+# The first three mountinfo fields are ids and the device's major:minor.
+check_not_mounted() {
+    [ -r "$MOUNTINFO" ] || { UNUSED_WHY="cannot read $MOUNTINFO"; return 1; }
+    mi_lines=0
+    while IFS= read -r mi_line || [ -n "$mi_line" ]; do
+        set -f
+        # shellcheck disable=SC2086 # splitting is the point; globbing is off
+        set -- $mi_line
+        set +f
+        mi_lines=$((mi_lines + 1))
+        is_devnum "${3:-}" || { UNUSED_WHY="cannot parse a line of $MOUNTINFO"; return 1; }
+        case $EMMC_NUMS in
+            *" $3 "*) UNUSED_WHY="$EMMC_DISK or a partition of it is mounted (device $3 in $MOUNTINFO)"; return 1 ;;
+        esac
+    done < "$MOUNTINFO"
+    # Something is always mounted; an empty table means the read went wrong.
+    [ "$mi_lines" -gt 0 ] || { UNUSED_WHY="$MOUNTINFO is empty"; return 1; }
+}
+
+# fwup's own require-unmounted-destination does not see swap. A swap file is
+# covered by the mount of its filesystem; stat gives it 0:0.
+check_not_swapped() {
+    [ -r "$SWAPS" ] || { UNUSED_WHY="cannot read $SWAPS"; return 1; }
+    while IFS= read -r sw_line || [ -n "$sw_line" ]; do
+        set -f
+        # shellcheck disable=SC2086 # splitting is the point; globbing is off
+        set -- $sw_line
+        set +f
+        [ "${1:-}" = Filename ] && continue
+        node_numbers "${1:-}" || { UNUSED_WHY="cannot identify swap device '${1:-}' in $SWAPS"; return 1; }
+        case $EMMC_NUMS in
+            *" $NODE_NUMS "*) UNUSED_WHY="$EMMC_DISK or a partition of it is used as swap ($1)"; return 1 ;;
+        esac
+    done < "$SWAPS"
+}
+
+# Device-mapper, md and the like sit on the eMMC without a mount of it.
+check_no_holders() {
+    for h in "$EMMC_SYSFS"/holders/* "$EMMC_SYSFS"/*/holders/*; do
+        if [ -e "$h" ] || [ -L "$h" ]; then
+            UNUSED_WHY="$EMMC_DISK or a partition of it is held by ${h##*/}"
+            return 1
+        fi
+    done
+}
+
+check_emmc_unused() {
+    emmc_numbers ||
+        { UNUSED_WHY="cannot read the device numbers of $EMMC_DISK from $EMMC_SYSFS"; return 1; }
+    check_not_mounted && check_not_swapped && check_no_holders
+}
+
+# The SD's FIT is the comparison baseline; without FDT magic there is none.
+check_sd_has_fit() {
+    magic=$(dd if="$SD_DISK" bs=4 skip=$((FIT_LBA * 512 / 4)) count=1 2>/dev/null | sha256sum)
+    want=$(printf '\320\015\376\355' | sha256sum)
+    [ "$magic" = "$want" ]
+}
+
+# Only LBA 0-33 and the last 33 sectors get copied, so the rendered table
+# must live in exactly those: headers that point at each other and at their
+# entries, 128 entries of 128 bytes.
+check_gpt_rendered() {
+    last=$((EMMC_SECTORS - 1))
+    dd if="$GPT_IMG" bs=512 skip=1 count=1 2>/dev/null > "$TMPD/primary"
+    dd if="$GPT_IMG" bs=512 skip="$last" count=1 2>/dev/null > "$TMPD/backup"
+    header_is "$TMPD/primary" 1 "$last" 2 &&
+        header_is "$TMPD/backup" "$last" 1 "$BACK_LBA"
+}
+
+check_gpt_on_emmc() {
+    hash_range "$EMMC_DISK" 0 "$GPT_FRONT_COUNT" && [ "$H" = "$gpt_front" ] &&
+        hash_range "$EMMC_DISK" "$BACK_LBA" "$GPT_BACK_COUNT" && [ "$H" = "$gpt_back" ]
+}
+
+main() {
+    [ $# -eq 1 ] || {
+        echo "usage: green-install-emmc <path-to.fw>" >&2
+        exit 2
+    }
+    FW=$1
+    [ -f "$FW" ] || refuse "firmware file $FW not found"
+
+    TMPD=$TMPBASE/green-install-emmc.$$
+    mkdir "$TMPD" || refuse "cannot create $TMPD"
+    trap 'rm -rf "$TMPD"' EXIT
+    GPT_IMG=$TMPD/gpt.img
+
+    check_sd_booted || refuse "$ROOTDISK is not $SD_DISK (not running from the SD card)"
+    check_emmc_present || refuse "$EMMC_DISK is not a block device"
+    check_emmc_nonremovable || refuse "$EMMC_DISK is not a non-removable device"
+    check_emmc_is_mmc || refuse "$EMMC_DISK is not an MMC device"
+    check_emmc_not_boot_disk || refuse "$EMMC_DISK is the boot disk"
+    check_emmc_512 || refuse "$EMMC_DISK does not have 512-byte logical blocks"
+    check_emmc_size || refuse "$EMMC_DISK size is unreadable or below $MIN_EMMC_SECTORS sectors"
+    check_loader_present || refuse "no RKNS stock loader at $EMMC_DISK LBA $LOADER_LBA"
+    check_fw_platform || refuse "$FW is not a $PLATFORM firmware"
+    check_emmc_unused || refuse "$UNUSED_WHY"
+    check_sd_has_fit || refuse "no FIT at $SD_DISK LBA $FIT_LBA to compare against"
+
+    hash_range "$EMMC_DISK" "$LOADER_LBA" "$LOADER_COUNT" ||
+        refuse "cannot read the loader area of $EMMC_DISK"
+    loader_before=$H
+    hash_range "$SD_DISK" "$FIT_LBA" "$FIT_COUNT" ||
+        refuse "cannot read the FIT window of $SD_DISK"
+    fit_sd=$H
+
+    BACK_LBA=$((EMMC_SECTORS - GPT_BACK_COUNT))
+    # Sparse: only the segments fwup writes take tmpfs space. Not --max-size:
+    # fwup multiplies it in 32 bits, so above 4 GiB the table would describe
+    # a smaller disk.
+    dd if=/dev/zero of="$GPT_IMG" bs=512 seek="$EMMC_SECTORS" count=0 2>/dev/null ||
+        refuse "cannot create the GPT scratch file $GPT_IMG"
+    "$FWUP" -a -q -d "$GPT_IMG" -t emmc-gpt -i "$FW" ||
+        refuse "fwup could not render the eMMC GPT"
+    check_gpt_rendered ||
+        refuse "the rendered GPT does not lie in LBA 0-$((GPT_FRONT_COUNT - 1)) and $BACK_LBA-$((EMMC_SECTORS - 1))"
+    hash_range "$GPT_IMG" 0 "$GPT_FRONT_COUNT" || refuse "cannot read the rendered GPT"
+    gpt_front=$H
+    hash_range "$GPT_IMG" "$BACK_LBA" "$GPT_BACK_COUNT" || refuse "cannot read the rendered backup GPT"
+    gpt_back=$H
+
+    echo "eMMC: $EMMC_SECTORS sectors; GPT at LBA 0-$((GPT_FRONT_COUNT - 1)) and $BACK_LBA-$((EMMC_SECTORS - 1))"
+    echo "eMMC loader area (LBA $LOADER_LBA-$((LOADER_LBA + LOADER_COUNT - 1))) sha256 before: $loader_before"
+
+    # GPT first: the FIT, which install writes last, stays the only thing
+    # that makes the eMMC bootable, so an interrupted run never leaves our
+    # FIT on a disk with the old table. Backup before primary: a torn
+    # primary then falls back to our table, not the old one.
+    status=0
+    fwup_rc=
+    if ! copy_sectors "$BACK_LBA" "$GPT_BACK_COUNT" || ! copy_sectors 0 "$GPT_FRONT_COUNT"; then
+        echo "FAIL: writing the GPT to $EMMC_DISK failed" >&2
+        status=1
+    elif ! check_gpt_on_emmc; then
+        echo "FAIL: the GPT read back from $EMMC_DISK differs from the rendered one" >&2
+        status=1
+    else
+        echo "eMMC GPT: written and read back identical"
+        "$FWUP" -a -d "$EMMC_DISK" -t install -i "$FW"
+        fwup_rc=$?
+    fi
+
+    if ! hash_range "$EMMC_DISK" "$LOADER_LBA" "$LOADER_COUNT"; then
+        echo "FAIL: cannot read the loader area back" >&2
+        loader_after=unreadable
+        status=1
+    else
+        loader_after=$H
+    fi
+    echo "eMMC loader area (LBA $LOADER_LBA-$((LOADER_LBA + LOADER_COUNT - 1))) sha256 after:  $loader_after"
+    if [ "$loader_before" = "$loader_after" ]; then
+        echo "loader area: unchanged"
+    else
+        echo "FAIL: the loader area changed" >&2
+        status=1
+    fi
+
+    if [ -n "$fwup_rc" ]; then
+        if hash_range "$EMMC_DISK" "$FIT_LBA" "$FIT_COUNT"; then
+            fit_emmc=$H
+        else
+            fit_emmc=unreadable
+        fi
+        echo "FIT window (LBA $FIT_LBA-$((FIT_LBA + FIT_COUNT - 1))) sha256 SD:   $fit_sd"
+        echo "FIT window (LBA $FIT_LBA-$((FIT_LBA + FIT_COUNT - 1))) sha256 eMMC: $fit_emmc"
+        if [ "$fit_sd" = "$fit_emmc" ]; then
+            echo "FIT window: identical"
+        else
+            echo "FAIL: the eMMC FIT differs from the SD's (or was not written)" >&2
+            status=1
+        fi
+        if check_gpt_on_emmc; then
+            echo "eMMC GPT: unchanged by the install"
+        else
+            echo "FAIL: the eMMC GPT changed during the install" >&2
+            status=1
+        fi
+        if [ "$fwup_rc" -ne 0 ]; then
+            echo "FAIL: fwup exited with status $fwup_rc" >&2
+            status=1
+        fi
+    fi
+
+    if [ "$status" -eq 0 ]; then
+        echo "PASS"
+    else
+        echo "FAIL: do not reboot into the eMMC; no repair was attempted"
+    fi
+    exit "$status"
+}
+
+case ${0##*/} in
+    green-install-emmc) main "$@" ;;
+esac
