@@ -86,8 +86,10 @@ Anything else ends with `FAIL: do not reboot into the eMMC; no repair was
 attempted`. The tool can simply be run again after an interruption; the card
 stays bootable throughout.
 
-Then remove the card and reboot. Without the card, the board's loader falls
-through to our U-Boot on the eMMC.
+Then shut the SD-booted system down before touching the card. From the IEx
+prompt, run `Nerves.Runtime.poweroff()`. Disconnect power, remove the card,
+and reconnect power. Without the card, the board's loader falls through to
+our U-Boot on the eMMC.
 
 There is no other way to write the eMMC. `green-install-emmc` is the only
 eMMC writer, and fwup itself never writes the eMMC's partition table.
