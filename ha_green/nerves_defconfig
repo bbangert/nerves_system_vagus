@@ -128,7 +128,8 @@ BR2_PACKAGE_BLUEZ_ALSA=y
 # common dongle family; the rest are the USB-capable sets Buildroot offers.
 # Broadcom USB dongles need .hcd files that linux-firmware does not carry and
 # Buildroot has no package for, so those only work if the dongle's own ROM is
-# enough.
+# enough. Atheros AR3012 is absent: it needs the kernel's separate ath3k loader,
+# which the shared Bluetooth fragment does not build.
 BR2_PACKAGE_LINUX_FIRMWARE=y
 BR2_PACKAGE_LINUX_FIRMWARE_RTL_87XX_BT=y
 BR2_PACKAGE_LINUX_FIRMWARE_RTL_88XX_BT=y
@@ -137,7 +138,6 @@ BR2_PACKAGE_LINUX_FIRMWARE_MEDIATEK_MT7920_BT=y
 BR2_PACKAGE_LINUX_FIRMWARE_MEDIATEK_MT7921_BT=y
 BR2_PACKAGE_LINUX_FIRMWARE_MEDIATEK_MT7922_BT=y
 BR2_PACKAGE_LINUX_FIRMWARE_MEDIATEK_MT7925_BT=y
-BR2_PACKAGE_LINUX_FIRMWARE_AR3012_USB=y
 BR2_PACKAGE_LINUX_FIRMWARE_QUALCOMM_6174A_BT=y
 
 # libnl: vintage_net_wifi's NIF compiles against libnl-genl-3.0, and

@@ -11,8 +11,8 @@ an entry names its repo tag where it does.
   and `bluetoothd` are at the paths Vagus probes; Vagus starts them, so there
   are no init scripts.
 * Adds the dongle firmware btusb loads: Realtek `rtl_bt`, Intel `ibt-*`,
-  MediaTek MT7920/21/22/25, Atheros AR3012 and Qualcomm 6174A. The kernel
-  side was already in `linux-bluetooth.config`.
+  MediaTek MT7920/21/22/25 and Qualcomm 6174A. The kernel side was already
+  in `linux-bluetooth.config`.
 * No USB dongle has been tested on the board.
 
 ## v0.1.1

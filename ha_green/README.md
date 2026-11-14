@@ -17,7 +17,7 @@ Assistant OS are in [docs/ha-green-install.md](../docs/ha-green-install.md).
 | Memory tuning | `linux-memory.config` (swap/reclaim, `PANIC_TIMEOUT=10`) and `/etc/sysctl.conf` |
 | USB audio | The USB audio class driver, from `linux-bluetooth.config` |
 | D-Bus + BlueZ | `dbus-daemon`, `bluetoothd`, `bluetoothctl`, `btmon`, bluez-alsa (SBC). Vagus starts the daemons itself |
-| USB Bluetooth | `btusb` (built in, with Realtek, Intel, Broadcom and MediaTek support) and the Realtek, Intel, MediaTek, Atheros AR3012 and Qualcomm 6174A dongle firmware from linux-firmware |
+| USB Bluetooth | `btusb` (built in, with Realtek, Intel, Broadcom and MediaTek support) and the Realtek, Intel, MediaTek and Qualcomm 6174A dongle firmware from linux-firmware |
 
 The Green has no onboard WiFi or Bluetooth. D-Bus ships because Home
 Assistant installs apps by default that need the host system bus (Matter
@@ -25,7 +25,8 @@ Server mounts `/run/dbus`), and BlueZ plus the dongle firmware ship so a USB
 Bluetooth dongle works. No USB dongle has been tested on the board. There is
 no `/etc/bluetooth/main.conf`: the other boards' one tunes an onboard
 AIC8800 radio. Broadcom USB dongles whose firmware is a `.hcd` file are not
-covered, because linux-firmware does not carry those.
+covered, because linux-firmware does not carry those. Atheros AR3012 dongles
+are not covered either: they need the kernel's separate ath3k loader.
 
 `linux-*.config`, `rootfs_overlay/etc/sysctl.conf` and `package/vagus-*`
 are synced from the repo's `shared/` by `make sync`.
