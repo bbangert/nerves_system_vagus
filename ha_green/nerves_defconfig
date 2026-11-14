@@ -109,6 +109,11 @@ BR2_PACKAGE_ALSA_UTILS_SPEAKER_TEST=y
 # linux-bluetooth.config stays in the kernel list for its USB audio class
 # driver (USB DACs); its Bluetooth symbols are inert without userspace.
 
+# libnl: vintage_net_wifi's NIF compiles against libnl-genl-3.0, and
+# nerves_pack pulls it into every target's firmware. No WiFi hardware here,
+# but without the library the firmware does not build.
+BR2_PACKAGE_LIBNL=y
+
 # ---- Custom: container engine ----
 # podman, driven per operation by Vagus through its CLI. The vagus-* recipes
 # are synced from shared/package/ by `make sync`; the kernel side is

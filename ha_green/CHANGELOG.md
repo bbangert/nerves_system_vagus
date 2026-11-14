@@ -3,6 +3,13 @@
 Headings are this target's `VERSION`. Git tags are repo-wide and can differ;
 an entry names its repo tag where it does.
 
+## v0.1.1
+
+* Builds libnl. `nerves_pack` pulls `vintage_net_wifi` into every target's
+  firmware, and its C port links libnl-genl-3.0, so a Vagus firmware for
+  this radio-less board failed to build without it. No WiFi userspace is
+  added.
+
 ## v0.1.0
 
 First release of this target. The board support is nerves_system_ha_green
