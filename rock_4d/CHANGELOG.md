@@ -3,6 +3,14 @@
 Headings are this target's `VERSION`. Git tags are repo-wide and can differ;
 an entry names its repo tag where it does.
 
+## v0.1.2
+
+Repo tag v0.10.3. Moves base to nerves_system_rock_4d v0.2.5: the board
+fan and the Radxa PoE+ HAT fan follow the SoC temperature in four steps
+(kernel `SENSORS_PWM_FAN`, default thermal governor `step_wise`), and the
+aic8800 WiFi driver no longer prints "rx eapol" to the console on every
+EAPOL frame. `base/CHANGELOG.md` has the details and what was verified.
+
 ## v0.1.1
 
 Repo tag v0.9.1. Moves base to nerves_system_rock_4d v0.2.4: the
