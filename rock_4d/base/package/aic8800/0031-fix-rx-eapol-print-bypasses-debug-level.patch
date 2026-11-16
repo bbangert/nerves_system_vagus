@@ -1,0 +1,23 @@
+Fork-local patch, not part of radxa-pkg's debian/patches series.
+
+The USB rx path prints "rx eapol" with a bare printk() for every received
+EAPOL frame. It has no log level of its own and ignores aicwf_dbg_level
+(which fix-Lower-the-debugging-log-level sets to LOGERROR), so it lands on
+the console at the default level and floods it on every WPA handshake and
+rekey. Route it through AICWFDBG(LOGDEBUG, ...) like the neighbouring
+traces.
+
+The PCIE tree has a similar txrx_err() print; this system builds only
+the USB driver, so it is left alone.
+
+--- a/src/USB/driver_fw/drivers/aic8800/aic8800_fdrv/rwnx_rx.c
++++ b/src/USB/driver_fw/drivers/aic8800/aic8800_fdrv/rwnx_rx.c
+@@ -2529,7 +2529,7 @@
+ 
+ 
+             if((ether_type[0] == 0x8e && ether_type[1] == 0x88) || (ether_type[0] == 0x88 && ether_type[1] == 0x8e))
+-                printk("rx eapol\n");
++                AICWFDBG(LOGDEBUG, "rx eapol\n");
+ 			
+ 			if (is_amsdu) {
+ //Check NETGEAR R7000 router's AMSDU packet format for compliance. start

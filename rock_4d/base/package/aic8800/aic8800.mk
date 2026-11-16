@@ -12,8 +12,9 @@
 # sources are CRLF, upstream's patch contexts are LF, and GNU patch
 # refuses the mismatch. Same changes, byte-exact context. Upstream
 # patches that are themselves CRLF throughout (e.g. 0017) apply as-is:
-# GNU patch strips their CRs. 0030 is fork-local (NUL-terminates the SDIO
-# get_fw_path override copy) and is not in radxa-pkg's series.
+# GNU patch strips their CRs. 0030 and 0031 are fork-local, not in
+# radxa-pkg's series: 0030 NUL-terminates the SDIO get_fw_path override
+# copy, 0031 puts the "rx eapol" print behind the driver's debug level.
 AIC8800_VERSION = e9e43ed79c50483080e9bcdfb08caeeb869d7191
 AIC8800_SITE = $(call github,radxa-pkg,aic8800,$(AIC8800_VERSION))
 # The kernel modules declare MODULE_LICENSE("GPL") (GPL-2.0-or-later);

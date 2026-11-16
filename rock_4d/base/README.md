@@ -71,7 +71,7 @@ with this fork's UFS boot chain on 2026-11-08.
 | NPU (6 TOPS) | Yes | RKNPU driver 0.9.8 + librknnrt 2.3.2 runtime and headers (`package/librknnrt`). Inference verified with the rknn-toolkit2 v2.3.2 examples: MobileNetV1 ~3 ms, YOLOv5s-640 ~31 ms. Build models on the host with rknn-toolkit2 |
 | MIPI DSI / CSI | No | Connectors unused; needs panel/camera bring-up |
 | Onboard WiFi in AP mode | Yes *(upstream)* | VintageNetWiFi `mode: :ap` |
-| Thermals | Yes | 2 minutes of all-core stress (2.016/2.208 GHz) peaked at 75.8 °C on the big cores without throttling, back to ~53 °C 10 s later |
+| Thermals | Yes | 2 minutes of all-core stress (2.016/2.208 GHz) peaked at 75.8 °C on the big cores without throttling, back to ~53 °C 10 s later (measured with the previous power_allocator governor; the default is now step_wise, which throttles CPU and GPU at the 85 °C trip) |
 
 ## Building
 
@@ -235,7 +235,8 @@ the vendor code this system carries.
 | USB | 2× USB3 host (upper is also the maskrom port), 2× USB2 hosts | No gadget/`usb0`: the device tree sets both dwc3 controllers to host mode |
 | PCIe | Gen2 x1 over 16-pin FPC (RPi 5-style) | M.2 NVMe via Radxa HAT; dts-enabled, untested |
 | RTC | Haoyu HYM8563 (i2c 0x51), 2-pin XH battery connector (CR2032) | Sets system clock at boot |
-| Fan | 2-pin XH 1.25 mm, 5 V PWM | pwm-fan in dts, thermal-zone driven |
+| Fan | 2-pin XH 1.25 mm, 5 V PWM | pwm-fan driven by the SoC temperature (little-core thermal zone, step_wise governor). One level per trip: off below 60 °C, 25 % from 60 °C, 50 % from 68 °C, 75 % from 76 °C, 100 % from 84 °C. Rising, the level jumps straight to the band's level. Falling, it drops one level per falling sample and only once the temperature is below that level's trip; there is no hysteresis, so the fan can switch on and off around 60 °C. Driver state verified on hardware (device binds, 5 cooling states); no fan was attached to this header during the load test, so its behaviour is untested |
+| PoE+ HAT fan | Header pin 33 (GPIO1_C2, PWM `pwm1_6ch_2`), active-low | Same levels and trips as the board fan. The pin is claimed for this on every board, with or without the HAT, so it is not available as a GPIO or another PWM. Verified on a 4 GB board with the 25W PoE+ HAT: off at idle (polarity correct), 25 % at 61 °C, 50 % at 74 °C and 75 % at about 77 °C under full load on all 8 cores, off again at 55 °C after the load. The 84 °C trip, sustained light load near 60 °C (possible on/off cycling), the 6 GB board and other HAT revisions are untested. The fan runs only briefly at boot before the thermal zone takes over |
 | Debug UART | UART0, header pins 8 (TX) / 10 (RX) / 6 (GND) | 1500000 8N1; `ttyFIQ0` console |
 | LEDs | power (default-on), user (heartbeat) | gpio-leds, `/sys/class/leds` |
 | Power | 5 V only: USB-C (PD adapters OK, board takes 5 V fixed), header pins 2/4, or PoE+ HAT | ≥3 A recommended |
@@ -250,6 +251,12 @@ the vendor code this system carries.
 PDM mic inputs, CAN1, and I3C0. Power: 3V3 on pins 1/17, 5V on 2/4,
 grounds on 6/9/14/20/25/30/34/39. Use them from Elixir with
 [Circuits.GPIO/I2C/SPI/UART](https://elixir-circuits.github.io/).
+Pin 33 is the exception: the device tree gives it to the PoE+ HAT fan.
+
+The HAT fan control is inverted (high is off). When the board is powered off but PoE power remains, the pin
+is unpowered and the fan runs at full speed. That is the HAT's hardware
+behavior, not something the firmware can change. The DS18B20 temperature
+sensor on the HAT (GPIO1_C3) is not set up.
 
 ---
 
