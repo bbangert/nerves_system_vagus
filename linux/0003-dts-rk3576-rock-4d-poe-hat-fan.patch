@@ -1,0 +1,114 @@
+From: Ben Bangert <ben@groovie.org>
+Subject: [PATCH] dts: rk3576-rock-4d: drive both fans in graded steps
+
+The Radxa 25W PoE+ HAT switches its fan from 40-pin header pin 33
+(GPIO1_C2, pwm1_6ch_2 via pwm1m1_ch2). The control is active-low: a high
+pin is off, which is also the pin's reset state. Radxa's
+rock-4d-radxa-25w-poe overlay models it as a pwm-fan on inverted
+polarity with the same five cooling levels as the board's own fan0; the
+PWM driver parks an inverted channel at its inactive (high) level when
+disabled, so cooling state 0 is fan off. The overlay's w1-gpio node for
+the HAT's DS18B20 sensor is not ported.
+
+The vendor maps put fan0 on the 60 and 85 degC trips with an unbounded
+state range. step_wise only lowers a target while the temperature is
+falling below that instance's trip, so the fan ramped to full speed
+above 60 degC and stayed there until the zone cooled under 60 degC; the
+middle levels were never held. Each level now has its own active trip
+with a bounded range (the pattern of rk3399-rockpro64.dtsi and
+rk3588s-roc-pc.dts), and both fans share the maps. The active trips do
+not touch the passive CPU/GPU maps on the 85 degC trip.
+
+--- a/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
++++ b/arch/arm64/boot/dts/rockchip/rk3576-rock-4d.dts
+@@ -31,6 +31,14 @@
+ 		pwms = <&pwm2_8ch_5 0 60000 0>;
+ 	};
+ 
++	/* Radxa 25W PoE+ HAT fan on header pin 33; its control is active-low. */
++	radxa_poe_fan: radxa-poe-fan {
++		compatible = "pwm-fan";
++		#cooling-cells = <2>;
++		cooling-levels = <0 64 128 192 255>;
++		pwms = <&pwm1_6ch_2 0 40000 PWM_POLARITY_INVERTED>;
++	};
++
+ 	vcc_sys: vcc5v0-sys {
+ 		compatible = "regulator-fixed";
+ 		regulator-name = "vcc_sys";
+@@ -335,18 +343,57 @@
+ 
+ &little_core_thermal {
+ 	sustainable-power = <5000>; /* milliwatts */
++	/*
++	 * One active trip per fan level. step_wise ignores the hysteresis (it
++	 * only bounds the tsadc alarm window) and steps a level down only
++	 * while the temperature is falling below that level's trip.
++	 */
++	trips {
++		fan_trip0: fan-trip0 {
++			temperature = <60000>;
++			hysteresis = <3000>;
++			type = "active";
++		};
++		fan_trip1: fan-trip1 {
++			temperature = <68000>;
++			hysteresis = <3000>;
++			type = "active";
++		};
++		fan_trip2: fan-trip2 {
++			temperature = <76000>;
++			hysteresis = <3000>;
++			type = "active";
++		};
++		fan_trip3: fan-trip3 {
++			temperature = <84000>;
++			hysteresis = <3000>;
++			type = "active";
++		};
++	};
+ 	cooling-maps {
+ 		map3 {
+-			trip = <&target>;
++			trip = <&fan_trip0>;
+ 			cooling-device =
+-				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+-			contribution = <8192>;
++				<&fan0 THERMAL_NO_LIMIT 1>,
++				<&radxa_poe_fan THERMAL_NO_LIMIT 1>;
+ 		};
+ 		map4 {
+-			trip = <&threshold>;
++			trip = <&fan_trip1>;
+ 			cooling-device =
+-				<&fan0 THERMAL_NO_LIMIT THERMAL_NO_LIMIT>;
+-			contribution = <8192>;
++				<&fan0 1 2>,
++				<&radxa_poe_fan 1 2>;
++		};
++		map5 {
++			trip = <&fan_trip2>;
++			cooling-device =
++				<&fan0 2 3>,
++				<&radxa_poe_fan 2 3>;
++		};
++		map6 {
++			trip = <&fan_trip3>;
++			cooling-device =
++				<&fan0 3 THERMAL_NO_LIMIT>,
++				<&radxa_poe_fan 3 THERMAL_NO_LIMIT>;
+ 		};
+ 	};
+ };
+@@ -597,6 +644,11 @@
+ 	status = "okay";
+ };
+ 
++&pwm1_6ch_2 {
++	pinctrl-0 = <&pwm1m1_ch2>;
++	status = "okay";
++};
++
+ &pinctrl {
+ 	usb {
+ 		usb_host_pwren: usb-host-pwren {
