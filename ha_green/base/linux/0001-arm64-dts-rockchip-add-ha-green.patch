@@ -58,8 +58,8 @@ The SPI NOR controller (sfc) is deliberately left disabled: the NOR holds
 the factory boot loader and Linux must not expose it.
 ---
  arch/arm64/boot/dts/rockchip/Makefile         |   1 +
- .../boot/dts/rockchip/rk3566-ha-green.dts     | 819 ++++++++++++++++++
- 2 files changed, 820 insertions(+)
+ .../boot/dts/rockchip/rk3566-ha-green.dts     | 815 +++++++++++++++++
+ 2 files changed, 816 insertions(+)
  create mode 100644 arch/arm64/boot/dts/rockchip/rk3566-ha-green.dts
 
 diff --git a/arch/arm64/boot/dts/rockchip/Makefile b/arch/arm64/boot/dts/rockchip/Makefile
@@ -79,7 +79,7 @@ new file mode 100644
 index 0000000..93656e8
 --- /dev/null
 +++ b/arch/arm64/boot/dts/rockchip/rk3566-ha-green.dts
-@@ -0,0 +1,819 @@
+@@ -0,0 +1,815 @@
 +// SPDX-License-Identifier: (GPL-2.0+ OR MIT)
 +/*
 + * Copyright (c) 2023 Seeed Co., Ltd.
@@ -110,12 +110,8 @@ index 0000000..93656e8
 +		/* The boot script derives root=/dev/mmcblkN from these. */
 +		mmc0 = &sdhci;
 +		mmc1 = &sdmmc0;
-+		/*
-+		 * The PCF8563 is the battery-backed clock; pin it to rtc0 so
-+		 * hctosys reads it rather than the RK809's unbacked RTC.
-+		 */
++		/* The PCF8563 is the only RTC (the RK809's is not built). */
 +		rtc0 = &rtc;
-+		rtc1 = &rk809;
 +	};
 +
 +	chosen {
