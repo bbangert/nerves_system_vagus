@@ -3,6 +3,14 @@
 Headings are this target's `VERSION`. Git tags are repo-wide and can differ;
 an entry names its repo tag where it does.
 
+## v0.1.3
+
+Repo tag v0.10.4. Moves base to nerves_system_ha_green v0.1.1: the kernel's
+default cpufreq governor is `performance` and the RK809's own RTC driver is
+no longer built, matching the settings Home Assistant OS defines for the
+Green; the PCF8563 is the only RTC. `base/CHANGELOG.md` has the details and
+what was verified.
+
 ## v0.1.2
 
 * Ships D-Bus and BlueZ. Home Assistant installs apps by default that need
