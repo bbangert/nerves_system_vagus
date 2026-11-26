@@ -6,7 +6,8 @@
 # none of them may be enabled. /dev/mem would let root program the unclaimed
 # SFC through its MMIO, and mmc_test writes raw test patterns to whatever
 # card it binds. The other options are what the planned accelerator, RTC and
-# ramoops/watchdog/lockup diagnostics depend on.
+# ramoops/watchdog/lockup diagnostics depend on, plus the performance cpufreq
+# default (without it the vendor Kconfig falls back to schedutil).
 #
 # Usage: check-kernel-config.sh <kernel .config>
 
@@ -26,7 +27,8 @@ for sym in ROCKCHIP_VENDOR_STORAGE ROCKCHIP_MMC_VENDOR_STORAGE \
 done
 for sym in MALI_BIFROST ROCKCHIP_RKNPU ROCKCHIP_MPP_SERVICE RTC_DRV_PCF8563 \
     PSTORE_RAM PSTORE_CONSOLE DW_WATCHDOG SOFTLOCKUP_DETECTOR \
-    BOOTPARAM_SOFTLOCKUP_PANIC DETECT_HUNG_TASK BOOTPARAM_RCU_STALL_PANIC; do
+    BOOTPARAM_SOFTLOCKUP_PANIC DETECT_HUNG_TASK BOOTPARAM_RCU_STALL_PANIC \
+    CPU_FREQ_DEFAULT_GOV_PERFORMANCE; do
     if ! grep -q "^CONFIG_${sym}=y" "$CONFIG"; then
         echo "check-kernel-config: FAIL CONFIG_$sym is not =y in $CONFIG" >&2
         rc=1

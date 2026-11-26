@@ -271,16 +271,16 @@ path back to stock of its own.
 | USB | USB 2.0 host | Both USB-A ports enumerate devices (a high-speed flash drive, a full-speed HID device); verified at that level only |
 | HDMI display | DRM/KMS | Display detected, a 3840x2160 mode set with a framebuffer console, hot-unplug detected |
 | HDMI audio | ALSA | The audio device registers; playback not tested |
-| NPU | Rockchip `rknpu` driver 0.9.8 | Probes with its IOMMU and `vdd_npu` at 900 mV; appears as a DRM node (`/dev/dri/card1`, `/dev/dri/renderD129`; there is no `/dev/rknpu`). Booting with no display attached gives the same numbering (display `card0`/`renderD128`, NPU `card1`/`renderD129`); only `/dev/fb0` is absent. No inference job has been run |
-| GPU | Mali-G52, `kbase` g29p1 | Probes as `/dev/mali0`. No userspace driver has been run |
-| Video codecs | Rockchip MPP (`/dev/mpp_service`) | RKVDEC, RKVENC, VDPU2, VEPU2, RKJPEGD and IEP2 register. No encode or decode has been run |
-| RGA 2D blitter | `/dev/rga`; the RGA2 core has no IOMMU and addresses only the first 4 GiB of RAM, so the system keeps all usable RAM below 4 GiB and any buffer is addressable | RGA2 (driver 1.3.13) probes; no job has been run |
+| NPU | Rockchip `rknpu` driver 0.9.8 | Probes with its IOMMU and `vdd_npu` at 900 mV; appears as a DRM node (`/dev/dri/card1`, `/dev/dri/renderD129`; there is no `/dev/rknpu`). Booting with no display attached gives the same numbering (display `card0`/`renderD128`, NPU `card1`/`renderD129`); only `/dev/fb0` is absent. Verified from an app container with `librknnrt` 2.3.2: the reference classification example returns the expected top-5 and `/proc/rknpu/load` is readable |
+| GPU | Mali-G52, `kbase` g29p1 | Verified from an app container: the g29p1 userspace library gives OpenGL ES 3.2 through GBM on `/dev/dri/card0` with no display connected, with exact pixel read-back. The surfaceless EGL platform fails with this library |
+| Video codecs | Rockchip MPP (`/dev/mpp_service`) | RKVDEC, RKVENC, VDPU2, VEPU2, RKJPEGD and IEP2 register. Verified from an app container with MPP 1.1.0: hardware H.264 and H.265 decode and H.264 encode of 720p clips. Needs `/proc/device-tree/compatible`; MPP registers no codec without it |
+| RGA 2D blitter | `/dev/rga`; the RGA2 core has no IOMMU and addresses only the first 4 GiB of RAM, so the system keeps all usable RAM below 4 GiB and any buffer is addressable | RGA2 (driver 1.3.13). Verified from an app container with librga 1.10.5: copy, resize, NV12 to RGB conversion, crop, rotate, flip and fill match a CPU reference with dma-buf buffers from all four heaps; the kernel driver refused the tested user-memory buffers: it requires user memory to map as a single contiguous segment, which ordinary page-backed allocations do not |
 | DMA heaps | `/dev/dma_heap` | `system`, `system-uncached` and `reserved` present |
-| RTC | PCF8563 | Verified: `rtc0`, keeps time |
+| RTC | PCF8563 | Verified: `rtc0` is the only RTC (no `rtc1`), keeps time, and the kernel sets the system clock from it at boot. The RK809's own RTC has no backup cell and is not built |
 | Watchdog | SoC watchdog via `nerves_heart` | Verified: arms the watchdog (44 s); a stopped feeder resets the board |
 | LEDs | Power, user, activity | Verified: power on, user LED heartbeat, activity LED on eMMC I/O |
 | Button | RK809 power key (`rk809 pwrkey` input) | Verified: a short press delivers `KEY_POWER`; nothing acts on it by default. Long press not tried |
-| CPU frequency | 408-1800 MHz | Verified: all steps; under a 2-minute 4-core load 1.8 GHz held at 1.05 V core, SoC about 45 C; thermal sensors read |
+| CPU frequency | 408-1800 MHz, default governor `performance` (as in Home Assistant OS) | Verified: boots with `performance`, stays at 1800 MHz, other governors selectable. One unit (4 GiB, no display, Core running): idle SoC 32.5-33.8 C (33.1 C under the earlier `schedutil` default, same within the 0.6 C sensor step); 10 minutes of 4-core load held 44.4 C SoC, 37.8 C GPU, at 1800 MHz with no throttling (first passive trip 75 C), back to about 36 C within a minute. Idle power not measured (no power meter). Under `schedutil`: all steps, 1.05 V core at 1.8 GHz |
 | eMMC | HS200 | Verified; the installer sizes the data partition to the whole disk and the first boot formats it (27.2 GiB usable on the 32 GB unit); about 144 MB/s raw read, 79 MB/s synced write (one unit, 256 MiB samples) |
 
 Not exercised: audio playback, and the failed-first-power-up path of the
@@ -294,14 +294,21 @@ the 3.75 GiB below 4 GiB; `MemTotal` is about 3.58 GiB (3751128 kB, was
 4 GiB: the default 128 MiB pool and the 32 MiB Rockchip dma-heap pool, which
 used to sit above it. The RGA2 core has no IOMMU and reaches only the first
 4 GiB; without the reservation, ordinary dma-bufs are allocated from that high
-RAM first. No RGA job has been run, so RGA scaling itself is unproven.
+RAM first. RGA jobs completed with dma-bufs from all four heaps, none refused
+for its address.
 
 No onboard WiFi or Bluetooth (the vendor kernel config still includes USB Bluetooth support). No serial console is needed; the kernel console is on
 `tty0` and `ttyS2`.
 
 The kernel provides drivers and device nodes only. The userspace libraries
 (`librknnrt`, the Mali userspace driver, MPP and RGA libraries) are not part
-of this system; they live in the application images that use them.
+of this system; they live in the application images that use them. The
+accelerator results above were measured with the
+[`rockchip_probe`](https://github.com/bbangert/ha-bench-addons/tree/main/rockchip_probe)
+bench app at 720p and 1080p test sizes, which also documents the method. Not
+measured: the probe app on a boot with no display attached (HDMI was unplugged
+while running), thermal behaviour while the probe app runs (its runs were under a minute, at about 30 C, with the `schedutil` governor; the 10-minute CPU load in the table above did not run it), idle power, and
+the accuracy of quantized detection models.
 
 ## Building
 
